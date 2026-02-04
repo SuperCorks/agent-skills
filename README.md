@@ -16,7 +16,7 @@ A collection of AI agent skills for GitHub Copilot and other AI assistants.
 Use the `@supercorks/skills-installer` CLI to interactively select and install skills:
 
 ```bash
-npx @supercorks/skills-installer install
+npx @supercorks/skills-installer
 ```
 
 If you run into issues with `npx` resolving the executable, use the explicit form:
