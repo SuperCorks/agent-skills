@@ -6,6 +6,7 @@ A collection of AI agent skills for GitHub Copilot and other AI assistants.
 
 | Skill | Description |
 |-------|-------------|
+| [address-pr-comments](skills/address-pr-comments) | Address PR review comments from CodeRabbit and other reviewers |
 | [gtm-manager](skills/gtm-manager) | Manage Google Tag Manager containers, tags, triggers, and variables |
 
 ## Usage
