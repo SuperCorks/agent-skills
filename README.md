@@ -7,6 +7,8 @@ A collection of AI agent skills for GitHub Copilot and other AI assistants.
 | Skill | Description |
 |-------|-------------|
 | [address-pr-comments](address-pr-comments) | Address PR review comments from automated and human reviewers |
+| [boulevard](boulevard) | Query Boulevard Admin, Public Client, and Known Client APIs. Compare and sync services between Boulevard instances |
+| [describe-image](describe-image) | Generates a short text description of an image file using AI |
 | [gtm-manager](gtm-manager) | Manage Google Tag Manager containers, tags, triggers, and variables |
 
 ## Installation
@@ -41,7 +43,7 @@ git clone --filter=blob:none --sparse https://github.com/supercorks/agent-skills
 cd .github/skills
 
 # Checkout only the skills you need
-git sparse-checkout set address-pr-comments gtm-manager
+git sparse-checkout set address-pr-comments boulevard describe-image gtm-manager
 ```
 
 ### Option 3: Copy skills to your project
