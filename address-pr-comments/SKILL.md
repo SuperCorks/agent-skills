@@ -1,6 +1,6 @@
 ---
 name: address-pr-comments
-description: Address PR review comments from CodeRabbit and other reviewers. Use this when asked to address PR comments, fix PR feedback, or respond to code review.
+description: Address PR review comments from automated and human reviewers. Use this when asked to address PR comments, fix PR feedback, or respond to code review.
 ---
 
 # Address PR Review Comments
@@ -11,7 +11,7 @@ This skill guides you through addressing PR review comments systematically.
 
 ## ⚠️ Critical: Only Address the LATEST Review from EACH Reviewer
 
-**Address only the MOST RECENT review from each reviewer.** If there are 3 reviewers (e.g., CodeRabbit, human reviewer A, human reviewer B), you address 3 reviews — the latest one from each.
+**Address only the MOST RECENT review from each reviewer.** If there are 3 reviewers (e.g., an automated reviewer, human reviewer A, human reviewer B), you address 3 reviews — the latest one from each.
 
 **Do NOT address:**
 
@@ -34,7 +34,7 @@ The `pr-review-summaries.js` script automatically filters to show only the most 
 Run the review summaries script to get the latest feedback:
 
 ```bash
-# Get the LATEST review summary from each reviewer (CodeRabbit, Vercel, humans, etc.)
+# Get the LATEST review summary from each reviewer (automated tools and humans)
 # Earlier reviews are ignored - only the most recent per author is returned
 node .github/skills/address-pr-comments/pr-review-summaries.js --json > /tmp/pr-summaries.json
 ```

@@ -6,17 +6,23 @@ A collection of AI agent skills for GitHub Copilot and other AI assistants.
 
 | Skill | Description |
 |-------|-------------|
-| [address-pr-comments](address-pr-comments) | Address PR review comments from CodeRabbit and other reviewers |
+| [address-pr-comments](address-pr-comments) | Address PR review comments from automated and human reviewers |
 | [gtm-manager](gtm-manager) | Manage Google Tag Manager containers, tags, triggers, and variables |
 
 ## Installation
 
 ### Option 1: Interactive installer (recommended)
 
-Use the `@supercorks/install-skills` CLI to interactively select and install skills:
+Use the `@supercorks/skills-installer` CLI to interactively select and install skills:
 
 ```bash
-npx @supercorks/install-skills install
+npx @supercorks/skills-installer install
+```
+
+If you run into issues with `npx` resolving the executable, use the explicit form:
+
+```bash
+npx --package=@supercorks/skills-installer skills-installer install
 ```
 
 This will:
@@ -73,10 +79,6 @@ skill-name/
 1. Install skills to `.github/skills/` (or `.claude/skills/` for Claude)
 2. The AI agent will automatically discover and use skills from this location
 3. Each skill's `SKILL.md` contains the instructions the AI follows
-
-## Creating New Skills
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on creating new skills.
 
 ## License
 

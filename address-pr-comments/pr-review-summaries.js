@@ -2,7 +2,7 @@
 
 /**
  * Fetches top-level PR review summaries from the current repository.
- * Returns the latest review from each reviewer (CodeRabbit, Vercel, humans, etc.)
+ * Returns the latest review from each reviewer (automated tools and humans).
  *
  * Usage:
  *   npm run gh:pr-summaries [pr-number]
