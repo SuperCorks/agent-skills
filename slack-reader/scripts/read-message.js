@@ -11,6 +11,7 @@ const { requireSlackSDK } = require('../lib/deps');
 const { parseSlackUrl } = require('../lib/url-parser');
 const { createClient, getMessage, getThreadReplies, getChannelContext, getChannelInfo, resolveUsers } = require('../lib/client');
 const { normalizeOutput, collectUserIds } = require('../lib/normalizer');
+const { getConfiguredWorkspaces, resolveWorkspace } = require('../lib/workspaces');
 
 const HELP = `
 Read a Slack message by permalink URL.
@@ -20,11 +21,14 @@ Usage:
 
 Options:
   --url <url>           Slack message permalink (required)
+  --workspace <name>    Workspace alias from SLACK_WORKSPACES (auto-detected if possible)
   --context-size <n>    Number of messages before/after for context (default: 5)
   --help                Show this help message
 
 Environment:
-  SLACK_BOT_TOKEN       Slack Bot User OAuth Token (xoxb-...)
+  SLACK_WORKSPACES      JSON object of workspace aliases to tokens (multi-workspace)
+                        Example: {"personal": "xoxb-...", "company": "xoxb-..."}
+  SLACK_BOT_TOKEN       Fallback for single workspace (xoxb-...)
 
 Required Scopes:
   channels:history      Read messages from public channels
@@ -64,14 +68,12 @@ async function main() {
   // Check SDK dependency
   const WebClient = requireSlackSDK();
 
-  // Check for token
-  const token = process.env.SLACK_BOT_TOKEN;
-  if (!token) {
-    throw new SkillError('SLACK_AUTH_MISSING');
-  }
+  // Parse URL first to get workspace domain for auto-detection
+  const { workspace: urlWorkspace, channelId, messageTs } = parseSlackUrl(args.url);
 
-  // Parse URL
-  const { workspace, channelId, messageTs } = parseSlackUrl(args.url);
+  // Get configured workspaces and resolve which one to use
+  const workspaces = getConfiguredWorkspaces();
+  const { name: workspaceName, token } = resolveWorkspace(workspaces, args.workspace, urlWorkspace);
 
   // Create client
   const client = createClient(WebClient, token);
@@ -109,7 +111,7 @@ async function main() {
     after,
     channelInfo,
     userMap,
-    { url: args.url, workspace }
+    { url: args.url, workspace: workspaceName, urlWorkspace }
   );
 
   outputJson(output);

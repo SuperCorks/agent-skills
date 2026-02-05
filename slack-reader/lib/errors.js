@@ -10,8 +10,23 @@ const ERROR_CODES = {
   },
   SLACK_AUTH_MISSING: {
     code: 'SLACK_AUTH_MISSING',
-    message: 'SLACK_BOT_TOKEN environment variable is not set',
-    remediation: 'Set SLACK_BOT_TOKEN to your Slack Bot User OAuth Token (xoxb-...)',
+    message: 'No Slack workspace tokens configured',
+    remediation: 'Set SLACK_WORKSPACES (JSON: {"alias": "xoxb-..."}) or SLACK_BOT_TOKEN for single workspace',
+  },
+  SLACK_WORKSPACES_INVALID: {
+    code: 'SLACK_WORKSPACES_INVALID',
+    message: 'SLACK_WORKSPACES environment variable is invalid',
+    remediation: 'SLACK_WORKSPACES must be valid JSON: {"personal": "xoxb-...", "company": "xoxb-..."}',
+  },
+  SLACK_WORKSPACE_AMBIGUOUS: {
+    code: 'SLACK_WORKSPACE_AMBIGUOUS',
+    message: 'Multiple workspaces configured but cannot determine which to use',
+    remediation: 'Specify --workspace flag with one of the available workspace aliases',
+  },
+  SLACK_WORKSPACE_NOT_FOUND: {
+    code: 'SLACK_WORKSPACE_NOT_FOUND',
+    message: 'Specified workspace not found in SLACK_WORKSPACES',
+    remediation: 'Check workspace alias matches a key in SLACK_WORKSPACES',
   },
   SLACK_AUTH_INVALID: {
     code: 'SLACK_AUTH_INVALID',

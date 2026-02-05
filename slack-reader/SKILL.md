@@ -25,9 +25,24 @@ Fetches Slack message content given a message permalink, including:
 
 ### Environment Variables
 
+#### Single Workspace (Simple Setup)
+
 ```bash
 export SLACK_BOT_TOKEN=xoxb-your-bot-token
 ```
+
+#### Multiple Workspaces
+
+For accessing multiple Slack workspaces, use `SLACK_WORKSPACES` with a JSON object mapping aliases to tokens:
+
+```bash
+export SLACK_WORKSPACES='{"personal": "xoxb-personal-token", "company": "xoxb-company-token"}'
+```
+
+Workspace aliases are used for:
+- The `--workspace` flag to explicitly select a workspace
+- Error messages when workspace selection is ambiguous
+- Auto-matching against URL domains (e.g., URL domain "company" matches alias "company")
 
 ### Required Slack Scopes
 
@@ -69,8 +84,23 @@ node scripts/read-message.js --url <permalink> [options]
 | Option | Description |
 |--------|-------------|
 | `--url <url>` | Slack message permalink (required) |
+| `--workspace <name>` | Workspace alias when using multiple workspaces |
 | `--context-size <n>` | Number of messages before/after for context (default: 5) |
 | `--help` | Show help message |
+
+**Workspace Resolution:**
+
+When multiple workspaces are configured, the script resolves which token to use:
+1. If `--workspace` is specified, uses that workspace's token
+2. If the URL domain matches a workspace alias, uses that token
+3. If ambiguous, returns a `SLACK_WORKSPACE_AMBIGUOUS` error listing available workspaces
+
+Example with workspace flag:
+```bash
+node scripts/read-message.js \
+  --url "https://myworkspace.slack.com/archives/C0123456789/p1706554800123456" \
+  --workspace company
+```
 
 **Output:**
 
@@ -123,8 +153,11 @@ node scripts/read-message.js --url "https://..." | jq '.targetMessage'
 | Code | Description | Remediation |
 |------|-------------|-------------|
 | `SLACK_SDK_MISSING` | @slack/web-api package is not installed | Run: `npm install @slack/web-api` |
-| `SLACK_AUTH_MISSING` | SLACK_BOT_TOKEN not set | Set the environment variable |
+| `SLACK_AUTH_MISSING` | No tokens configured | Set SLACK_BOT_TOKEN or SLACK_WORKSPACES |
 | `SLACK_AUTH_INVALID` | Token is invalid or expired | Verify token and app installation |
+| `SLACK_WORKSPACES_INVALID` | SLACK_WORKSPACES is not valid JSON | Check JSON format |
+| `SLACK_WORKSPACE_NOT_FOUND` | Specified workspace alias not found | Use `--workspace` with valid alias |
+| `SLACK_WORKSPACE_AMBIGUOUS` | Multiple workspaces configured but none specified | Use `--workspace` flag to select |
 | `SLACK_URL_INVALID` | Invalid message URL format | Use a valid permalink |
 | `SLACK_CHANNEL_NOT_FOUND` | Channel not found or bot lacks access | Invite bot to channel |
 | `SLACK_MESSAGE_NOT_FOUND` | Message not found | Verify URL and message exists |
@@ -151,6 +184,13 @@ Format API responses into consistent output structure.
 
 ### lib/errors.js
 Structured error handling with codes and remediation guidance.
+
+### lib/workspaces.js
+Multi-workspace token management:
+- `parseWorkspaces(envValue)` - Parse SLACK_WORKSPACES JSON
+- `getConfiguredWorkspaces()` - Get all configured workspaces
+- `resolveWorkspace(workspaces, specifiedName, urlDomain)` - Resolve which workspace to use
+- `getAvailableWorkspaces()` - Get comma-separated list of workspace aliases
 
 ## Official Documentation
 
