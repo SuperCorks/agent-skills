@@ -60,14 +60,78 @@ Your Slack app must have these OAuth scopes:
 | `mpim:read` | View basic group DM info |
 | `users:read` | View user profiles |
 
-### Creating a Slack Bot Token
+### Creating a Slack Token
+
+#### Option 1: Create from Manifest (Recommended)
+
+1. Go to [api.slack.com/apps](https://api.slack.com/apps)
+2. Click **Create New App** → **From a manifest**
+3. Select your workspace
+4. Choose **JSON** and paste:
+
+```json
+{
+  "display_information": {
+    "name": "Slack Reader",
+    "description": "Read-only access for agent skills",
+    "background_color": "#0040ff"
+  },
+  "features": {
+    "bot_user": {
+      "display_name": "Slack Reader",
+      "always_online": false
+    }
+  },
+  "oauth_config": {
+    "scopes": {
+      "user": [
+        "canvases:read",
+        "channels:history",
+        "channels:read",
+        "groups:history",
+        "groups:read",
+        "im:history",
+        "im:read",
+        "mpim:history",
+        "mpim:read",
+        "users:read"
+      ],
+      "bot": [
+        "canvases:read",
+        "channels:history",
+        "channels:read",
+        "groups:history",
+        "groups:read",
+        "im:history",
+        "im:read",
+        "mpim:history",
+        "mpim:read",
+        "users:read"
+      ]
+    }
+  },
+  "settings": {
+    "org_deploy_enabled": false,
+    "socket_mode_enabled": false,
+    "token_rotation_enabled": false
+  }
+}
+```
+
+5. Click **Create** → **Install to Workspace**
+6. Copy the **User OAuth Token** (starts with `xoxp-`)
+
+> **User tokens** (`xoxp-`) can access all channels you have access to.
+> **Bot tokens** (`xoxb-`) require the bot to be invited to each channel.
+
+#### Option 2: Manual Setup
 
 1. Go to [api.slack.com/apps](https://api.slack.com/apps)
 2. Create or select your app
 3. Navigate to **OAuth & Permissions**
-4. Add the required scopes under **Bot Token Scopes**
+4. Add the required scopes under **User Token Scopes** (or Bot Token Scopes)
 5. Install the app to your workspace
-6. Copy the **Bot User OAuth Token** (starts with `xoxb-`)
+6. Copy the token (`xoxp-` for user, `xoxb-` for bot)
 
 ## Available Scripts
 
