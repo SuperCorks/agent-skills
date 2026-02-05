@@ -180,11 +180,104 @@ Behavior:
 
 Add `--dry-run` to preview changes without making mutations.
 
+### Sync Packages (Create-Only)
+
+Replicate missing package categories and packages from source to target:
+
+```bash
+node .github/skills/boulevard/scripts/sync-packages.js \
+  --source-env=prod \
+  --source-business-id=PROD_BUSINESS_ID \
+  --source-api-key=PROD_API_KEY \
+  --source-api-secret=PROD_API_SECRET \
+  --target-env=sandbox \
+  --target-business-id=SANDBOX_BUSINESS_ID \
+  --target-api-key=SANDBOX_API_KEY \
+  --target-api-secret=SANDBOX_API_SECRET \
+  --dry-run
+```
+
+**Filter by name pattern:**
+```bash
+# Sync only packages matching a regex
+node .github/skills/boulevard/scripts/sync-packages.js \
+  ... \
+  --filter="8x-LHR|Unlimited-LHR"
+```
+
+**Sync inactive packages:**
+```bash
+# Sync inactive packages (e.g., newly created but not yet live)
+node .github/skills/boulevard/scripts/sync-packages.js \
+  ... \
+  --inactive \
+  --filter="8x-LHR"
+```
+
+Behavior:
+- **Create-only**: Creates missing package categories and packages; never deletes
+- **Voucher mapping**: Maps voucher service references to target by service name
+- **Full data sync**: Includes price, description, taxable, commissionEnabled, vouchers
+
+## ID Format Quirks
+
+Boulevard uses URN-style IDs like `urn:blvd:Service:abc123-def456`. However, the API is inconsistent about which format it accepts:
+
+| Mutation | `id` parameter | Reference IDs (e.g., `categoryId`, `serviceId`) |
+|----------|----------------|------------------------------------------------|
+| `updateServiceCategory` | Full URN ✅ | N/A |
+| `updateService` | Full URN ✅ | **UUID only** ⚠️ |
+| `createService` | N/A | Full URN ✅ |
+| `createPackage` | N/A | Full URN ✅ (both `categoryId` and `serviceId`) |
+| `updatePackage` | Full URN ✅ | Likely Full URN (untested) |
+
+**Example**: Moving a service to a different category requires UUID-only for `categoryId`:
+```bash
+# ❌ Fails with "category_id: is invalid"
+--variables='{"input": {"id": "urn:blvd:Service:...", "categoryId": "urn:blvd:ServiceCategory:abc123"}}'
+
+# ✅ Works
+--variables='{"input": {"id": "urn:blvd:Service:...", "categoryId": "abc123"}}'
+```
+
+## Updating Services & Categories
+
+### Rename a Category
+```bash
+node .github/skills/boulevard/scripts/query-admin.js \
+  --env=sandbox --business-id=X --api-key=Y --api-secret=Z \
+  --query='mutation RenameCategory($input: UpdateServiceCategoryInput!) {
+    updateServiceCategory(input: $input) { serviceCategory { id name } }
+  }' \
+  --variables='{"input": {"id": "urn:blvd:ServiceCategory:abc123", "name": "New Name"}}'
+```
+
+### Rename a Service
+```bash
+node .github/skills/boulevard/scripts/query-admin.js \
+  --env=sandbox --business-id=X --api-key=Y --api-secret=Z \
+  --query='mutation UpdateService($input: UpdateServiceInput!) {
+    updateService(input: $input) { service { id name } }
+  }' \
+  --variables='{"input": {"id": "urn:blvd:Service:abc123", "name": "New Service Name"}}'
+```
+
+### Move a Service to a Different Category
+```bash
+node .github/skills/boulevard/scripts/query-admin.js \
+  --env=sandbox --business-id=X --api-key=Y --api-secret=Z \
+  --query='mutation UpdateService($input: UpdateServiceInput!) {
+    updateService(input: $input) { service { id name category { name } } }
+  }' \
+  --variables='{"input": {"id": "urn:blvd:Service:abc123", "categoryId": "def456"}}'
+```
+Note: `categoryId` must be UUID-only (not full URN).
+
 ## Writable Fields (API Limitations)
 
 Per Boulevard Admin API schema, only these fields can be set:
 
-**ServiceCategory** (create only):
+**ServiceCategory** (create/update):
 - `name`
 
 **Service** (create/update):
@@ -192,14 +285,26 @@ Per Boulevard Admin API schema, only these fields can be set:
 
 Note: `defaultDuration` and `defaultPrice` are **read-only** in the API. They cannot be synced programmatically.
 
+**PackageCategory** (create/update):
+- `name`
+
+**Package** (create/update):
+- `name`, `description`, `unitPrice`, `taxable`, `commissionEnabled`, `active`, `categoryId`, `externalId`, `accountCreditAmount`
+- `productVouchers` - array of vouchers with `quantity` and `productVoucherServices[].serviceId`
+
+Note: Packages support full price sync unlike services.
+
 ## Examples
 
 ### Get all locations
 ```bash
 node .github/skills/boulevard/scripts/query-admin.js \
   --env=sandbox --business-id=X --api-key=Y --api-secret=Z \
-  --query='{ locations(first: 100) { edges { node { id name address { line1 city state } } } } }'
+  --query='{ locations(first: 100) { edges { node { id externalId name isRemote address { line1 city state zip } } } } }'
 ```
+
+### Compare locations between environments
+Query both environments and compare by name/address. Locations don't have a dedicated diff script, but you can query each and compare manually.
 
 ### Get appointments for a date range
 ```bash
