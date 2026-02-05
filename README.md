@@ -2,6 +2,10 @@
 
 A collection of AI agent skills for GitHub Copilot and other AI assistants.
 
+## References
+- https://code.claude.com/docs/en/skills
+- https://docs.github.com/en/copilot/concepts/agents/about-agent-skills
+
 ## Available Skills
 
 | Skill | Description |
@@ -9,7 +13,11 @@ A collection of AI agent skills for GitHub Copilot and other AI assistants.
 | [address-pr-comments](address-pr-comments) | Address PR review comments from automated and human reviewers |
 | [boulevard](boulevard) | Query Boulevard Admin, Public Client, and Known Client APIs. Compare and sync services between Boulevard instances |
 | [describe-image](describe-image) | Generates a short text description of an image file using AI |
+| [feature-dev](feature-dev) | A 7-phase standard workflow for robust feature development, from discovery to shipping |
+| [frontend-design](frontend-design) | Guidelines for creating distinctive, non-generic user interfaces |
 | [gtm-manager](gtm-manager) | Manage Google Tag Manager containers, tags, triggers, and variables |
+| [pr-review-guidelines](pr-review-guidelines) | Rubrics and standards for conducting high-quality code reviews |
+| [security-guidance](security-guidance) | A definitive checklist and detection guide for common security vulnerabilities |
 
 ## Installation
 
