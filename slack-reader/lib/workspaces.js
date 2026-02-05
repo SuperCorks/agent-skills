@@ -1,7 +1,8 @@
 /**
  * Multi-workspace management for Slack
  * 
- * SLACK_WORKSPACES format: JSON object {"personal": "xoxb-...", "company": "xoxb-..."}
+ * SLACK_WORKSPACES format: JSON object {"personal": "xoxb-...", "company": "xoxp-..."}
+ * Supports both bot tokens (xoxb-) and user tokens (xoxp-).
  * 
  * Falls back to SLACK_BOT_TOKEN for single-workspace usage.
  */
@@ -32,8 +33,8 @@ function parseWorkspaces(envValue) {
       if (typeof token !== 'string' || !token.trim()) {
         throw new SkillError('SLACK_WORKSPACES_INVALID', `Invalid token for workspace "${name}"`);
       }
-      if (!token.startsWith('xoxb-')) {
-        throw new SkillError('SLACK_WORKSPACES_INVALID', `Token for "${name}" must start with xoxb-`);
+      if (!token.startsWith('xoxb-') && !token.startsWith('xoxp-')) {
+        throw new SkillError('SLACK_WORKSPACES_INVALID', `Token for "${name}" must start with xoxb- or xoxp-`);
       }
       workspaces.set(name.toLowerCase(), token.trim());
     }
