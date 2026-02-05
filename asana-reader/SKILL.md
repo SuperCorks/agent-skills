@@ -85,6 +85,32 @@ JSON object containing:
 - `task`: Task details (name, notes, assignee, projects, tags, dates, etc.)
 - `comments`: Array of comments on the task
 
+### list-projects.js
+
+List Asana projects for a workspace.
+
+```bash
+node scripts/list-projects.js [options]
+```
+
+**Options:**
+
+| Option | Description |
+|--------|-------------|
+| `--workspace <gid>` | Workspace GID (omit to list all workspaces) |
+| `--account <name>` | Account name from ASANA_ACCOUNTS (required if multiple) |
+| `--archived` | Include archived projects |
+| `--help` | Show help message |
+
+**Output:**
+
+Without `--workspace`: Lists available workspaces with GIDs.
+
+With `--workspace`: JSON object containing:
+- `metadata`: Fetch timestamp, account used
+- `workspace`: Workspace info
+- `projects`: Array of projects (name, gid, owner, dates, etc.)
+
 ## Asana URL Formats
 
 Tasks can be identified by their URL:
@@ -142,6 +168,24 @@ node scripts/read-task.js \
 
 ```bash
 node scripts/read-task.js --id 9876543210987 | jq '.task.notes'
+```
+
+### List available workspaces
+
+```bash
+node scripts/list-projects.js --account work
+```
+
+### List projects in a workspace
+
+```bash
+node scripts/list-projects.js --workspace 1197100180628208 --account work
+```
+
+### List all projects including archived
+
+```bash
+node scripts/list-projects.js --workspace 1197100180628208 --archived
 ```
 
 ## Error Codes

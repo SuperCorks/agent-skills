@@ -1,18 +1,29 @@
 /**
- * Asana API wrapper using asana SDK
+ * Asana API wrapper using asana SDK v3.x
  */
 
 const { SkillError } = require('./errors');
 
 /**
- * Create an Asana API client
+ * Create Asana API instances configured with a token
  * 
  * @param {typeof import('asana')} asana - Asana SDK module
  * @param {string} token - Personal Access Token
- * @returns {import('asana').Client} Configured Asana client
+ * @returns {Object} Object with API instances
  */
 function createClient(asana, token) {
-  return asana.Client.create().useAccessToken(token);
+  // Configure the global API client with the token
+  const apiClient = asana.ApiClient.instance;
+  apiClient.authentications['token'].accessToken = token;
+  
+  // Return API instances
+  return {
+    tasks: new asana.TasksApi(),
+    stories: new asana.StoriesApi(),
+    typeahead: new asana.TypeaheadApi(),
+    workspaces: new asana.WorkspacesApi(),
+    projects: new asana.ProjectsApi(),
+  };
 }
 
 /**
@@ -74,17 +85,17 @@ const TASK_OPT_FIELDS = [
 /**
  * Get a task by GID with full details
  * 
- * @param {import('asana').Client} client
+ * @param {Object} client - Client from createClient
  * @param {string} taskGid - Task GID
  * @returns {Promise<Object>} Task object
  * @throws {SkillError}
  */
 async function getTask(client, taskGid) {
   try {
-    const task = await client.tasks.findById(taskGid, {
+    const result = await client.tasks.getTask(taskGid, {
       opt_fields: TASK_OPT_FIELDS,
     });
-    return task;
+    return result.data;
   } catch (err) {
     if (err instanceof SkillError) throw err;
     handleAsanaError(err);
@@ -94,22 +105,19 @@ async function getTask(client, taskGid) {
 /**
  * Get comments (stories) for a task
  * 
- * @param {import('asana').Client} client
+ * @param {Object} client - Client from createClient
  * @param {string} taskGid - Task GID
  * @returns {Promise<Object[]>} Array of comment story objects
  * @throws {SkillError}
  */
 async function getTaskComments(client, taskGid) {
   try {
-    const stories = await client.stories.findByTask(taskGid, {
+    const result = await client.stories.getStoriesForTask(taskGid, {
       opt_fields: 'text,created_at,created_by,created_by.name,type,resource_subtype',
     });
 
-    // Collect all stories (it's an async iterator)
-    const allStories = [];
-    for await (const story of stories) {
-      allStories.push(story);
-    }
+    // Get all stories from result.data
+    const allStories = result.data || [];
 
     // Filter to only comments
     return allStories.filter(s => s.type === 'comment' || s.resource_subtype === 'comment_added');
@@ -122,7 +130,7 @@ async function getTaskComments(client, taskGid) {
 /**
  * Search for tasks using typeahead API
  * 
- * @param {import('asana').Client} client
+ * @param {Object} client - Client from createClient
  * @param {string} workspaceGid - Workspace GID 
  * @param {string} query - Search query
  * @returns {Promise<Object[]>} Array of matching tasks
@@ -130,18 +138,13 @@ async function getTaskComments(client, taskGid) {
  */
 async function searchTasks(client, workspaceGid, query) {
   try {
-    const results = await client.typeahead.typeaheadForWorkspace(workspaceGid, {
+    const result = await client.typeahead.typeaheadForWorkspace(workspaceGid, {
       resource_type: 'task',
       query,
       opt_fields: 'name,completed',
     });
 
-    // Collect results
-    const tasks = [];
-    for await (const task of results) {
-      tasks.push(task);
-    }
-    return tasks;
+    return result.data || [];
   } catch (err) {
     if (err instanceof SkillError) throw err;
     handleAsanaError(err);
@@ -151,22 +154,41 @@ async function searchTasks(client, workspaceGid, query) {
 /**
  * Get workspaces for the authenticated user
  * 
- * @param {import('asana').Client} client
+ * @param {Object} client - Client from createClient
  * @returns {Promise<Object[]>} Array of workspace objects
  * @throws {SkillError}
  */
 async function getWorkspaces(client) {
   try {
-    const workspaces = await client.workspaces.findAll({
+    const result = await client.workspaces.getWorkspaces({
       opt_fields: 'name,is_organization',
     });
 
-    // Collect results
-    const all = [];
-    for await (const ws of workspaces) {
-      all.push(ws);
-    }
-    return all;
+    return result.data || [];
+  } catch (err) {
+    if (err instanceof SkillError) throw err;
+    handleAsanaError(err);
+  }
+}
+
+/**
+ * Get projects for a workspace
+ * 
+ * @param {Object} client - Client from createClient
+ * @param {string} workspaceGid - Workspace GID
+ * @param {Object} options - Optional filters
+ * @param {boolean} options.archived - Include archived projects (default: false)
+ * @returns {Promise<Object[]>} Array of project objects
+ * @throws {SkillError}
+ */
+async function getProjects(client, workspaceGid, options = {}) {
+  try {
+    const result = await client.projects.getProjectsForWorkspace(workspaceGid, {
+      opt_fields: 'name,archived,color,created_at,modified_at,owner,owner.name,notes,permalink_url',
+      archived: options.archived || false,
+    });
+
+    return result.data || [];
   } catch (err) {
     if (err instanceof SkillError) throw err;
     handleAsanaError(err);
@@ -179,5 +201,6 @@ module.exports = {
   getTaskComments,
   searchTasks,
   getWorkspaces,
+  getProjects,
   TASK_OPT_FIELDS,
 };
