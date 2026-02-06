@@ -1,9 +1,7 @@
-```skill
 ---
 name: pr-review-guidelines
 description: Rubrics and standards for conducting high-quality code reviews, including scoring and classification.
 ---
-```
 
 # PR Review Guidelines
 

@@ -1,9 +1,7 @@
-```skill
 ---
 name: security-guidance
 description: A definitive checklist and detection guide for common security vulnerabilities (XSS, Injection, Dangerous Sinks).
 ---
-```
 
 # Security Guidance & Vulnerability Detection
 

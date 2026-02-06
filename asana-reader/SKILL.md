@@ -1,4 +1,3 @@
-```skill
 ---
 name: asana-reader
 description: 'Read Asana tasks by URL, ID, or name search. Fetches task details and comments with multi-account support. Read-only access to Asana workspace data.'
@@ -238,4 +237,3 @@ Structured error handling with codes and remediation guidance.
 - [Workspaces](https://developers.asana.com/docs/workspaces)
 - [Search API](https://developers.asana.com/docs/search-tasks-in-a-workspace)
 - [Rate Limits](https://developers.asana.com/docs/rate-limits)
-```

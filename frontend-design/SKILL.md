@@ -1,9 +1,7 @@
-```skill
 ---
 name: frontend-design
 description: Guidelines for creating distinctive, non-generic user interfaces. Focuses on typography, spatial layout, and avoiding "AI-generated" aesthetics.
 ---
-```
 
 # Frontend Design Guidelines
 

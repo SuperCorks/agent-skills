@@ -1,4 +1,3 @@
-````skill
 ---
 name: boulevard
 description: 'Query Boulevard Admin, Public Client, and Known Client APIs. Compare and sync services between Boulevard instances (prod/sandbox).'
@@ -335,5 +334,3 @@ node .github/skills/boulevard/scripts/query-admin.js \
 - [Client API Overview](https://developers.joinblvd.com/2020-01/client-api/overview)
 - [Client API Authentication](https://developers.joinblvd.com/2020-01/client-api/authentication)
 - [Rate Limiting](https://developers.joinblvd.com/2020-01/admin-api/rate-limiting)
-
-````

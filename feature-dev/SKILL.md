@@ -1,9 +1,7 @@
-```skill
 ---
 name: feature-dev
 description: A 7-phase standard workflow for robust feature development, from discovery to shipping.
 ---
-```
 
 # Feature Development Workflow
 

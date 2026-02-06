@@ -1,4 +1,3 @@
-```skill
 ---
 name: slack-reader
 description: 'Read Slack messages by permalink URL. Fetches message content, thread replies, channel context, and resolves user mentions. Read-only access to Slack workspace data.'
@@ -265,4 +264,3 @@ Multi-workspace token management:
 - [users.info](https://api.slack.com/methods/users.info)
 - [Bot Tokens](https://api.slack.com/authentication/token-types#bot)
 - [OAuth Scopes](https://api.slack.com/scopes)
-```
