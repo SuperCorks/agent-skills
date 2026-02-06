@@ -45,7 +45,51 @@ Boulevard uses query-cost-based rate limiting:
 
 Scripts automatically retry on rate limit errors by parsing the wait time from error messages.
 
+## Schema Reference
+
+Full GraphQL schemas are available in `schemas/` for both APIs. **Always consult these schemas before constructing queries** to use correct field names, types, and relationships.
+
+| File | Description |
+|------|-------------|
+| `schemas/admin-schema.graphql` | Admin API SDL (types, queries, mutations) |
+| `schemas/client-schema.graphql` | Client API SDL (booking flow types, cart mutations) |
+
+### How to use
+
+- Before writing a query, grep the relevant schema file for the type or field you need
+- Check input types (e.g. `CreateOfferInput`, `UpdateServiceInput`) for writable fields
+- Check union/interface types for inline fragment syntax (e.g. `... on OfferFixedDiscount`)
+- The schemas include full field descriptions from Boulevard's API docs
+
+### Refreshing schemas
+
+Re-run the download script when Boulevard updates their API:
+
+```bash
+node .github/skills/boulevard/scripts/download-schemas.js \
+  --env=prod \
+  --business-id=YOUR_BUSINESS_ID \
+  --api-key=YOUR_API_KEY \
+  --api-secret=YOUR_API_SECRET
+```
+
+This runs introspection queries against both Admin and Client APIs and writes the SDL files.
+
 ## Scripts
+
+### Download Schemas
+
+Download/refresh the Admin and Client API GraphQL schemas via introspection:
+
+```bash
+node .github/skills/boulevard/scripts/download-schemas.js \
+  --env=prod \
+  --business-id=YOUR_BUSINESS_ID \
+  --api-key=YOUR_API_KEY \
+  --api-secret=YOUR_API_SECRET
+```
+
+Outputs SDL files to `schemas/admin-schema.graphql` and `schemas/client-schema.graphql`.
 
 ### Query Admin API
 

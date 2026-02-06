@@ -1,0 +1,4917 @@
+schema {
+  query: RootQueryType
+  mutation: RootMutationType
+}
+
+"""
+API error codes that can be returned by the platform client when a request fails.
+"""
+enum ApiErrorCode {
+  "API application does not have access to custom form answers."
+  API_APPLICATION_CUSTOM_FORM_ANSWERS_NOT_CONSUMABLE
+  """
+  Your API Application has exceeded its depth, complexity, or connection limits. Please check your quota or adjust your queries.
+  """
+  API_LIMIT_EXCEEDED
+  "One of the required booking questions is missing an answer on this cart."
+  CART_BOOKING_QUESTION_ANSWER_MISSING
+  "The provided membership agreement does not match the membership."
+  CART_INVALID_PLAN_AGREEMENT
+  "The location is already set for that cart."
+  CART_LOCATION_ALREADY_SET
+  "Selected location doesn't offer the service added to the cart."
+  CART_LOCATION_INVALID
+  "A location is required before checking out."
+  CART_MISSING_LOCATION
+  "Offer use was exceeded."
+  CART_OFFER_CLIENT_USAGE_LIMIT_EXCEEDED
+  "Offer code does not exist."
+  CART_OFFER_CODE_INVALID
+  "Offer codes are not enabled for this location."
+  CART_OFFER_CODE_NOT_ALLOWED
+  "Offer codes are not allowed before a location is selected."
+  CART_OFFER_CODE_NOT_ALLOWED_WITH_NO_LOCATION
+  "Offer codes are not enabled for this location."
+  CART_OFFER_CODE_NOT_ENABLED
+  "One or more cart payment methods failed, no charge has been made."
+  CART_PAYMENT_METHOD_FAILED
+  "One or more cart service addons require a location to be selected."
+  CART_SERVICE_ADDON_REQUIRES_LOCATION
+  """
+  The same staff is required for both the primary service and the service addon on this cart.
+  """
+  CART_SERVICE_ADDON_SAME_STAFF_REQUIRED
+  "Cart service is not available with the selected options."
+  CART_SERVICE_UNAVAILABLE
+  "Could not sign membership agreement."
+  CART_SIGN_MEMBERSHIP_AGREEMENT_FAILED
+  "The selected time is no longer available on this cart."
+  CART_TIME_NOT_AVAILABLE
+  "Unknown cart error. Appointment was not booked and card was not charged."
+  CART_UNKNOWN_ERROR
+  "Authenticated user is forbidden from performing the requested action."
+  FORBIDDEN
+  "Cart ID does not exist."
+  INVALID_CART_ID
+  "Record was not found."
+  NOT_FOUND
+  "Missing, invalid, or expired authentication details."
+  UNAUTHENTICATED
+  "Authenticated user is not authorized to access a resource."
+  UNAUTHORIZED
+  "The entity is correct but the server cannot process the instructions."
+  UNPROCESSABLE_CONTENT
+}
+
+enum AppointmentCancellationReason {
+  CLIENT_CANCEL
+  CLIENT_LATE_CANCEL
+  MERGED
+  MISTAKE
+  NO_SHOW
+  OFFBOARDED
+  STAFF_CANCEL
+  VOIDED
+}
+
+enum AppointmentNonReschedulableReason {
+  CANCELLED_APPOINTMENT
+  GROUP_APPOINTMENT
+  ONLINE_BOOKING_NOT_ALLOWED
+  OUTSIDE_CANCELLATION_WINDOW
+  SERVICE_NOT_BOOKABLE
+}
+
+enum AppointmentRatingStatus {
+  COMPLETED
+  DISABLED
+  PENDING
+}
+
+enum AppointmentSortDirection {
+  ASC
+  DESC
+}
+
+enum AppointmentSortField {
+  START_AT
+}
+
+enum AppointmentState {
+  ACTIVE
+  ARRIVED
+  BOOKED
+  CANCELLED
+  CONFIRMED
+  FINAL
+}
+
+enum CardBrand {
+  AMEX
+  DINERS_CLUB
+  DISCOVER
+  JCB
+  MASTERCARD
+  VISA
+}
+
+enum CartBookingQuestionDisplayType {
+  BOOLEAN
+  DATETIME
+  FLOAT
+  INTEGER
+  LONG_TEXT
+  MULTISELECT
+  SELECT
+  SHORT_TEXT
+}
+
+enum CartBookingQuestionSchema {
+  APPOINTMENT
+  CLIENT
+}
+
+enum CartBookingQuestionValueType {
+  BOOLEAN
+  DATETIME
+  FLOAT
+  INTEGER
+  MULTISELECT
+  SELECT
+  TEXT
+}
+
+"""
+Machine-readable cart validation error code. See <code>[CartItemErrorCode](/graphql-client-api/api-reference/types/CartItemErrorCode)</code> for cart item-specific error codes.
+"""
+enum CartErrorCode {
+  """
+  Some of the required booking questions are not answered.
+  
+  ## Resolution
+  
+  Make sure that all required booking questions have valid answers.
+  """
+  CART_BOOKING_QUESTION_ANSWER_MISSING
+  """
+  One or more gift card items do not have a valid price.
+  
+  ## Resolution
+  
+  All gift card items in the cart must have a price in the acceptable range.
+  See cartAvailableGiftCardItem.minPrice and cartAvailableGiftCardItem.maxPrice
+  for upper and lower bound price limits.
+  """
+  CART_GIFT_CARD_ITEM_PRICE
+  """
+  This cart is not associated with an existing client, therefore separate
+  client information is required.
+  
+  ## Resolution
+  
+  Anonymous carts cannot be checked out. Either an authenticated user needs to
+  take ownership of the cart using the `takeCartOwnership` mutation, or client
+  information must be added using the `clientInformation` field. The following
+  fields are required before checkout:
+  
+  - `firstName`
+  - `lastName`
+  - `email`
+  - `phoneNumber`
+  """
+  CART_MISSING_CLIENT_INFORMATION
+  """
+  No cart items have been selected, at least one is required.
+  
+  ## Resolution
+  
+  Add one or more items to the cart before checking out, empty carts cannot be
+  checked out.
+  """
+  CART_MISSING_ITEMS
+  """
+  One or more cart items is missing a payment method.
+  
+  ## Resolution
+  
+  All items in the cart that require payment must have a payment method set
+  before checking out. These items will each have a separate item-specific
+  validation error with the same code.
+  """
+  CART_MISSING_ITEM_PAYMENT_METHOD
+  """
+  One or more bookable items is missing a reserved time.
+  
+  ## Resolution
+  
+  All bookable items in the cart must have a reserved time before checking
+  out. These items will each have a separate item-specific validation error
+  with the same code.
+  
+  Note that times are only reserved temporarily and will expire unless the
+  cart is checked out before the expiration time.
+  """
+  CART_MISSING_ITEM_TIME
+  """
+  A location has not been selected for a cart.
+  
+  ## Resolution
+  
+  Before checking out, select a location for a cart.
+  """
+  CART_MISSING_LOCATION
+}
+
+enum CartFeeType {
+  OFFSET_FEE
+}
+
+"""
+Machine-readable cart item validation error code. See <code>[CartErrorCode](/graphql-client-api/api-reference/types/CartErrorCode)</code> for cart-specific error codes.
+"""
+enum CartItemErrorCode {
+  """
+  This cart item is missing a payment method.
+  
+  ## Resolution
+  
+  All items in the cart that require payment must have a payment method set
+  before checking out.
+  """
+  CART_MISSING_ITEM_PAYMENT_METHOD
+  """
+  This bookable item is missing a reserved time.
+  
+  ## Resolution
+  
+  All bookable items in the cart must have a reserved time before checking
+  out. Note that times are only reserved temporarily and will expire unless
+  the cart is checked out before the expiration time.
+  """
+  CART_MISSING_ITEM_TIME
+}
+
+enum CartPaymentMethod {
+  CASH
+  "A credit card"
+  CREDIT
+  CREDITS
+  "A debit card"
+  DEBIT
+  GIFT_CARD
+  OTHER
+  "A prepaid card"
+  PREPAID
+}
+
+enum CategoryType {
+  GIFT_CARD
+  MEMBERSHIP_PLAN
+  PACKAGE
+  PRODUCT
+  SERVICE
+}
+
+"The client membership cancellation method options"
+enum ClientMembershipCancellationMethod {
+  "Allow clients to cancel their membership in Client Portal"
+  CLICK_TO_CANCEL
+  "Clients must email your business to request to cancel their membership"
+  EMAIL
+}
+
+enum CommunicationChannel {
+  EMAIL
+  SMS
+}
+
+enum CommunicationKey {
+  APPOINTMENT_REMINDER
+  MARKETING
+}
+
+enum CustomFormStatus {
+  ARCHIVED
+  EXPIRED
+  IN_PROGRESS
+  NOT_STARTED
+  PENDING_REVIEW
+  SUBMITTED
+}
+
+enum DepositType {
+  """
+  An amount that covers the entire cost of the service is due at the time of booking. In other words, the deposit amount is equal to the total amount
+  """
+  FULL_DEPOSIT
+  """
+  There is no deposit required before the time of service. In other words, the deposit amount is zero
+  """
+  NO_DEPOSIT
+  """
+  An amount that will go towards the final total amount is due at the time of booking. In other words, the deposit amount is less than the total amount
+  """
+  PARTIAL_DEPOSIT
+}
+
+enum FormComponentKind {
+  CHECKBOX
+  CHECKBOX_V2
+  DATE
+  DATE_V2
+  DIVIDER_V2
+  DROPDOWN_V2
+  H1
+  H2
+  IMAGE_UPLOADER_V2
+  IMAGE_V2
+  LOGO
+  LOGO_V2
+  MARKDOWN
+  MULTIPLE_CHOICE_V2
+  RADIO
+  SELECT
+  SIGNATURE
+  SIGNATURE_V2
+  TEXT
+  TEXT_INPUT_V2
+  TEXT_V2
+  TEXTAREA
+}
+
+enum FormPresentationFormat {
+  "All relevant forms"
+  ANY
+  "Booking widget during booking"
+  BOOKING
+  "Display this form in the Reception app during check-in"
+  CHECKIN
+  "A reminder to complete the form before their appointment"
+  REMINDER
+}
+
+enum FormResourceType {
+  APPOINTMENT
+  CLIENT
+}
+
+enum InvoicePaymentMethod {
+  CREDIT_CARD
+  OTHER
+}
+
+"Type of item"
+enum ItemType {
+  PRODUCT
+  PRODUCT_CATEGORY
+  SERVICE
+  SERVICE_CATEGORY
+}
+
+enum MembershipCancelledStateReason {
+  CLIENT_REQUESTED
+  CLIENT_REQUESTED_APPOINTMENT_AVAILABILITY
+  CLIENT_REQUESTED_BUSY
+  CLIENT_REQUESTED_FINANCIAL
+  CLIENT_REQUESTED_MEDICAL
+  CLIENT_REQUESTED_MOVING
+  CLIENT_REQUESTED_NOT_ENOUGH_BENEFITS
+  CLIENT_REQUESTED_QUALITY_OF_SERVICE
+  CLIENT_REQUESTED_TOO_FREQUENT
+  CLIENT_REQUESTED_TRAVEL
+  OTHER
+  PAYMENT_FAILED
+}
+
+enum MembershipPausedStateReason {
+  CLIENT_REQUESTED
+  CLIENT_REQUESTED_BUSY
+  CLIENT_REQUESTED_FINANCIAL
+  CLIENT_REQUESTED_MEDICAL
+  CLIENT_REQUESTED_TRAVEL
+  OTHER
+  PAYMENT_SCHEDULED
+}
+
+enum MembershipSortDirection {
+  ASC
+  DESC
+}
+
+enum MembershipSortField {
+  NAME
+  START_ON
+  STATUS
+}
+
+enum MembershipStatusReason {
+  CLIENT_REQUESTED
+  CLIENT_REQUESTED_APPOINTMENT_AVAILABILITY
+  CLIENT_REQUESTED_BUSY
+  CLIENT_REQUESTED_FINANCIAL
+  CLIENT_REQUESTED_MEDICAL
+  CLIENT_REQUESTED_MOVING
+  CLIENT_REQUESTED_NOT_ENOUGH_BENEFITS
+  CLIENT_REQUESTED_QUALITY_OF_SERVICE
+  CLIENT_REQUESTED_TOO_FREQUENT
+  CLIENT_REQUESTED_TRAVEL
+  OTHER
+  PAYMENT_FAILED
+  PAYMENT_SCHEDULED
+}
+
+enum NoteType {
+  "Note with allergy information"
+  ALLERGY
+  "Standard note"
+  DEFAULT
+  "Note with medical information"
+  MEDICATION
+}
+
+enum OrderFeeType {
+  BLVD_OFFSET
+}
+
+enum OrderInvoiceState {
+  DRAFT
+  PAID
+  PARTIALLY_PAID
+  PAST_DUE
+  PENDING
+  REFUNDED
+}
+
+enum OrderStatus {
+  CLOSED
+  OPEN
+  VOIDED
+}
+
+enum PaymentCardBrand {
+  AMEX
+  DINERS_CLUB
+  DISCOVER
+  JCB
+  MASTERCARD
+  VISA
+}
+
+"Directions for sorting referrals."
+enum ReferralSortDirection {
+  ASC
+  DESC
+}
+
+"Fields by which referrals can be sorted."
+enum ReferralSortField {
+  REFERRER_REWARD_CREATED_AT
+}
+
+enum RequestSource {
+  APPOINTMENT_DETAILS
+  APPOINTMENT_HISTORY
+  CART
+  CLIENT_PROFILE
+  COMMUNICATION_PREFERENCES
+  EMAIL
+  EXPIRED_SESSION
+  LOGIN
+  MEMBERSHIPS
+  RECEIPT
+  REFERRAL_PROGRAM
+  WALLET_PAYMENT_METHODS
+  WALLET_VOUCHERS
+}
+
+"Sex assigned at birth"
+enum SexAssignedAtBirth {
+  "Decline to answer"
+  DECLINE_TO_ANSWER
+  "Female"
+  FEMALE
+  "Intersex"
+  INTERSEX
+  "Male"
+  MALE
+}
+
+enum SubscriptionStatus {
+  "The subscription is within an active term and membership benefits are enabled."
+  ACTIVE
+  "The subscription is cancelled and membership benefits are not enabled."
+  CANCELLED
+  """
+  The subscription is no longer within an active term and renewal failed to process (eg. due to non-payment).
+  """
+  PAST_DUE
+  """
+  The subscription is paused until a future date. Membership benefits are not enabled until successful renewal.
+  """
+  PAUSED
+}
+
+enum VouchersSortInputField {
+  EXPIRES_ON
+  INSERTED_AT
+}
+
+enum VouchersSortInputSortDirection {
+  ASC
+  DESC
+}
+
+"Represents a set of geographical coordinates"
+scalar Coordinates
+
+"""
+The `Date` scalar type represents a date. The Date appears in a JSON
+response as an ISO8601 formatted string, without a time component.
+"""
+scalar Date
+
+"""
+The `DateTime` scalar type represents a date and time in the UTC
+timezone. The DateTime appears in a JSON response as an ISO8601 formatted
+string, including UTC timezone ("Z"). The parsed date and time string will
+be converted to UTC if there is an offset.
+"""
+scalar DateTime
+
+"""
+The `Interval` scalar type represents a time interval, formatted as an
+ISO8601 duration string.
+"""
+scalar DurationInterval
+
+"""
+Email address validated as an RFC 5322 addr-spec.
+
+See <https://tools.ietf.org/html/rfc5322#section-3.4.1> for more details and
+<https://tools.ietf.org/html/rfc3696#section-3> for an informational summary.
+"""
+scalar Email
+
+"""
+Represents an amount of money as an integer of the smallest currency unit.
+
+For example, 1 USD is `100` since the cent is the smallest currency unit.
+Similarly, 1 JPY is `1` because the Japanese yen is a zero-decimal currency.
+For more information, see the ISO 4217 standard.
+
+The applicable currency is specified separately.
+"""
+scalar Money
+
+"""
+The `Naive DateTime` scalar type represents a naive date and time without
+timezone. The DateTime appears in a JSON response as an ISO8601 formatted
+string.
+"""
+scalar NaiveDateTime
+
+"""
+Represents a percentage as a specialisation of the `Decimal` scalar, see its
+documentation for more information.
+
+Percentages return 0% as `0.0` and 100% as `100.0`. There is no range of valid
+values, values may be negative or greater than 100% depending on the use case.
+"""
+scalar Percentage
+
+"""
+The PhoneNumber scalar type represents a phone number formatted following the E.164
+internationally recognized standard.
+"""
+scalar PhoneNumber
+
+"""
+A String query is a text search made up of values and comparison operators.
+
+Supported value types:
+
+- Field name
+- String
+- Boolean
+- Number (float/int)
+- DateTime - formatted as an ISO 8601 string
+
+We also support 'IS NULL' and 'IS NOT NULL' operators.
+
+Examples:
+
+  "startAt <= '2020-01-01T00:00:00'
+
+  "quantity > 0"
+
+  "categoryId IS NULL"
+
+For strings containing apostrophes, escape them with a backslash:
+  "name = 'O\'Connor'"
+
+Comparisons (<value> <op> <value>) can be combined through the 'AND' and 'OR' operators.
+
+Examples:
+
+  "endAt < '2020-01-01T00:00:00' AND cancelled = true"
+
+Create precedence by surrounding comparisons with parenthesis.
+
+Note: Strings and field names are case sensitive.
+"""
+scalar QueryString
+
+"""
+Represents a time zone as a tz database (a.k.a. tzdata, IANA, Olson) time zone
+name. See <https://en.wikipedia.org/wiki/Tz_database> for more information.
+"""
+scalar Tz
+
+"Represents an absolute URL as defined by RFC3986"
+scalar Url
+
+"Abstract available item that can be checked out."
+interface CartAvailableItem {
+  "Short optional description."
+  description: String
+  "Whether the item should appear disabled or hidden."
+  disabled: Boolean!
+  "Message detailing why `disabled` is set. Might not be available."
+  disabledDescription: String
+  "ID of the item."
+  id: ID!
+  "Displayed price of the item before tax."
+  listPrice: Money! @deprecated(reason: "Use `listPriceRange` instead.")
+  """
+  Displayed price range of the item before tax.
+  
+  The final price may differ based on customizations made to the item before
+  checking out. For instance, bookable items may have variants and options
+  that can be chosen and affect the price.
+  """
+  listPriceRange: CartPriceRange!
+  "Short human-readable name."
+  name: String!
+}
+
+"Abstract item added using the `addCart...Item` mutations."
+interface CartItem {
+  "Any service add-ons related to the base service/item"
+  addons: [CartAvailableItem!]!
+  "Payment methods available for this item."
+  availablePaymentMethods: [CartItemPaymentMethod!]!
+  "Total discount amount on the price. Null if location is not set yet."
+  discountAmount: Money
+  """
+  Valid discount code that was applied, either the cart's code or one that was
+  applied separately to the item. An invalid code results in a `null` value.
+  """
+  discountCode: String @deprecated(reason: "Use `offers` on the cart instead.")
+  "Current item validation errors."
+  errors: [CartItemError!]!
+  "ID of the item."
+  id: ID!
+  "Original item details."
+  item: CartAvailableItem!
+  "Total for the item after discounts and taxes. Null if location is not set yet."
+  lineTotal: Money
+  "Price before discounts and taxes. Null if location is not set yet."
+  price: Money
+  "Payment method selected for this item."
+  selectedPaymentMethod: CartItemPaymentMethod
+  """
+  Total tax amount on the discounted price (includes tax on fees). Null if location is not set yet.
+  """
+  taxAmount: Money
+}
+
+"Cart item payment method."
+interface CartItemPaymentMethod {
+  "ID of the method."
+  id: ID!
+  "Short human-readable name."
+  name: String!
+}
+
+interface CustomFormComponent {
+  h: Int!
+  id: ID!
+  kind: FormComponentKind!
+  w: Int!
+  x: Int!
+  y: Int!
+}
+
+interface Node {
+  "The ID of the object."
+  id: ID!
+}
+
+"See the `items` field on `Offer`."
+interface OfferItem {
+  id: ID!
+  "Whether items matching this rule are included or excluded."
+  included: Boolean!
+}
+
+interface OrderLine {
+  "Total price of this line item, after any refunds."
+  currentSubtotal: Money!
+  discounts: [OrderLineDiscount!]!
+  id: ID!
+  "Discount amount on this line item, before any refunds."
+  initialDiscountAmount: Money!
+  "Price of this line item, before any refunds."
+  initialPrice: Money!
+  "Total price of this line item, before any refunds."
+  initialSubtotal: Money!
+  "Tax amount on this line item, before any refunds."
+  initialTaxAmount: Money!
+  quantity: Int!
+}
+
+interface OrderLineGroup {
+  id: ID!
+  lines: [OrderLine!]!
+}
+
+interface OrderPayment {
+  "Whether partial refund are available for this payment."
+  allowsPartialRefunds: Boolean!
+  id: ID!
+  merchantId: ID!
+  orderId: ID!
+  paidAmount: Money!
+  paymentMeta: OrderPaymentMetadata!
+  "The total amount refunded, if any."
+  refundAmount: Money!
+  refunds: [OrderPaymentRefund!]!
+}
+
+"An item that a discount reward is applicable to."
+interface RewardItem {
+  id: ID!
+  "Whether items matching this rule are included or excluded."
+  included: Boolean!
+  "The item name."
+  name: String!
+  "The item type."
+  type: ItemType!
+}
+
+type AddCartCardPaymentMethodPayload {
+  cart: Cart!
+}
+
+type AddCartOfferPayload {
+  cart: Cart!
+  offer: CartOffer!
+}
+
+type AddCartSelectedBookableItemPayload {
+  cart: Cart!
+}
+
+type AddCartSelectedGiftCardItemPayload {
+  cart: Cart!
+}
+
+type AddCartSelectedPurchasableItemPayload {
+  cart: Cart!
+}
+
+type Address {
+  city: String
+  country: String
+  line1: String
+  line2: String
+  province: String
+  state: String
+  zip: String
+}
+
+"An Appointment"
+type Appointment implements Node {
+  """
+  Service options chosen with this appointment service and their true values,
+  which may be changed from the option definition default values.
+  
+  The `AppointmentServiceOption` type doesn’t expose associated nodes; this
+  is intentional and avoids duplicating data when querying grouped options.
+  You should query the option groups through the `service` node instead and
+  group the options based on IDs.
+  """
+  appointmentServiceOptions: [AppointmentServiceOption!]!
+  "A collection of appointment services."
+  appointmentServices: [AppointmentService!]!
+  """
+  Links to allow direct addition of the appointment to different calendar platforms
+  """
+  calendarLinks: CalendarLinks!
+  "Whether or not the client can cancel this appointment"
+  cancellable: Boolean!
+  "Information about the cancellation, if present"
+  cancellation: AppointmentCancellation
+  "Boolean signifying if the appointment is cancelled or not"
+  cancelled: Boolean!
+  "The client of the appointment"
+  client: Client!
+  "The duration of the appointment for the client"
+  clientDuration: Int!
+  "The id of the client of the appointment."
+  clientId: ID!
+  "Whether or not the client can confirm this appointment at this time"
+  confirmable: Boolean!
+  "When the appointment was created (in Etc/UTC)"
+  createdAt: DateTime!
+  "A collection of approved payment methods for the appointment."
+  creditCards: [CreditCard!]
+  """
+  Forms added to this appointment. To represent all non-completed / non-started forms, please aggregate `pendingFormTemplates` with `customForms` of status `not_started'.
+  """
+  customForms: [CustomForm!]!
+  "The duration of the appointment"
+  duration: Int! @deprecated(reason: "Use `clientDuration` instead.")
+  "End time for the appointment"
+  endAt: DateTime!
+  "The ID of an object"
+  id: ID!
+  "Whether or not the appointment is a group appointment"
+  isGroup: Boolean!
+  "Whether or not the group appointment host"
+  isGroupHost: Boolean!
+  "Whether or not the appointment is recurring"
+  isRecurring: Boolean!
+  "The Location where this appointment was booked."
+  location: Location!
+  "The Id of the Location where this appointment was booked."
+  locationId: ID!
+  """
+  Non reschedulable reason for this appointment will return null if it's reschedulable
+  """
+  nonReschedulableReason: AppointmentNonReschedulableReason
+  "Notes provided by the client during booking"
+  notes: String
+  "The ID of the order this appointment is associated with"
+  order: Order
+  "The ID of the order this appointment is associated with"
+  orderId: ID
+  """
+  Custom forms templates which should be filled out. To represent all non-completed / non-started forms, please aggregate `pendingFormTemplates` with `customForms` of status `not_started'.
+  """
+  pendingFormTemplates(format: FormPresentationFormat = ANY): [CustomFormTemplate!]!
+  "The appointment rating"
+  rating: AppointmentRating
+  "The appointment rating status"
+  ratingStatus: AppointmentRatingStatus!
+  "Whether or not the client can reschedule this appointment"
+  reschedulable: Boolean!
+  "Start time for the appointment"
+  startAt: DateTime!
+  "The state of the appointment."
+  state: AppointmentState!
+}
+
+type AppointmentAddTagsPayload {
+  success: Boolean!
+}
+
+type AppointmentCancellation {
+  "Datetime the appointment was cancelled in UTC."
+  cancelledAt: DateTime!
+  notes: String
+  reason: AppointmentCancellationReason!
+}
+
+type AppointmentConnection {
+  edges: [AppointmentEdge]
+  pageInfo: PageInfo!
+}
+
+type AppointmentEdge {
+  cursor: String
+  node: Appointment
+}
+
+"An appointment rating"
+type AppointmentRating {
+  "Appointment rating reply"
+  appointmentRatingReply: AppointmentRatingReply
+  "ID"
+  id: ID!
+  "The datetime the rating was submitted/created"
+  insertedAt: DateTime!
+  "The optional client feedback"
+  text: String
+  "Rating (1-5) of the appointment"
+  value: Int!
+}
+
+"An appointment rating reply"
+type AppointmentRatingReply {
+  "The body of the reply"
+  body: String!
+  "The datetime the reply was deleted"
+  deletedAt: DateTime
+  "ID"
+  id: ID!
+  "The datetime the reply was submitted/created"
+  insertedAt: DateTime!
+  "The datetime the reply was updated"
+  updatedAt: DateTime!
+}
+
+type AppointmentRescheduleAvailableDatesPayload {
+  availableDates: [AvailableRescheduleDate!]!
+}
+
+type AppointmentRescheduleAvailableTimesPayload {
+  availableTimes: [AvailableRescheduleTime!]!
+}
+
+type AppointmentReschedulePayload {
+  appointment: Appointment!
+}
+
+"An AppointmentService"
+type AppointmentService {
+  "The discounts applied to this service at booking."
+  appointmentServiceDiscounts: [AppointmentServiceDiscount!]!
+  "Duration for the entire service (including add-ons)"
+  duration: Int!
+  "The ISO time at which the appointment service is completely finished."
+  endAt: DateTime!
+  "Price of the service, before any discounts or taxes are applied."
+  price: Money!
+  "The service."
+  service: Service!
+  "The id of the service.  This may be null for time blockers."
+  serviceId: ID!
+  "The staff performing this service."
+  staff: Staff!
+  "The ID of the staff member associated with this service"
+  staffId: ID!
+  """
+  A boolean indicating whether the staff was specifically requested by the client.
+  """
+  staffRequested: Boolean!
+  "The ISO time at which the appointment service begins"
+  startAt: DateTime!
+  """
+  Length of time (in minutes) from the start of the appointment until this service begins.
+  """
+  startTimeOffset: Int!
+  "The total duration (in minutes) of this service"
+  totalDuration: Int!
+}
+
+type AppointmentServiceDiscount {
+  discountAmount: Money
+  discountPercentage: Percentage
+  id: ID
+  "The offer that was applied to this service."
+  offer: Offer
+  "The discount code that was applied to this service."
+  reason: DiscountReason
+}
+
+"An AppointmentServiceOption"
+type AppointmentServiceOption implements Node {
+  "ID of the AppointmentService that this object relates to."
+  appointmentServiceId: ID!
+  "Minutes added to duration when selected."
+  durationDelta: Int!
+  "Minutes added to finish when selected."
+  finishDurationDelta: Int!
+  "The ID of an object"
+  id: ID!
+  "Minutes added to the post service client time."
+  postClientDurationDelta: Int!
+  "Minutes added to the post service staff time."
+  postStaffDurationDelta: Int!
+  "Amount added to price when selected."
+  priceDelta: Int!
+  "ID of the ServiceOption that this object relates to."
+  serviceOptionId: ID!
+}
+
+type AuthenticatedClient {
+  "The client data"
+  client: Client!
+  "Token for authenticated client API access"
+  token: String!
+}
+
+type AuthMethod {
+  "Auth method id"
+  id: ID!
+  "Auth method name"
+  label: String!
+  "Auth method value"
+  value: String!
+}
+
+type AvailableRescheduleDate {
+  """
+  Matched date for the booking.
+  
+  Note that this date may differ from the one at the location when a specific
+  time zone is requested using the `tz` argument. The date uses the requested
+  time zone, or the location's time zone when `tz` is null.
+  """
+  date: Date!
+}
+
+type AvailableRescheduleTime {
+  bookableTimeId: ID!
+  "Matched start time for the booking."
+  startTime: DateTime!
+}
+
+type BaseBookableItem {
+  "The ID of the base bookable item"
+  itemId: ID!
+  "Whether the current item has to use the same staff as the base item"
+  sameStaffVariantRequired: Boolean!
+}
+
+"The business"
+type Business implements Node {
+  """
+  A setting to let a business decide if a person with multiple client profiles can log in to one of their profiles
+  """
+  allowLoginWithMultipleClients: Boolean
+  "The business logo"
+  avatar: String
+  "Fixed cancellation fee amount in cents"
+  cancellationFeeFixed: Money
+  "Percentage-based cancellation fee (0.0 to 1.0)"
+  cancellationFeePercentage: Percentage
+  "The client membership cancellation method"
+  clientMembershipCancellationMethod: ClientMembershipCancellationMethod!
+  "An optional URL to use to direct customers to a business's custom booking flow"
+  customBookingUrl: String
+  "Whether the business has any available memberships."
+  hasMemberships: Boolean!
+  "The ID of an object"
+  id: ID!
+  insertedAt: DateTime!
+  "Locations"
+  locations(after: String, before: String, first: Int, last: Int): LocationConnection
+  "Flag for whether or not referral sources are managed by location"
+  manageReferralSourcesByLocation: Boolean
+  "The client membership contact email"
+  membershipContactEmail: String
+  "Name of the business"
+  name: String!
+  onlineGiftCardSettings: OnlineGiftCardSettings!
+  "The business's phone number. This could be an empty string."
+  phoneNumber: String!
+  "The business's referral programs"
+  referralPrograms: [ReferralProgram!]!
+  "Client referral sources"
+  referralSources(categoryId: ID): [ReferralSource!]!
+  """
+  A setting to enable/disable the ability to set and show the business location hours
+  """
+  showLocationHours: Boolean!
+  "The timezone associated with the business"
+  tz: Tz!
+  updatedAt: DateTime!
+  """
+  Whether the business uses a fixed cancellation fee (true) or percentage-based fee (false)
+  """
+  useFixedCancellation: Boolean!
+  "The business' website. This could be an empty string."
+  website: String!
+}
+
+type BusinessGiftCardDesign {
+  design: GiftCardDesign!
+  id: ID!
+  selected: Boolean!
+}
+
+type CalendarLinks {
+  "A deep link to add the appointment directly to Google Calendar"
+  googleCalendar: Url!
+  "A downloadable ICS file to use for native calendar applications"
+  icsDownload: Url!
+  "A deep link to add the appointment directly to Microsoft Office 365"
+  microsoftOffice: Url!
+  "A deep link to add the appointment directly to Microsoft Outlook Online"
+  microsoftOutlook: Url!
+  "A deep link to add the appointment directly to Yahoo Calendar"
+  yahooCalendar: Url!
+}
+
+type CancelAppointmentPayload {
+  appointment: Appointment!
+}
+
+"Represents a cart flow used for booking or purchasing things."
+type Cart implements Node {
+  "Optional gratuity defined in advance for bookable items."
+  advanceGratuity: CartAdvanceGratuity
+  """
+  Categories of items available to be checked out.
+  
+  Note that this list updates as the cart changes. For instance, some
+  incompatible items may be disabled after others are added to the cart.
+  
+  Clients should retrieve this list again after mutations or make sure errors
+  are handled when items cannot be added.
+  """
+  availableCategories: [CartAvailableCategory!]!
+  """
+  Finds one available item by its ID.
+  
+  Note that this item updates as the cart changes. For instance, incompatible
+  items may be disabled after others are added to the cart. Clients should
+  retrieve this item again after mutations or make sure errors are handled
+  when items cannot be added.
+  """
+  availableItem(id: ID!): CartAvailableItem
+  """
+  Payment methods available for this cart. Some methods may already be
+  present, for instance when the current user is authenticated. Additional
+  methods can be added using the `addCart...PaymentMethod` mutations.
+  
+  Note that not all of these payment methods can be used with every cart item.
+  Subsets of supported payment methods are available through the item objects
+  instead.
+  """
+  availablePaymentMethods: [CartItemPaymentMethod!]!
+  bookingQuestions: [CartBookingQuestion!]!
+  """
+  Optional client information supplied when checking out on behalf of someone
+  else than the current user.
+  """
+  clientInformation: CartClientInformation
+  "Optional message from the client to the business."
+  clientMessage: String
+  """
+  Timestamp of when the cart was completed.
+  
+  This field cannot be edited and once completed cannot be changed.
+  """
+  completedAt: DateTime
+  """
+  When the cart has reserved bookable items, the end time of the latest item.
+  This value is `null` when there are no reservations.
+  """
+  endTime: NaiveDateTime
+  "Current validation errors."
+  errors: [CartError!]!
+  """
+  When the cart has reserved bookable items, e.g. services with selected
+  times, this is the timestamp when those reservations expire and must be
+  renewed.
+  
+  This field is initially `null` when there are no reservations, and it's
+  reset into the future when reservations are created or renewed.
+  
+  When reservations expire, the `CART_MISSING_ITEM_TIME` error is returned,
+  and this timestamp will be in the past. To renew the reservations, call the
+  `reserveCartBookableItems` mutation again.
+  """
+  expiresAt: DateTime
+  "Features available to the cart."
+  features: CartFeatures!
+  fees: [CartFee]!
+  "A list of guests added to the cart"
+  guests: [CartGuest!]!
+  "The ID of an object"
+  id: ID!
+  "Timestamp when the cart was created."
+  insertedAt: DateTime!
+  "Location associated with the cart"
+  location: Location
+  """
+  A list of offers applied to the cart.
+  
+  Offers can be applied manually using `addCartOffer` and an offer code, but
+  it's also possible for offers to be auto-applied. At this time auto-applied
+  offers cannot be removed from the cart.
+  """
+  offers: [CartOffer!]!
+  "Finds one selected item pending checkout by its ID."
+  selectedItem(id: ID!): CartItem
+  """
+  All selected items pending checkout.
+  
+  Note that the ordering of this list is not stable, and may change depending
+  on the current state of the cart.
+  """
+  selectedItems: [CartItem!]!
+  """
+  When the cart has reserved bookable items, the starting time of the earliest
+  item. This value is `null` when there are no reservations.
+  """
+  startTime: NaiveDateTime
+  """
+  Selected starting time ID for the item, corresponds to the ID that was used
+  to reserve the times. This value is `null` when there are no reservations.
+  """
+  startTimeId: ID
+  "Summary of the cart, including e.g. line item totals."
+  summary: CartSummary!
+  "Timestamp when the cart was last updated."
+  updatedAt: DateTime!
+}
+
+type CartAddToWaitlistPayload {
+  cart: Cart!
+}
+
+"Gratuity set in advance for bookable items."
+type CartAdvanceGratuity {
+  "Fixed gratuity amount, has to be set if `percentage` is not set."
+  fixed: Money
+  "Percentage gratuity amount, has to be set if `fixed` is not set."
+  percentage: Float
+}
+
+type CartAppointment {
+  appointmentId: ID!
+  clientId: ID!
+  "Whether an appointment belongs to the cart owner."
+  forCartOwner: Boolean!
+}
+
+"Item that can be booked through `addCartBookableItem`."
+type CartAvailableBookableItem implements CartAvailableItem {
+  "Refer to the super type."
+  description: String
+  "Refer to the super type."
+  disabled: Boolean!
+  "Refer to the super type."
+  disabledDescription: String
+  "Refer to the super type."
+  id: ID!
+  "Displayed client duration in minutes."
+  listDuration: Int! @deprecated(reason: "Use `listDurationRange` instead.")
+  "Refer to the super type."
+  listDurationRange: CartDurationRange!
+  "Refer to the super type."
+  listPrice: Money! @deprecated(reason: "Use `listPriceRange` instead.")
+  "Refer to the super type."
+  listPriceRange: CartPriceRange!
+  """
+  List of locations offering the selected bookable item.
+  
+  This is affected by:
+  
+  - Staff / staff role settings set for the services in the cart
+  - The "Bookable online" option for a specific service/location pair
+  - The "Enable online booking" option for a location
+  
+  Location has to be chosen before checking out the cart.
+  
+  Allows to be queried with an optional staffId to only return locations where the bookable item can be provided by selected staff.
+  """
+  locationVariants(staffId: ID): [CartAvailableBookableItemLocationVariant!]!
+  "Refer to the super type."
+  name: String!
+  """
+  Groups of available options for modifying the booked service. These can be
+  used to modify the booked item and may affect pricing and timing.
+  """
+  optionGroups: [CartAvailableBookableItemOptionGroup!]!
+  """
+  List of optional staff variants that can be chosen. Variants may have
+  different pricing and timing.
+  
+  When there’s no preference, the first one available is assigned based on the
+  selected time. The business can also enforce this, in which case this list
+  is empty.
+  """
+  staffVariants: [CartAvailableBookableItemStaffVariant!]!
+  "Whether duration varies per staff variant."
+  variableDuration: Boolean! @deprecated(reason: "Use `listDurationRange` instead.")
+  "Whether price varies per staff variant."
+  variablePrice: Boolean! @deprecated(reason: "Use `listPriceRange` instead.")
+}
+
+"Location variant of a bookable item"
+type CartAvailableBookableItemLocationVariant {
+  location: Location!
+}
+
+"Option of a bookable item that can be selected."
+type CartAvailableBookableItemOption {
+  "Short optional description."
+  description: String
+  "Minutes added to duration when selected."
+  durationDelta: Int!
+  "Group ID of the option."
+  groupId: ID!
+  "ID of the option."
+  id: ID!
+  "Short human-readable name."
+  name: String!
+  "Amount added to price when selected."
+  priceDelta: Money!
+}
+
+"""
+Option group of a bookable item with optional limits.
+
+Option groups have their own validation requirements which are validated when
+the bookable item is added. An error is returned if the selections don’t meet
+those requirements.
+"""
+type CartAvailableBookableItemOptionGroup {
+  "Short optional description."
+  description: String
+  "ID of the option group."
+  id: ID!
+  "Optional maximum number of options that can be selected."
+  maxLimit: Int
+  "Optional minimum number of options that must be selected."
+  minLimit: Int
+  "Short human-readable name."
+  name: String!
+  "List of selectable options."
+  options: [CartAvailableBookableItemOption!]!
+}
+
+"Staff variant of a bookable item."
+type CartAvailableBookableItemStaffVariant {
+  "Duration of the variant in minutes."
+  duration: Int!
+  "ID of the variant."
+  id: ID!
+  "Price of the variant before discounts and taxes."
+  price: Money!
+  "Staff member booked."
+  staff: Staff!
+}
+
+"Category of items that can be checked out."
+type CartAvailableCategory implements Node {
+  """
+  Items available to be checked out.
+  
+  Note that this list updates as the cart changes. For instance, incompatible
+  items may be disabled after others are added to the cart. Clients should
+  retrieve this list again after mutations or make sure errors are handled
+  when items cannot be added.
+  """
+  availableItems: [CartAvailableItem!]!
+  categoryType: CategoryType
+  "Short optional description."
+  description: String
+  "Whether the category should appear as disabled."
+  disabled: Boolean!
+  "Message detailing why `disabled` is set. Might not be available."
+  disabledDescription: String
+  "The ID of an object"
+  id: ID!
+  "Short human-readable name."
+  name: String!
+}
+
+"Gift card that can be purchased through `addCartSelectedGiftCardItem`."
+type CartAvailableGiftCardItem implements CartAvailableItem {
+  """
+  When true the user may enter a custom amount between the min and max price range.
+  """
+  allowCustomAmounts: Boolean!
+  "Refer to the super type."
+  description: String
+  "Refer to the super type."
+  disabled: Boolean!
+  "Refer to the super type."
+  disabledDescription: String
+  "The maximum available price for which to purchase the gift card."
+  giftCardMax: Money!
+  "The minimum available price for which to purchase the gift card."
+  giftCardMin: Money!
+  "Refer to the super type."
+  id: ID!
+  "Refer to the super type."
+  listPrice: Money! @deprecated(reason: "Use `listPriceRange` instead.")
+  "Refer to the super type."
+  listPriceRange: CartPriceRange!
+  "Refer to the super type."
+  name: String!
+  "The available preset prices for which to purchase the gift card."
+  pricePresets: [Money!]!
+}
+
+"Item that can be purchased through `addCartPurchasableItem`."
+type CartAvailablePurchasableItem implements CartAvailableItem {
+  "Refer to the super type."
+  description: String
+  "Refer to the super type."
+  disabled: Boolean!
+  "Refer to the super type."
+  disabledDescription: String
+  "Refer to the super type."
+  id: ID!
+  "Refer to the super type."
+  listPrice: Money! @deprecated(reason: "Use `listPriceRange` instead.")
+  "Refer to the super type."
+  listPriceRange: CartPriceRange!
+  """
+  Membership plan agreement
+  
+  The most current membership agreement version configured in the membership plan.
+  """
+  membershipAgreement: MembershipPlanAgreement
+  """
+  When true, indicates that a membership purchase should be
+  preceded with a signature of the associated membership agreement via `cartSignMembershipAgreement`.
+  """
+  membershipAgreementRequired: Boolean!
+  "Refer to the super type."
+  name: String!
+}
+
+"Available starting date for bookable items in a cart."
+type CartBookableDate {
+  """
+  Available date for the bookable items.
+  
+  Note that this date may differ from the one at the location when a specific
+  time zone is requested using the `tz` argument. The date uses the requested
+  time zone, or the location's time zone when `tz` is null.
+  """
+  date: Date!
+}
+
+"An item that can be booked at a certain time."
+type CartBookableItem implements CartItem {
+  """
+  Any add-on services available for the selected service.
+  
+  Note that if the location is not selected for the cart, the addons list will
+  be empty. Please select a location first to see the addons.
+  """
+  addons: [CartAvailableItem!]!
+  "Refer to the super type."
+  availablePaymentMethods: [CartItemPaymentMethod!]!
+  "The information about a base bookable item for a add-on item"
+  baseBookableItem: BaseBookableItem
+  "Refer to the super type."
+  discountAmount: Money
+  "Refer to the super type."
+  discountCode: String @deprecated(reason: "Use `offers` on the cart instead.")
+  "Refer to the super type."
+  errors: [CartItemError!]!
+  """
+  Guest associated with this item.
+  
+  A null value implies the default guest, i.e. the booking client.
+  """
+  guest: CartGuest
+  """
+  ID of the guest associated with this item.
+  
+  A null value implies the default guest, i.e. the booking client.
+  
+  This field is more efficient than `guest` when only the ID is required.
+  """
+  guestId: ID
+  "Refer to the super type."
+  id: ID!
+  "Refer to the super type."
+  item: CartAvailableBookableItem!
+  "Refer to the super type."
+  lineTotal: Money
+  "Refer to the super type."
+  price: Money
+  "Any selected options for the item."
+  selectedOptions: [CartAvailableBookableItemOption!]!
+  "Refer to the super type."
+  selectedPaymentMethod: CartItemPaymentMethod
+  """
+  Selected staff variant for the item.
+  
+  You can set the preferred variant when adding the item. Leaving the variant
+  unset indicates no preference.
+  
+  Once a time is reserved, a variant is automatically set if none was set
+  earlier. Once the reservation expires, any automatically set value reverts
+  back to `null`.
+  """
+  selectedStaffVariant: CartAvailableBookableItemStaffVariant
+  """
+  Selected starting time for the item.
+  
+  This start time is reserved temporarily. Once the reservation expires, the
+  start time must be reserved again. See the parent cart’s `expiresAt` field
+  for more information.
+  """
+  startTime: NaiveDateTime
+  "Refer to the super type."
+  taxAmount: Money
+}
+
+"Available starting time for bookable items in a cart."
+type CartBookableTime {
+  "ID of this particular time."
+  id: ID!
+  score: Float! @deprecated(reason: "Do not use.")
+  "Available start time for the earliest bookable item."
+  startTime: DateTime!
+}
+
+type CartBookingQuestion {
+  answer: CartBookingQuestionAnswer
+  "How the input for the booking question should be displayed."
+  displayType: CartBookingQuestionDisplayType!
+  "Validation errors for the question"
+  errors: [String!]
+  "Unique ID of the question"
+  id: ID!
+  """
+  Unique key of the question. Compared to the IDs (which should
+  always be treated as opaque), this can be be interpreted by the client code.
+  Example use cases include filtering or sorting the questions on the client
+  side based on custom conditions.
+  
+  While this is non-null, this the might not have a meaningful value and
+  currently cannot be set in the UI. Please contact the developer support if
+  you need to use this field.
+  """
+  key: String!
+  "Booking question displayed label"
+  label: String!
+  "Options for select/multiselect booking questions"
+  options: [CartBookingQuestionOption!]!
+  "Whether the answer is required to checkout"
+  required: Boolean!
+  "Indicates the type of entity that the booking question answer is mapped to."
+  schema: CartBookingQuestionSchema
+  "Accepted type for the booking question answer."
+  valueType: CartBookingQuestionValueType!
+}
+
+type CartBookingQuestionAddAnswerPayload {
+  cart: Cart!
+}
+
+type CartBookingQuestionBooleanAnswer {
+  booleanValue: Boolean!
+}
+
+type CartBookingQuestionClearAnswerPayload {
+  cart: Cart!
+}
+
+type CartBookingQuestionDatetimeAnswer {
+  datetimeValue: DateTime!
+}
+
+type CartBookingQuestionFloatAnswer {
+  floatValue: Float!
+}
+
+type CartBookingQuestionIntegerAnswer {
+  integerValue: Int!
+}
+
+type CartBookingQuestionMultiSelectAnswer {
+  options: [CartBookingQuestionOption!]!
+}
+
+type CartBookingQuestionOption {
+  id: ID!
+  label: String!
+}
+
+type CartBookingQuestionSelectAnswer {
+  option: CartBookingQuestionOption!
+}
+
+type CartBookingQuestionTextAnswer {
+  textValue: String!
+}
+
+type CartClearPayload {
+  cart: Cart!
+}
+
+type CartClearReferralCodePayload {
+  cart: Cart!
+}
+
+type CartClearReservedTimePayload {
+  "The updated cart"
+  cart: Cart!
+}
+
+"""
+Client information supplied through either `createCart` or `updateCart`.
+
+Client information is _required_ when checking out an anonymous cart, i.e.
+when checking out without authenticating as a client.
+
+Client information may also be submitted piecemeal by calling `updateCart`
+multiple times, as long as required information is present before checkout.
+"""
+type CartClientInformation {
+  "Optional email address."
+  email: Email
+  "Optional external ID of the client, used to integrate with external systems."
+  externalId: String
+  "Required first name."
+  firstName: String
+  "Optional last name."
+  lastName: String
+  "Optional mobile phone number."
+  phoneNumber: PhoneNumber
+}
+
+"Displayed duration range of a bookable item."
+type CartDurationRange {
+  "Maximum duration in minutes."
+  max: Int!
+  "Minimum duration in minutes."
+  min: Int!
+  "Whether the duration is variable, i.e. the minimum and maximum differ."
+  variable: Boolean!
+}
+
+"Cart validation error."
+type CartError {
+  "Machine-readable code."
+  code: CartErrorCode!
+  "Detailed geek-readable description."
+  description: String!
+  "Short human-readable message."
+  message: String!
+}
+
+"Features available to the cart."
+type CartFeatures {
+  "Whether BlvdOffset fee is enabled for this cart"
+  blvdOffsetEnabled: Boolean!
+  """
+  Whether the booking questions feature is enabled. It also enables
+  the `CART_BOOKING_QUESTION_ANSWER_MISSING` error on the Cart.
+  """
+  bookingQuestionsEnabled: Boolean!
+  "Whether gift cards are available to be purchased in this cart."
+  giftCardPurchaseEnabled: Boolean!
+  "Whether payment info is required to check out services in this cart."
+  paymentInfoRequired: Boolean!
+  "Whether service add-ons are enabled for this cart."
+  serviceAddonsEnabled: Boolean!
+}
+
+type CartFee {
+  "Absolute amount for the fee. Null if percentageAmount is set."
+  absoluteAmount: Money
+  "Current calculated amount for the fee."
+  calculatedAmount: Money!
+  calculatedTaxAmount: Money!
+  id: ID!
+  "Human-readable fee label."
+  label: String
+  "Percentage amount for the fee. Null if absoluteAmount is set."
+  percentageAmount: Percentage
+  "Machine-readable fee type."
+  type: CartFeeType
+}
+
+"A gift card item that can be purchased."
+type CartGiftCardItem implements CartItem {
+  "Refer to the super type."
+  addons: [CartAvailableItem!]!
+  "Refer to the super type."
+  availablePaymentMethods: [CartItemPaymentMethod!]!
+  "Refer to the super type."
+  discountAmount: Money
+  "Refer to the super type."
+  discountCode: String @deprecated(reason: "Use `offers` on the cart instead.")
+  "Send the gift card to a recipient via email."
+  emailFulfillment: CartItemEmailFulfillment
+  "Refer to the super type."
+  errors: [CartItemError!]!
+  giftCardDesign: CartItemGiftCardDesign
+  "Refer to the super type."
+  id: ID!
+  "Refer to the super type."
+  item: CartAvailableGiftCardItem!
+  "Refer to the super type."
+  lineTotal: Money
+  "Refer to the super type."
+  price: Money
+  "Refer to the super type."
+  selectedPaymentMethod: CartItemPaymentMethod
+  "Refer to the super type."
+  taxAmount: Money
+}
+
+"A guest that can be associated with a bookable item."
+type CartGuest {
+  "Email address, if provided."
+  email: Email
+  "First name, if provided."
+  firstName: String
+  "ID of the guest."
+  id: ID!
+  """
+  Name of the guest if provided, otherwise a user-friendly fallback name that
+  uniquely identifies the guest.
+  """
+  label: String!
+  "Last name, if provided."
+  lastName: String
+  """
+  Positive ordinal number starting at 1.
+  
+  This is for display purposes, don't use this to uniquely identify guests.
+  Use the `id` field for that instead. Also, don't assume this scheme follows
+  any predefined ordering.
+  """
+  number: Int!
+  "Mobile phone, if provided."
+  phoneNumber: PhoneNumber
+}
+
+"Cart item card payment method."
+type CartItemCardPaymentMethod implements CartItemPaymentMethod {
+  "Brand name of the associated card."
+  cardBrand: String!
+  "Expiration month of the associated card."
+  cardExpMonth: Int!
+  "Expiration year of the associated card."
+  cardExpYear: Int!
+  "Holder name of the associated card, might be `null`."
+  cardHolder: String
+  "Whether the associated card is the default card."
+  cardIsDefault: Boolean!
+  "Last four digits of the card number."
+  cardLast4: String!
+  "Refer to the super type."
+  id: ID!
+  "Refer to the super type."
+  name: String!
+}
+
+"Send the item to a recipient via email."
+type CartItemEmailFulfillment {
+  "Optionally specify a delivery date for the email."
+  deliveryDate: Date
+  id: ID!
+  "Optionally include a message from the sender to the recipient."
+  messageFromSender: String
+  "The email the item should be sent to."
+  recipientEmail: Email!
+  "The name of the person receiving the item."
+  recipientName: String!
+  "The name of the person sending the item."
+  senderName: String!
+}
+
+"Cart item validation error."
+type CartItemError {
+  "Machine-readable code."
+  code: CartItemErrorCode!
+  "Detailed geek-readable description."
+  description: String!
+  "Short human-readable message."
+  message: String!
+}
+
+"Specified design for a CartItemEmailFulfillment."
+type CartItemGiftCardDesign {
+  backgroundColor: String
+  foregroundText: String
+  id: ID!
+  image: String
+}
+
+"Cart item voucher payment method."
+type CartItemVoucherPaymentMethod implements CartItemPaymentMethod {
+  "Number of vouchers available, always at least one."
+  availableCount: Int!
+  """
+  Available voucher IDs, always at least one.
+  
+  This field can be useful to identify specific vouchers when a single voucher
+  can be applied to multiple services.
+  """
+  availableVoucherIds: [ID!]!
+  """
+  Last date when the voucher is valid, or `null` if valid forever.
+  
+  Note that when there are multiple vouchers available with different
+  expiration dates, this is the earliest date when a voucher expires.
+  """
+  expiresOn: Date
+  "Refer to the super type."
+  id: ID!
+  "Refer to the super type."
+  name: String!
+}
+
+"Offer added to a cart, see the `offers` field."
+type CartOffer {
+  """
+  Whether this offer is applied to any items currently in the cart.
+  
+  Offers that are not applicable are still valid (i.e. they exist and can be
+  used) but there are no items in the current cart that could be affected.
+  When applicable items are added later, the offer is applied then.
+  """
+  applied: Boolean!
+  "Case-insensitive, uniquely identifying code."
+  code: String!
+  "ID of the offer."
+  id: ID!
+  "Human-readable name."
+  name: String!
+}
+
+"Displayed price range of an item, before tax."
+type CartPriceRange {
+  "Maximum price."
+  max: Money!
+  "Minimum price."
+  min: Money!
+  "Whether the price is variable, i.e. the minimum and maximum differ."
+  variable: Boolean!
+}
+
+"An item that can be purchased."
+type CartPurchasableItem implements CartItem {
+  "Refer to the super type."
+  addons: [CartAvailableItem!]!
+  "Refer to the super type."
+  availablePaymentMethods: [CartItemPaymentMethod!]!
+  "Refer to the super type."
+  discountAmount: Money
+  "Refer to the super type."
+  discountCode: String @deprecated(reason: "Use `offers` on the cart instead.")
+  "Refer to the super type."
+  errors: [CartItemError!]!
+  "Refer to the super type."
+  id: ID!
+  "Refer to the super type."
+  item: CartAvailablePurchasableItem!
+  "Refer to the super type."
+  lineTotal: Money
+  "Refer to the super type."
+  price: Money
+  "Refer to the super type."
+  selectedPaymentMethod: CartItemPaymentMethod
+  "Refer to the super type."
+  taxAmount: Money
+}
+
+type CartSetLocationPayload {
+  "Updated Cart"
+  cart: Cart!
+}
+
+type CartSetReferralCodePayload {
+  cart: Cart!
+  offer: CartOffer!
+}
+
+type CartSignMembershipAgreementPayload {
+  success: Boolean
+}
+
+"Summary of the cart, including e.g. line item totals."
+type CartSummary {
+  """
+  The date by which the appointment can be cancelled without
+  being charged a cancellation fee. This is only returned
+  once the cart items have been reserved
+  """
+  cancellableBefore: NaiveDateTime
+  deposit: DepositType!
+  "Total required deposit amount."
+  depositAmount: Money!
+  "Total fee for the deposit amount (a part of the total feeAmount)"
+  depositFeeAmount: Money!
+  "Total discount amount on the subtotal."
+  discountAmount: Money!
+  "Estimated cancellation fee"
+  estimatedCancellationFee: Money!
+  "Total fee amount."
+  feeAmount: Money!
+  "Total gratuity amount on the subtotal."
+  gratuityAmount: Money!
+  "Whether a payment method is required"
+  paymentMethodRequired: Boolean!
+  "Rounding amount on the discounted and taxed subtotal."
+  roundingAmount: Money!
+  "Subtotal before gratuity, discounts, taxes, and rounding."
+  subtotal: Money!
+  "Total tax amount on the discounted subtotal."
+  taxAmount: Money!
+  "Total after gratuity, discounts, taxes, fees, and rounding."
+  total: Money!
+}
+
+type CheckoutCartPayload {
+  appointments: [CartAppointment!]!
+  cart: Cart!
+}
+
+"A Client"
+type Client implements Node {
+  "The address of the client"
+  address: Address
+  "Communication preferences"
+  communicationSubscriptions: [CommunicationSubscription!]!
+  "Date of birth"
+  dob: Date
+  "Email address"
+  email: Email
+  "First name"
+  firstName: String
+  "The ID of an object"
+  id: ID!
+  insertedAt: DateTime!
+  "Last name"
+  lastName: String
+  "Mobile phone number"
+  mobilePhone: PhoneNumber
+  "The most recent appointment this client had"
+  mostRecentAppointment: Appointment
+  "Full name"
+  name: String
+  "Pronoun"
+  pronoun: String
+  "Client referral"
+  referral: Referral
+  "The client's referral codes"
+  referralCodes: [ReferralCode!]!
+  "Sex assigned at birth"
+  sexAssignedAtBirth: SexAssignedAtBirth
+  "The number of upcoming appointments a client has"
+  upcomingAppointmentCount: Int!
+  updatedAt: DateTime!
+  "Vouchers within a Voucher group"
+  voucherGroupVouchers(after: String, before: String, first: Int, last: Int, query: QueryString, sort: VouchersSortInput, voucherGroupId: ID!): VoucherConnection
+  "The Client's Vouchers grouped by redeemable services at the Business"
+  voucherGroups(after: String, before: String, first: Int, last: Int, voucherGroupId: ID): VoucherGroupConnection
+  "The Client's Vouchers at the Business"
+  vouchers(after: String, before: String, first: Int, last: Int, query: QueryString, sort: VouchersSortInput): VoucherConnection
+}
+
+type ClientCreateEmailChangeRequestCodePayload {
+  "Request id used along with the code for the client email change."
+  requestId: ID!
+}
+
+type ClientCreatePhoneNumberChangeRequestCodePayload {
+  "Request id used along with the code for the client phone number change."
+  requestId: ID!
+}
+
+type ClientNote {
+  "ID"
+  id: ID!
+  "When the note was originally created"
+  insertedAt: NaiveDateTime!
+  "The body (text) of the note."
+  text: String!
+  type: NoteType!
+  "When the note was last updated"
+  updatedAt: NaiveDateTime!
+}
+
+type ClientPasswordlessAuthMultiClientSignInPayload {
+  "Token for authenticated client API access"
+  clients: [AuthenticatedClient!]!
+}
+
+type ClientPasswordlessAuthRequestCodePayload {
+  "Request id used along with the code for the login."
+  requestId: ID!
+}
+
+type ClientPasswordlessAuthSendVerificationCodeToEmailPayload {
+  "The obfuscated email that the code was sent to"
+  obfuscatedEmail: String!
+  "Request id to be used with the auth code for login."
+  requestId: ID!
+}
+
+type ClientPasswordlessAuthSendVerificationCodeToSmsPayload {
+  "The obfuscated phone number that the code was sent to"
+  obfuscatedPhoneNumber: String!
+  "Request id to be used with the auth code for login."
+  requestId: ID!
+}
+
+type ClientPasswordlessAuthSignInPayload {
+  "The client data"
+  client: Client!
+  "Token for authenticated client API access"
+  token: String!
+}
+
+"A client referral code."
+type ClientReferralCode implements Node {
+  "Whether the referral code is active."
+  active: Boolean!
+  "The referral code."
+  code: String!
+  "The ID of an object"
+  id: ID!
+  "The referral program."
+  referralProgram: CurrentReferralProgram!
+  "The referrer first name."
+  referrerFirstName: String!
+  "The reward for the referral code."
+  reward: ReferralCodeReward!
+}
+
+type ClientUpdateEmailPayload {
+  client: Client!
+}
+
+type ClientUpdatePhoneNumberPayload {
+  client: Client!
+}
+
+type CommunicationChannelPreference {
+  "The communication channel through which communications are received"
+  communicationChannel: CommunicationChannel!
+  "Indicates whether communications can be sent to the given communication channel"
+  enabled: Boolean!
+}
+
+type CommunicationSubscription {
+  "Communication preferences for a given communication subscription"
+  communicationChannelPreferences: [CommunicationChannelPreference!]!
+  "Describes the type of communications the subscription relates to"
+  description: String!
+  "Identifying key of a communication subscription"
+  key: CommunicationKey!
+  "Human readable title of a communication subscription"
+  title: String!
+}
+
+type ConfirmAppointmentPayload {
+  appointment: Appointment!
+}
+
+type CreateCartGiftCardItemEmailFulfillmentPayload {
+  cart: Cart!
+  emailFulfillment: CartItemEmailFulfillment!
+}
+
+type CreateCartGuestPayload {
+  cart: Cart!
+  guest: CartGuest!
+}
+
+type CreateCartPayload {
+  cart: Cart!
+}
+
+type CreateClientNotePayload {
+  clientNote: ClientNote
+}
+
+type CreateCreditCardResult {
+  creditCard: CreditCard
+}
+
+"A credit card"
+type CreditCard {
+  "The brand of the card"
+  brand: CardBrand!
+  """
+  The M formatted exp month of the card without leading zeros for single-digit months.
+  """
+  expMonth: Int!
+  "The YYYY formatted exp year of the card"
+  expYear: Int!
+  "The ID of the credit card"
+  id: ID!
+  "Whether the card is expired or not"
+  isExpired: Boolean!
+  "The last4 digits of the card number"
+  last4: String!
+}
+
+type CreditCardConnection {
+  edges: [CreditCardEdge]
+  pageInfo: PageInfo!
+}
+
+type CreditCardEdge {
+  cursor: String
+  node: CreditCard
+}
+
+"A referral code referral program reward."
+type CurrentReferralProgram {
+  "Whether the referral program is active."
+  active: Boolean!
+  "The referral program terms and conditions."
+  termsAndConditions: String!
+}
+
+type CustomForm implements Node {
+  "ID of the appointment the form relates to"
+  appointmentId: ID
+  "ID of a client who submitted out the form"
+  clientId: ID
+  components: [CustomFormComponent!]!
+  formTemplate: FormTemplate!
+  "The ID of an object"
+  id: ID!
+  insertedAt: DateTime!
+  notStarted: Boolean!
+  status: CustomFormStatus!
+  submittedAt: DateTime
+  version: CustomFormVersion!
+}
+
+type CustomFormComponentCheckbox implements CustomFormComponent {
+  checkboxAnswer: [ID!]
+  floatWidth: String
+  h: Int!
+  id: ID!
+  kind: FormComponentKind!
+  label: String
+  required: Boolean!
+  values: [FormComponentCheckboxValue!]!
+  w: Int!
+  x: Int!
+  y: Int!
+}
+
+type CustomFormComponentCheckboxV2 implements CustomFormComponent {
+  checkboxAnswer: [ID!]
+  enableOther: Boolean!
+  h: Int!
+  id: ID!
+  kind: FormComponentKind!
+  label: String
+  otherAnswer: String
+  required: Boolean!
+  values: [FormComponentV2CheckboxValue!]!
+  w: Int!
+  x: Int!
+  y: Int!
+}
+
+type CustomFormComponentDate implements CustomFormComponent {
+  dateAnswer: String
+  floatWidth: String
+  h: Int!
+  id: ID!
+  kind: FormComponentKind!
+  label: String
+  required: Boolean!
+  w: Int!
+  x: Int!
+  y: Int!
+}
+
+type CustomFormComponentDateV2 implements CustomFormComponent {
+  autoPopulate: Boolean!
+  connectedField: String
+  connectedSource: String
+  dateAnswer: String
+  h: Int!
+  id: ID!
+  kind: FormComponentKind!
+  label: String
+  required: Boolean!
+  w: Int!
+  x: Int!
+  y: Int!
+}
+
+type CustomFormComponentDividerV2 implements CustomFormComponent {
+  h: Int!
+  id: ID!
+  kind: FormComponentKind!
+  w: Int!
+  x: Int!
+  y: Int!
+}
+
+type CustomFormComponentDropdownV2 implements CustomFormComponent {
+  autoPopulate: Boolean!
+  connectedField: String
+  connectedSource: String
+  dropdownAnswer: [ID!]
+  enableOther: Boolean!
+  h: Int!
+  id: ID!
+  kind: FormComponentKind!
+  label: String
+  manageReferralSourcesByLocation: Boolean!
+  multiple: Boolean!
+  otherAnswer: String
+  required: Boolean!
+  values: [FormComponentV2DropdownValue!]!
+  w: Int!
+  x: Int!
+  y: Int!
+}
+
+type CustomFormComponentH1 implements CustomFormComponent {
+  floatWidth: String
+  h: Int!
+  id: ID!
+  kind: FormComponentKind!
+  label: String!
+  w: Int!
+  x: Int!
+  y: Int!
+}
+
+type CustomFormComponentH2 implements CustomFormComponent {
+  floatWidth: String
+  h: Int!
+  id: ID!
+  kind: FormComponentKind!
+  label: String!
+  w: Int!
+  x: Int!
+  y: Int!
+}
+
+type CustomFormComponentImageAnswer {
+  annotatedImageUrl: String
+  canvasDataUrl: String
+  customFormImageId: ID
+  sourceImageUrl: String
+}
+
+type CustomFormComponentImageUploaderV2 implements CustomFormComponent {
+  enableImageMarkup: Boolean!
+  h: Int!
+  id: ID!
+  imageAnswer: CustomFormComponentImageAnswer!
+  kind: FormComponentKind!
+  label: String
+  required: Boolean!
+  w: Int!
+  x: Int!
+  y: Int!
+}
+
+type CustomFormComponentImageV2 implements CustomFormComponent {
+  enableImageMarkup: Boolean!
+  fileUploadId: String
+  h: Int!
+  id: ID!
+  imageAnswer: CustomFormComponentImageAnswer!
+  kind: FormComponentKind!
+  label: String
+  src: String!
+  w: Int!
+  x: Int!
+  y: Int!
+}
+
+type CustomFormComponentLogo implements CustomFormComponent {
+  floatWidth: String
+  h: Int!
+  id: ID!
+  kind: FormComponentKind!
+  markdownContent: String!
+  markdownHtml: String!
+  w: Int!
+  x: Int!
+  y: Int!
+}
+
+type CustomFormComponentLogoV2 implements CustomFormComponent {
+  fileUploadId: String
+  h: Int!
+  id: ID!
+  kind: FormComponentKind!
+  src: String!
+  w: Int!
+  x: Int!
+  y: Int!
+}
+
+type CustomFormComponentMarkdown implements CustomFormComponent {
+  floatWidth: String
+  h: Int!
+  id: ID!
+  kind: FormComponentKind!
+  markdownContent: String!
+  markdownHtml: String!
+  w: Int!
+  x: Int!
+  y: Int!
+}
+
+type CustomFormComponentMultipleChoiceV2 implements CustomFormComponent {
+  autoPopulate: Boolean!
+  connectedField: String
+  connectedSource: String
+  enableOther: Boolean!
+  h: Int!
+  id: ID!
+  kind: FormComponentKind!
+  label: String
+  otherAnswer: String
+  radioAnswer: String
+  required: Boolean!
+  values: [FormComponentV2CheckboxValue!]!
+  w: Int!
+  x: Int!
+  y: Int!
+}
+
+type CustomFormComponentRadio implements CustomFormComponent {
+  floatWidth: String
+  h: Int!
+  id: ID!
+  kind: FormComponentKind!
+  label: String
+  radioAnswer: String
+  required: Boolean!
+  values: [CustomFormComponentRadioValue!]!
+  w: Int!
+  x: Int!
+  y: Int!
+}
+
+type CustomFormComponentRadioValue {
+  id: String!
+  label: String!
+}
+
+type CustomFormComponentSelect implements CustomFormComponent {
+  floatWidth: String
+  h: Int!
+  id: ID!
+  kind: FormComponentKind!
+  label: String
+  required: Boolean!
+  selectAnswer: [String]
+  selectMultiple: Boolean!
+  values: [CustomFormComponentSelectValue!]!
+  w: Int!
+  x: Int!
+  y: Int!
+}
+
+type CustomFormComponentSelectValue {
+  id: String!
+  label: String!
+}
+
+type CustomFormComponentSignature implements CustomFormComponent {
+  enableWet: Boolean
+  fileUpload: CustomFormComponentSignatureUpload!
+  floatWidth: String
+  h: Int!
+  id: ID!
+  kind: FormComponentKind!
+  label: String!
+  required: Boolean!
+  signatureAnswer: CustomFormComponentSignatureAnswer!
+  w: Int!
+  x: Int!
+  y: Int!
+}
+
+type CustomFormComponentSignatureAnswer {
+  fileUploadId: ID
+  name: String
+  url: String
+}
+
+type CustomFormComponentSignatureUpload {
+  id: ID!
+  signedPutUrl: String!
+}
+
+type CustomFormComponentSignatureV2 implements CustomFormComponent {
+  enableWetV2: Boolean
+  fileUpload: CustomFormComponentSignatureUpload!
+  h: Int!
+  id: ID!
+  kind: FormComponentKind!
+  label: String
+  required: Boolean!
+  signatureAnswer: CustomFormComponentSignatureAnswer!
+  w: Int!
+  x: Int!
+  y: Int!
+}
+
+type CustomFormComponentText implements CustomFormComponent {
+  floatWidth: String
+  h: Int!
+  id: ID!
+  kind: FormComponentKind!
+  label: String!
+  placeholder: String
+  required: Boolean!
+  textAnswer: String
+  w: Int!
+  x: Int!
+  y: Int!
+}
+
+type CustomFormComponentTextarea implements CustomFormComponent {
+  h: Int!
+  id: ID!
+  kind: FormComponentKind!
+  label: String!
+  placeholder: String
+  required: Boolean!
+  textAnswer: String
+  textareaAnswer: String
+  w: Int!
+  x: Int!
+  y: Int!
+}
+
+type CustomFormComponentTextInputV2 implements CustomFormComponent {
+  autoPopulate: Boolean!
+  connectedField: String
+  connectedSource: String
+  h: Int!
+  id: ID!
+  kind: FormComponentKind!
+  label: String
+  longResponse: Boolean!
+  placeholder: String
+  required: Boolean!
+  textAnswer: String
+  w: Int!
+  x: Int!
+  y: Int!
+}
+
+type CustomFormComponentTextV2 implements CustomFormComponent {
+  h: Int!
+  id: ID!
+  kind: FormComponentKind!
+  value: String
+  w: Int!
+  x: Int!
+  y: Int!
+}
+
+type CustomFormTemplate {
+  active: Boolean! @deprecated(reason: "Use `status` instead")
+  components: [CustomFormComponent!]!
+  createdByStaff: Staff
+  currentVersion: CustomFormVersion!
+  description: String
+  id: ID!
+  insertedAt: DateTime!
+  internal: Boolean!
+  name: String!
+  requestDuringBooking: Boolean!
+  requestDuringCheckin: Boolean!
+  requestDuringReminder: Boolean!
+  requestSameDay: Boolean!
+  resource: FormResourceType!
+  sortOrder: Float!
+  status: String!
+  templateLocations: [CustomFormTemplateLocation]!
+  templateServices: [CustomFormTemplateService]!
+  updatedAt: DateTime!
+}
+
+type CustomFormTemplateLocation {
+  id: ID!
+  location: Location!
+  template: CustomFormTemplate!
+}
+
+type CustomFormTemplateService {
+  id: ID!
+  service: Service!
+  template: CustomFormTemplate!
+}
+
+type CustomFormVersion {
+  components: [CustomFormComponent!]!
+  id: ID!
+  template: CustomFormTemplate!
+  templatingVersion: Int!
+}
+
+type DeleteCartGiftCardItemEmailFulfillmentPayload {
+  cart: Cart!
+}
+
+type DeleteCartGuestPayload {
+  cart: Cart!
+}
+
+type DiscountReason implements Node {
+  "Whether the reason is hidden at checkout."
+  hidden: Boolean!
+  "The ID of an object"
+  id: ID!
+  "Name"
+  name: String!
+}
+
+type FeeLineRefund {
+  "ID of the associated fee"
+  feeLineId: ID!
+  id: ID!
+  "ID of the order refund the fee was refunded on"
+  orderRefundId: ID!
+  "Amount of the fee refunded"
+  refundAmount: Money!
+  refundedAt: DateTime!
+}
+
+type FormComponentCheckboxValue {
+  id: ID!
+  label: String!
+}
+
+type FormComponentV2CheckboxValue {
+  id: ID!
+  label: String
+}
+
+type FormComponentV2DropdownMetaValues {
+  countryCode: String
+}
+
+type FormComponentV2DropdownValue {
+  divider: Boolean
+  id: ID!
+  label: String
+  meta: FormComponentV2DropdownMetaValues
+}
+
+type FormTemplate {
+  "Form template ID"
+  id: ID!
+  "Form template name"
+  name: String!
+}
+
+type GiftCardDesign {
+  backgroundColor: String
+  foregroundText: String
+  id: ID!
+  image: String
+  name: String!
+  preset: Boolean!
+}
+
+type Invoice implements Node {
+  "Amount due"
+  amount: Int!
+  completedAt: DateTime
+  dueDate: Date
+  "The ID of an object"
+  id: ID!
+  number: String!
+  order: Order
+  payments: [InvoiceOrderPayment!]!
+  publishedAt: DateTime
+  staffEligibleForTips: [InvoiceStaffEligibleForTips!]!
+  state: OrderInvoiceState!
+  """
+  Staff members who performed services on the associated order and are eligible for tips
+  """
+  summary: InvoiceSummary!
+}
+
+type InvoiceCollectPaymentPayload {
+  invoice: Invoice!
+}
+
+type InvoiceFee {
+  amount: Money!
+  label: String!
+}
+
+type InvoiceOrderPayment {
+  "ID"
+  id: ID!
+}
+
+type InvoiceStaffEligibleForTips {
+  servicesTotal: Money!
+  staff: Staff!
+}
+
+type InvoiceSummary {
+  fees: [InvoiceFee!]!
+  refundAmount: Money!
+  subtotal: Money!
+  taxAmount: Money!
+  tips: [InvoiceTip!]!
+  total: Money!
+}
+
+type InvoiceTip {
+  amount: Money!
+  staff: Staff!
+}
+
+"Location"
+type Location implements Node {
+  "The location's address"
+  address: Address!
+  "Whether or not the location allows booking online"
+  allowOnlineBooking: Boolean!
+  "Whether or not the location allows rescheduling online"
+  allowOnlineRescheduling: Boolean!
+  "The location's arrival instructions"
+  arrivalInstructions: String!
+  "URL to an image related to the location"
+  avatar: String
+  "Name of the business"
+  businessName: String!
+  "The location's contact email"
+  contactEmail: Email
+  "The coordinates of the location"
+  coordinates: Coordinates
+  "Location external id"
+  externalId: String
+  "Google Place ID"
+  googlePlaceId: String
+  """
+  Stores the location's daily business hours and whether the location is
+  open or closed on a specific day of the week. This is an array of 7 elements
+  for each day of the week, beginning with Sunday.
+  """
+  hours: [LocationDays]
+  "The ID of an object"
+  id: ID!
+  insertedAt: DateTime!
+  """
+  Indicates that the location is a remote location, and that appointments for
+  this location are carried out remotely.
+  """
+  isRemote: Boolean!
+  "The location's name"
+  name: String!
+  "The location's phone number"
+  phoneNumber: PhoneNumber
+  "A setting to enable/disable the ability to set and show the location hours"
+  showLocationHours: Boolean!
+  "Whether or not to show the location's prepaid unit purchases in order emails"
+  showPrepaidUnitPurchasesInOrderEmails: Boolean!
+  "Social account links"
+  social: LocationSocialAccounts!
+  "The location's timezone"
+  tz: Tz!
+  updatedAt: DateTime!
+  "The location's website"
+  website: Url
+}
+
+type LocationConnection {
+  edges: [LocationEdge]
+  pageInfo: PageInfo!
+}
+
+"""
+Represents each day of the week of the location's hours. Open is a boolean
+indicating if the location is open on that day. Start and finish are the exact times
+the location opens and closes on that day.
+"""
+type LocationDays {
+  finish: LocationHours
+  open: Boolean
+  start: LocationHours
+}
+
+type LocationEdge {
+  cursor: String
+  node: Location
+}
+
+"""
+Used for the open (start) and close (finish) time of the location's hours.
+Hour stores the hour and minute stores the minutes. For example, 2:30PM would be
+saved as { hour: 14, minute: 30 }.
+"""
+type LocationHours {
+  "Only integers in the range 0..23 are valid"
+  hour: Int
+  minute: Int
+}
+
+type LocationSocialAccounts {
+  facebook: String
+  google: String
+  instagram: String
+  pinterest: String
+  twitter: String
+  yelp: String
+  youtube: String
+}
+
+"A client membership sold at the business."
+type Membership implements Node {
+  "The account credit associated with the membership"
+  accountCredit: Money!
+  "The cancellation date of the membership. Can be a future date."
+  cancelOn: Date
+  "The date a cancellation was initiated for this membership"
+  cancellationInitiatedOn: DateTime
+  "The email address for membership cancellation requests"
+  cancellationRequestEmail: String
+  """
+  When a membership cancellation has been initiated, this field returns the membership term dates for the final term of this membership.
+  
+  When no cancellation has been initiated, this field returns the membership term dates for the final term of this membership if a membership cancellation was initiated today.
+  """
+  cancellationTermDates: MembershipCancellationTermDates
+  "Client who owns the membership."
+  client: Client!
+  "The id of the client who owns the membership."
+  clientId: ID!
+  "The credit card that will be charged for the membership."
+  creditCard: CreditCard
+  "Has the membership current billing failed"
+  currentBillingError: Boolean!
+  "Ending date for the membership."
+  endOn: Date!
+  "Whether the membership has any available offer."
+  hasOffers: Boolean!
+  "The ID of an object"
+  id: ID!
+  "Duration of the membership interval (eg. 1 month)."
+  interval: DurationInterval!
+  "The membership name."
+  name: String!
+  "The date the membership will next renew"
+  nextChargeDate: Date
+  "Offers associated with this membership."
+  offers: [Offer!]
+  "Membership plan"
+  plan: MembershipPlan
+  "Membership plan agreement signature"
+  planAgreementSignature: MembershipPlanAgreementSignature
+  "A summary of the membership's shared information"
+  sharedSummary: SharedMemberInformation!
+  "Start date of the membership."
+  startOn: Date!
+  "Membership Status. Active, Cancelled, Past Due or Paused"
+  status: SubscriptionStatus!
+  "The reason the membership has the current status"
+  statusReason: MembershipStatusReason
+  """
+  The custom reason the membership has the current status. Is populated when status_reason is other
+  """
+  statusReasonCustom: String
+  "The current term number of the membership"
+  termNumber: Int!
+  "This membership's terms"
+  terms(after: String, before: String, first: Int, last: Int): MembershipTermConnection
+  "How much the membership costs per interval."
+  unitPrice: Money!
+  "When the membership will unpause on"
+  unpauseOn: Date
+  "Optional vouchers included with membership"
+  vouchers: [MembershipVoucher!]!
+}
+
+"Details related to a membership cancellation request"
+type MembershipCancellationTermDates {
+  """
+  The exclusive end date of the cancellation term, benefits will no longer be available as of this date.
+  """
+  endOn: Date!
+  "The inclusive start date of the cancellation term."
+  startOn: Date!
+}
+
+type MembershipCancelPayload {
+  membership: Membership
+}
+
+type MembershipConnection {
+  edges: [MembershipEdge]
+  pageInfo: PageInfo!
+}
+
+type MembershipEdge {
+  cursor: String
+  node: Membership
+}
+
+type MembershipPausePayload {
+  membership: Membership
+}
+
+type MembershipPaymentMethodUpdateAndRenewPayload {
+  membership: Membership
+  newCardWasChargedForRenewal: Boolean
+}
+
+type MembershipPaymentMethodUpdatePayload {
+  membership: Membership
+}
+
+"Membership plan"
+type MembershipPlan implements Node {
+  cancellationNoticePeriod: DurationInterval
+  enforceCancellationNotice: Boolean!
+  enforceMinimumCommitment: Boolean!
+  "The ID of an object"
+  id: ID!
+  minimumCommitmentPeriod: DurationInterval
+}
+
+"The membership plan agreement"
+type MembershipPlanAgreement implements Node {
+  body: String!
+  "The ID of an object"
+  id: ID!
+  version: Int!
+}
+
+"Membership plan agreement signature"
+type MembershipPlanAgreementSignature {
+  signedAt: DateTime!
+  planAgreement: MembershipPlanAgreement!
+}
+
+type MembershipPlanCategory {
+  id: ID
+  name: String
+}
+
+"A membership term"
+type MembershipTerm implements Node {
+  "The ID of an object"
+  id: ID!
+  "The order"
+  order: Order!
+}
+
+type MembershipTermConnection {
+  "The total count of membership terms"
+  count: Int!
+  edges: [MembershipTermEdge]
+  pageInfo: PageInfo!
+}
+
+type MembershipTermEdge {
+  cursor: String
+  node: MembershipTerm
+}
+
+type MembershipUnpausePayload {
+  membership: Membership
+}
+
+type MembershipUnscheduleCancellationPayload {
+  membership: Membership
+}
+
+type MembershipUpdateNextChargeDatePayload {
+  membership: Membership
+}
+
+"A membership service voucher"
+type MembershipVoucher {
+  "Number of vouchers included"
+  quantity: Int!
+  service: Service! @deprecated(reason: "Use services to fetch the list of services from a membership voucher.")
+  services: [Service!]!
+}
+
+type Offer implements Node {
+  """
+  Whether the offer can be applied to all first time membership sales by default. Defaults to false.
+  
+  See `items` for how this interacts with item rules.
+  """
+  applicableToAllMemberships: Boolean!
+  """
+  Whether the offer can be applied to all packages by default. Defaults to false.
+  
+  See `items` for how this interacts with item rules.
+  """
+  applicableToAllPackages: Boolean!
+  """
+  Whether the offer can be applied to products by default. Defaults to true.
+  
+  See `items` for how this interacts with item rules.
+  """
+  applicableToAllProducts: Boolean!
+  """
+  Whether the offer can be applied to services by default. Defaults to true.
+  
+  See `items` for how this interacts with item rules.
+  """
+  applicableToAllServices: Boolean!
+  "Whether the offer can be applied to gift cards. Defaults to false."
+  applicableToGiftCards: Boolean!
+  """
+  The number of times the authenticated client has used this offer.
+  Returns null if there is no authenticated client.
+  """
+  clientUsage: Int
+  "The amount of times an offer can be applied per client."
+  clientUsageLimit: Int
+  "Offer code, case-insensitively unique."
+  code: String
+  "The date and time when the offer was created"
+  createdAt: DateTime!
+  "Fixed amount discounted from each applicable line."
+  discountAmount: Money
+  "Percentage amount discounted from each applicable line."
+  discountPercentage: Percentage
+  "Whether the offer is part of a referral program discount"
+  hasReferralProgram: Boolean!
+  "The ID of an object"
+  id: ID!
+  """
+  Items to which this offer applies. The offer will be applied based on the specific services, products, or other items included in this list.
+  """
+  items: [OfferItem!]!
+  "Offer name, case-insensitively unique."
+  name: String!
+  "The date and time when the offer was last updated"
+  updatedAt: DateTime!
+}
+
+type OfferPackageCategoryItem implements OfferItem {
+  id: ID!
+  included: Boolean!
+  packageCategory: PackageCategory!
+}
+
+type OfferPlanCategoryItem implements OfferItem {
+  id: ID!
+  included: Boolean!
+  planCategory: MembershipPlanCategory!
+}
+
+type OfferProductCategoryItem implements OfferItem {
+  id: ID!
+  included: Boolean!
+  productCategory: ProductCategory!
+}
+
+type OfferProductItem implements OfferItem {
+  id: ID!
+  included: Boolean!
+  product: Product!
+}
+
+type OfferServiceCategoryItem implements OfferItem {
+  id: ID!
+  included: Boolean!
+  serviceCategory: ServiceCategory!
+}
+
+type OfferServiceItem implements OfferItem {
+  id: ID!
+  included: Boolean!
+  service: Service!
+}
+
+type OnlineGiftCardSettings {
+  giftCardDesigns: [BusinessGiftCardDesign!]!
+  "ID of the location that will be allotted gift card sales"
+  designatedLocationId: ID
+  "Message displayed on the gift card microsite"
+  websiteMessage: String
+}
+
+type Order implements Node {
+  client: Client
+  closedAt: DateTime
+  feeLines: [OrderFeeLine!]!
+  hidden: Boolean
+  "The ID of an object"
+  id: ID!
+  insertedAt: DateTime!
+  invoices: [Invoice!]!
+  lineGroups: [OrderLineGroup!]!
+  location: Location!
+  note: String
+  number: String!
+  paymentGroups: [OrderPaymentGroup!]!
+  status: OrderStatus!
+  summary: OrderSummary!
+  updatedAt: DateTime!
+  voidedAt: DateTime
+}
+
+type OrderAccountCreditLine implements OrderLine {
+  client: Client!
+  "See field on interface."
+  currentSubtotal: Money!
+  discounts: [OrderLineDiscount!]!
+  id: ID!
+  "See field on interface."
+  initialDiscountAmount: Money!
+  "See field on interface."
+  initialPrice: Money!
+  "See field on interface."
+  initialSubtotal: Money!
+  "See field on interface."
+  initialTaxAmount: Money!
+  quantity: Int!
+}
+
+type OrderAccountCreditPayment implements OrderPayment {
+  allowsPartialRefunds: Boolean!
+  clientAccountBalance: Int!
+  clientName: String!
+  id: ID!
+  merchantId: ID!
+  orderId: ID!
+  paidAmount: Money!
+  paymentMeta: OrderPaymentMetadata!
+  "See interface field."
+  refundAmount: Money!
+  refunds: [OrderPaymentRefund!]!
+}
+
+type OrderAppointmentLineGroup implements OrderLineGroup {
+  appointmentId: ID!
+  client: Client!
+  id: ID!
+  lines: [OrderLine!]!
+}
+
+type OrderCardPayment implements OrderPayment {
+  allowsPartialRefunds: Boolean!
+  "Card payment authorization entry method, if any"
+  authEntryMethod: String
+  "Card payment authorization submerchant ID, if any"
+  authSubmerchantId: String
+  "Card payment authorization terminal identification, if any"
+  authTerminalIdentification: String
+  "Card payment authorization data source label, if any"
+  authTransactionDataSourceLabel: String
+  "Card payment authorization code, if any."
+  cardAuthCode: String
+  cardBrand: PaymentCardBrand!
+  "Expiration month of the associated card."
+  cardExpMonth: Int!
+  "Expiration year of the associated card."
+  cardExpYear: Int!
+  cardLast4: String!
+  "EMV Application Id, if any"
+  emvApplicationId: String
+  "EMV Application Label, if any"
+  emvApplicationLabel: String
+  id: ID!
+  merchantId: ID!
+  orderId: ID!
+  paidAmount: Money!
+  paymentMeta: OrderPaymentMetadata!
+  "See interface field."
+  refundAmount: Money!
+  refunds: [OrderPaymentRefund!]!
+}
+
+type OrderCashPayment implements OrderPayment {
+  allowsPartialRefunds: Boolean!
+  id: ID!
+  merchantId: ID!
+  orderId: ID!
+  paidAmount: Money!
+  paymentMeta: OrderPaymentMetadata!
+  "See interface field."
+  refundAmount: Money!
+  refunds: [OrderPaymentRefund!]!
+}
+
+type OrderClientFinancingTransactionPayment implements OrderPayment {
+  allowsPartialRefunds: Boolean!
+  clientFinancingTransactionId: ID!
+  clientFinancingTransactionStatus: String!
+  id: ID!
+  merchantId: ID!
+  orderId: ID!
+  paidAmount: Money!
+  paymentMeta: OrderPaymentMetadata!
+  "See interface field."
+  refundAmount: Money!
+  refunds: [OrderPaymentRefund!]!
+}
+
+type OrderFeeLine {
+  "Absolute amount for the fee. Null if percentageAmount is set."
+  absoluteAmount: Money
+  "Current calculated amount for the fee."
+  calculatedAmount: Money!
+  calculatedTaxAmount: Money!
+  id: ID!
+  "Human-readable fee label."
+  label: String
+  "Percentage amount for the fee. Null if absoluteAmount is set."
+  percentageAmount: Percentage
+  refunds: [FeeLineRefund]!
+  "Machine-readable fee type."
+  type: OrderFeeType
+}
+
+type OrderGiftCardLine implements OrderLine {
+  "See field on interface."
+  currentSubtotal: Money!
+  discounts: [OrderLineDiscount!]!
+  id: ID!
+  "See field on interface."
+  initialDiscountAmount: Money!
+  "See field on interface."
+  initialPrice: Money!
+  "See field on interface."
+  initialSubtotal: Money!
+  "See field on interface."
+  initialTaxAmount: Money!
+  quantity: Int!
+}
+
+type OrderGiftCardPayment implements OrderPayment {
+  allowsPartialRefunds: Boolean!
+  giftCardBalance: Int!
+  giftCardCode: String!
+  giftCardDisabledAt: DateTime
+  giftCardId: ID!
+  id: ID!
+  merchantId: ID!
+  orderId: ID!
+  paidAmount: Money!
+  paymentMeta: OrderPaymentMetadata!
+  "See interface field."
+  refundAmount: Money!
+  refunds: [OrderPaymentRefund!]!
+}
+
+type OrderGratuityLine implements OrderLine {
+  "See field on interface."
+  currentSubtotal: Money!
+  discounts: [OrderLineDiscount!]!
+  id: ID!
+  "See field on interface."
+  initialDiscountAmount: Money!
+  "See field on interface."
+  initialPrice: Money!
+  "See field on interface."
+  initialSubtotal: Money!
+  "See field on interface."
+  initialTaxAmount: Money!
+  quantity: Int!
+  staff: Staff
+}
+
+type OrderInvoiceAllocation {
+  amountPaid: Money!
+  amountUnpaid: Money!
+  invoiceId: ID!
+  invoiceNumber: String!
+  merchantId: ID!
+  orderId: ID!
+  refundAmount: Money!
+}
+
+type OrderLineAttribution {
+  id: ID!
+  name: String!
+  selected: Boolean!
+  staff: Staff!
+}
+
+type OrderLineDiscount {
+  description: String
+  discountAmount: Money!
+  discountPercentage: Percentage
+  discountReason: DiscountReason
+  id: ID!
+  offer: Offer
+}
+
+type OrderOtherPayment implements OrderPayment {
+  allowsPartialRefunds: Boolean!
+  id: ID!
+  merchantId: ID!
+  note: String
+  orderId: ID!
+  paidAmount: Money!
+  paymentMeta: OrderPaymentMetadata!
+  "See interface field."
+  refundAmount: Money!
+  refunds: [OrderPaymentRefund!]!
+}
+
+type OrderPaymentGroup {
+  id: ID!
+  independentMerchant: Boolean!
+  invoiceAllocations: [OrderInvoiceAllocation!]!
+  merchantId: ID!
+  merchantName: String!
+  payments: [OrderPayment!]!
+  "Total for that merchant (includes fees and taxes)."
+  total: Int!
+  "Pre-tax fee amount for this payment group."
+  totalFees: Int!
+  totalPaid: Int!
+  "Total left to pay for this merchant (includes all fees and taxes)"
+  totalUnpaid: Int!
+}
+
+type OrderPaymentMetadata {
+  label: String
+}
+
+type OrderPaymentRefund {
+  full: Boolean!
+  id: ID!
+  refundAmount: Money!
+  refundId: ID!
+  refundedAt: DateTime!
+}
+
+type OrderProductCardLine implements OrderLine {
+  client: Client!
+  "See field on interface."
+  currentSubtotal: Money!
+  discounts: [OrderLineDiscount!]!
+  id: ID!
+  "See field on interface."
+  initialDiscountAmount: Money!
+  "See field on interface."
+  initialPrice: Money!
+  "See field on interface."
+  initialSubtotal: Money!
+  "See field on interface."
+  initialTaxAmount: Money!
+  product: Product!
+  quantity: Int!
+}
+
+type OrderProductCardPayment implements OrderPayment {
+  "Amounts paid for using the Product Card (Prepaid Units)"
+  activeAmounts: [OrderProductCardPaymentActiveAmount!]!
+  allowsPartialRefunds: Boolean!
+  id: ID!
+  merchantId: ID!
+  orderId: ID!
+  paidAmount: Money!
+  paymentMeta: OrderPaymentMetadata!
+  productCardBalance: Int!
+  productCardId: ID!
+  productId: ID!
+  refundAmount: Money!
+  refunds: [OrderPaymentRefund!]!
+}
+
+"Contains the id of the appointment service option paid for and price"
+type OrderProductCardPaymentActiveAmount {
+  appointmentServiceOptionId: ID!
+  unitPrice: Int!
+}
+
+type OrderProductLine implements OrderLine {
+  "See field on interface."
+  currentSubtotal: Money!
+  discounts: [OrderLineDiscount!]!
+  id: ID!
+  "See field on interface."
+  initialDiscountAmount: Money!
+  "See field on interface."
+  initialPrice: Money!
+  "See field on interface."
+  initialSubtotal: Money!
+  "See field on interface."
+  initialTaxAmount: Money!
+  "Product"
+  product: Product!
+  quantity: Int!
+}
+
+type OrderRetailLineGroup implements OrderLineGroup {
+  id: ID!
+  lines: [OrderLine!]!
+}
+
+type OrderServiceLine implements OrderLine {
+  "ID of the appointment service corresponding to this line."
+  appointmentServiceId: ID
+  "See field on interface."
+  currentSubtotal: Money!
+  discounts: [OrderLineDiscount!]!
+  id: ID!
+  "See field on interface."
+  initialDiscountAmount: Money!
+  "See field on interface."
+  initialPrice: Money!
+  "See field on interface."
+  initialSubtotal: Money!
+  "See field on interface."
+  initialTaxAmount: Money!
+  "List of providers for this service"
+  providers: [OrderLineAttribution!]!
+  quantity: Int!
+  "Service"
+  service: Service!
+  """
+  The list price of the service captured at the time of first adding that service to an order.
+  This stays constant even if the initialPrice of the service is modified once inside an order.
+  """
+  unitListPrice: Money
+}
+
+type OrderSummary {
+  "Sum of all discounts applied to the order"
+  clientDiscountAmount: Money!
+  """
+  Sum of all order line prices (using the pre-voucher values), before fees and
+  taxes, but inclusive of discounts.
+  """
+  clientDiscountedSubtotal: Money!
+  "Sum of all fees applied to the order"
+  clientFeeAmount: Money!
+  "Sum of all tips and gratuities applied to the order"
+  clientGratuityAmount: Money!
+  """
+  Sum of all order line prices (using the pre-voucher values), before
+  discounts, fees, and taxes, before any voucher payments.
+  """
+  clientSubtotal: Money!
+  "Sum of all taxes applied to the order"
+  clientTaxAmount: Money!
+  """
+  Remaining amount to pay by the client.
+  
+  This is the clientSubtotal minus the prices of all order lines that are
+  already paid for using a voucher."
+  """
+  clientTotal: Money!
+  "Sum of all line discounts after any refunds."
+  currentDiscountAmount: Money!
+  """
+  Sum of all line amounts (inclusive of discounts; exclusive of fees or taxes) after any refunds.
+  """
+  currentDiscountedSubtotal: Money!
+  "Sum of all fee amounts after any refunds."
+  currentFeeAmount: Money!
+  "Sum of all line gratuity amounts after any refunds."
+  currentGratuityAmount: Money!
+  """
+  Sum of all line amounts (exclusive of discounts, fees, or taxes) after any refunds.
+  """
+  currentSubtotal: Money!
+  "Sum of all line tax amounts after any refunds."
+  currentTaxAmount: Money!
+  "Grand total, after any refunds."
+  currentTotal: Money!
+  "Total amount refunded of the grand total."
+  refundAmount: Money!
+  refunds: [OrderSummaryRefund!]!
+}
+
+type OrderSummaryRefund {
+  full: Boolean!
+  id: ID!
+  refundAmount: Money!
+  refundId: ID!
+  refundTax: Money!
+  refundedAt: DateTime!
+}
+
+type OrderVoucherPayment implements OrderPayment {
+  allowsPartialRefunds: Boolean!
+  id: ID!
+  "Line item the payment was applied to."
+  lineItem: OrderLine
+  merchantId: ID!
+  orderId: ID!
+  paidAmount: Money!
+  paymentMeta: OrderPaymentMetadata!
+  "See interface field."
+  refundAmount: Money!
+  refunds: [OrderPaymentRefund!]!
+  voucherId: ID!
+}
+
+type Package {
+  id: ID!
+  name: String!
+  product: Product!
+}
+
+type PackageCategory {
+  id: ID
+  name: String
+  packages: [Package!]!
+}
+
+type PageInfo {
+  "When paginating forwards, the cursor to continue."
+  endCursor: String
+  "When paginating forwards, are there more items?"
+  hasNextPage: Boolean!
+  "When paginating backwards, are there more items?"
+  hasPreviousPage: Boolean!
+  "When paginating backwards, the cursor to continue."
+  startCursor: String
+}
+
+"A Product"
+type Product implements Node {
+  "Product Category"
+  category: ProductCategory!
+  "The description of the product"
+  description: String
+  "External Id"
+  externalId: String
+  "The ID of an object"
+  id: ID!
+  "The price of the product"
+  price: Money!
+  "The title of the product"
+  title: String!
+}
+
+"A Product Category"
+type ProductCategory {
+  "Name"
+  name: String!
+  "The products in this category"
+  products: [Product!]
+  "Title"
+  title: String!
+}
+
+"A client referral."
+type Referral implements Node {
+  "The first name of the client."
+  clientFirstName: String!
+  "The ID of an object"
+  id: ID!
+  "Whether the reward is a voucher."
+  isVoucher: Boolean!
+  "The referral program version id"
+  referralProgramVersionId: ID
+  "Referral Source"
+  referralSource: ReferralSource
+  "The referring client, if there is one"
+  referrerClient: Client
+  "The amount of the referrer reward credit."
+  referrerRewardAmount: Int
+  "The date the reward was created."
+  referrerRewardCreatedAt: NaiveDateTime
+  "The voucher group id."
+  voucherGroupId: ID
+  "The voucher quantity."
+  voucherQuantity: Int
+}
+
+type ReferralCode {
+  active: Boolean!
+  code: String!
+  referralProgramId: ID
+}
+
+"A referral code reward."
+type ReferralCodeReward {
+  "Whether the discount is applicable to all available products for a business"
+  applicableToAllProducts: Boolean!
+  "Whether the discount is applicable to all available services for a business"
+  applicableToAllServices: Boolean!
+  "Whether the discount is applicable only to a few products"
+  applicableToProducts: Boolean!
+  "Whether the discount is applicable only to a few services"
+  applicableToServices: Boolean!
+  "The absolute amount of the discount"
+  discountAmount: Money
+  "The relative percentage of the discount"
+  discountPercentage: Percentage
+  "The items the discount is applicable to"
+  items: [RewardItem!]!
+}
+
+type ReferralConnection {
+  edges: [ReferralEdge]
+  pageInfo: PageInfo!
+}
+
+type ReferralEdge {
+  cursor: String
+  node: Referral
+}
+
+"A referral program"
+type ReferralProgram {
+  "The current version of the rewards associated with the referral program"
+  currentVersion: ReferralProgramVersion!
+}
+
+"A specific reward type for account credits"
+type ReferralProgramAccountCreditReward {
+  "The amount of the account credit to be applied"
+  creditAmount: Money!
+}
+
+"A specific reward for applying discounts to products and services"
+type ReferralProgramDiscountReward {
+  "Whether the discount is applicable to all available products for a business"
+  applicableToAllProducts: Boolean!
+  "Whether the discount is applicable to all available services for a business"
+  applicableToAllServices: Boolean!
+  "The absolute amount of the discount"
+  discountAmount: Money
+  "The relative percentage of the discount"
+  discountPercentage: Percentage
+}
+
+"A specific version of a referral program"
+type ReferralProgramVersion {
+  "Whether the version is currently active for a referral program"
+  active: Boolean!
+  "Marketing description"
+  description: String
+  """
+  The reward issued to an existing client with this referral program version applied
+  """
+  existingClientRewards: [ReferralProgramReward!]!
+  "The reward issued to a new client with this referral program version applied"
+  newClientRewards: [ReferralProgramReward!]!
+  "Marketing tagline"
+  tagline: String
+  "Terms & Conditions content"
+  termsAndConditions: String
+}
+
+"A specific reward type for vouchers"
+type ReferralProgramVoucherReward {
+  "Whether the voucher is applicable to all services"
+  applicableToAllServices: Boolean!
+  "The expiration time for the voucher"
+  expiresIn: DurationInterval
+  "The number of vouchers to be issued"
+  quantity: Int
+  "The list of services the voucher is redeemable for"
+  services: [Service!]
+}
+
+type ReferralSource {
+  "If the referral source is active or has been soft deleted"
+  active: Boolean!
+  "Whether or not this referral source has been enabled for all locations"
+  allLocations: Boolean!
+  "If the referral source is enabled for future locations"
+  enabledForFutureLocations: Boolean!
+  "ID"
+  id: ID!
+  "When the referral source was created"
+  insertedAt: DateTime!
+  """
+  Location ID of location that owns the referral source.  If null, owned by the business
+  """
+  locationId: ID
+  """
+  Locations that have access to the referral source, but cannot necessarily edit the referral source
+  """
+  locations: [Location!]!
+  "Name of the source of the referral"
+  name: String!
+}
+
+type RemoveCartOfferPayload {
+  cart: Cart!
+}
+
+type RemoveCartSelectedItemPayload {
+  cart: Cart!
+}
+
+type RemoveCustomFormImageResult {
+  id: ID!
+}
+
+type ReserveCartBookableItemsPayload {
+  cart: Cart!
+}
+
+type RewardProductCategoryItem implements RewardItem {
+  id: ID!
+  included: Boolean!
+  name: String!
+  productCategory: ProductCategory!
+  type: ItemType!
+}
+
+type RewardProductItem implements RewardItem {
+  id: ID!
+  included: Boolean!
+  name: String!
+  product: Product!
+  type: ItemType!
+}
+
+type RewardServiceCategoryItem implements RewardItem {
+  id: ID!
+  included: Boolean!
+  name: String!
+  serviceCategory: ServiceCategory!
+  type: ItemType!
+}
+
+type RewardServiceItem implements RewardItem {
+  id: ID!
+  included: Boolean!
+  name: String!
+  service: Service!
+  type: ItemType!
+}
+
+type RootMutationType {
+  """
+  Add a credit card payment method to a cart.
+  
+  The tokens can be retrieved using the appropriate client-side library.
+  """
+  addCartCardPaymentMethod(input: AddCartCardPaymentMethodInput!): AddCartCardPaymentMethodPayload
+  """
+  Add an offer to a cart.
+  
+  When the offer code exists, it's possible that it's not applicable to any
+  items in the cart, in which case the offer is accepted but pricing doesn't
+  change. This status can be checked on each offer. When applicable items are
+  added later, their pricing is updated then.
+  
+  When the offer code doesn't exist, a `CART_OFFER_CODE_INVALID` error is
+  returned.
+  
+  When the usage limit of the offer code is exceeded, a `CART_OFFER_CLIENT_USAGE_LIMIT_EXCEEDED`
+  error is returned.
+  """
+  addCartOffer(input: AddCartOfferInput!): AddCartOfferPayload
+  """
+  Add a bookable item to a cart.
+  
+  Using this mutation invalidates existing reservations.
+  """
+  addCartSelectedBookableItem(input: AddCartSelectedBookableItemInput!): AddCartSelectedBookableItemPayload
+  "Add a gift card item to a cart."
+  addCartSelectedGiftCardItem(input: AddCartSelectedGiftCardItemInput!): AddCartSelectedGiftCardItemPayload
+  "Add a purchasable item to a cart."
+  addCartSelectedPurchasableItem(input: AddCartSelectedPurchasableItemInput!): AddCartSelectedPurchasableItemPayload
+  """
+  Adds tags to an appointment.
+  
+  Note that:
+  
+  - The appointment has to come from a cart checked out by the client code.
+  - The operation is idempotent - adding an existing tag to an appointment is
+  a successful no-op.
+  - If any of the tag ids is incorrect, the entire operation is rolled back
+  and an error is returned.
+  
+  To make sure tags are secure and do not leak out via the client code, we
+  only allow adding tags using their ID, not the name. When building custom
+  booking flow, the recommended approach is to embed the tag ID in the code
+  during the build phase.
+  """
+  appointmentAddTags(input: AppointmentAddTagsInput!): AppointmentAddTagsPayload
+  "Reschedule the provided appointment to a new date and time."
+  appointmentReschedule(input: AppointmentRescheduleInput!): AppointmentReschedulePayload
+  "Get the available dates for the provided appointment."
+  appointmentRescheduleAvailableDates(input: AppointmentRescheduleAvailableDatesInput!): AppointmentRescheduleAvailableDatesPayload
+  """
+  Get the available appointment times on a particular date for the provided appointment.
+  """
+  appointmentRescheduleAvailableTimes(input: AppointmentRescheduleAvailableTimesInput!): AppointmentRescheduleAvailableTimesPayload
+  """
+  Cancel an appointment. If it is a group booking, all bookings in the group will be
+  cancelled, but this can only be done by the host.
+  
+  Cancelling an Appointment automatically updates its state to `cancelled`
+  """
+  cancelAppointment(input: CancelAppointmentInput!): CancelAppointmentPayload
+  """
+  Creates a waitlist entry for the cart with the specified date and time ranges
+  as the boundary for the preferred bookable time. Only selected bookable items
+  will be included in the waitlist entry for the cart.
+  
+  This mutation marks the cart as completed, it can no longer be modified.
+  """
+  cartAddToWaitlist(input: CartAddToWaitlistInput!): CartAddToWaitlistPayload
+  "Answer a booking question"
+  cartBookingQuestionAddAnswer(input: CartBookingQuestionAddAnswerInput!): CartBookingQuestionAddAnswerPayload
+  "Clear the answer for a booking question"
+  cartBookingQuestionClearAnswer(input: CartBookingQuestionClearAnswerInput!): CartBookingQuestionClearAnswerPayload
+  """
+  Removes all the bookable items, purchasable items, and gift cards from the
+  cart.
+  """
+  cartClear(input: CartClearInput!): CartClearPayload
+  "Clears the referral code on a `Cart`."
+  cartClearReferralCode(input: CartClearReferralCodeInput!): CartClearReferralCodePayload
+  "Removes any reserved times from a cart."
+  cartClearReservedTime(input: CartClearReservedTimeInput!): CartClearReservedTimePayload
+  """
+  Sets a location for the cart.
+  
+  Alternative methods for setting a locatin is passing a locationId argument
+  when creating a cart or when adding a first item to an existing cart.
+  
+  Note that the location can only be set once and cannot be changed. When
+  a location is already present on the cart, this mutation returns a
+  `CART_LOCATION_ALREADY_SET` error.
+  """
+  cartSetLocation(input: CartSetLocationInput!): CartSetLocationPayload
+  "Sets the referral code on a `Cart`."
+  cartSetReferralCode(input: CartSetReferralCodeInput!): CartSetReferralCodePayload
+  """
+  Signs a membership plan agreement in a cart.
+  
+  When a selected `CartAvailablePurchasableItem` is configured to have membership agreement
+  this mutation is used to sign the agreement.
+  
+  It is crucial that this mutatation is preceded by a conscious client action agreeing with the
+  presented agreement text of the selected cart membership product item.
+  """
+  cartSignMembershipAgreement(input: CartSignMembershipAgreementInput!): CartSignMembershipAgreementPayload
+  """
+  Completes the checkout process for the given cart.
+  
+  This mutation will first check for any errors in the cart, aborting if
+  any errors exist. Then, it will lock the cart, proceed to attempt to
+  charge the card for any purchaseable items, book all appointments,
+  send relevant email receipts and confirmations, and then mark the
+  cart as completed.
+  """
+  checkoutCart(input: CheckoutCartInput!): CheckoutCartPayload
+  "Request a auth code to update the authenticated client email"
+  clientCreateEmailChangeRequestCode(input: ClientCreateEmailChangeRequestCodeInput!): ClientCreateEmailChangeRequestCodePayload
+  "Request a auth code to update the authenticated client phone number"
+  clientCreatePhoneNumberChangeRequestCode(input: ClientCreatePhoneNumberChangeRequestCodeInput!): ClientCreatePhoneNumberChangeRequestCodePayload
+  clientPasswordlessAuthMultiClientSignIn(input: ClientPasswordlessAuthMultiClientSignInInput!): ClientPasswordlessAuthMultiClientSignInPayload
+  clientPasswordlessAuthRequestCode(input: ClientPasswordlessAuthRequestCodeInput!): ClientPasswordlessAuthRequestCodePayload
+  "Request an auth code to be sent via email."
+  clientPasswordlessAuthSendVerificationCodeToEmail(input: ClientPasswordlessAuthSendVerificationCodeToEmailInput!): ClientPasswordlessAuthSendVerificationCodeToEmailPayload
+  "Request an auth code to be sent via sms."
+  clientPasswordlessAuthSendVerificationCodeToSms(input: ClientPasswordlessAuthSendVerificationCodeToSmsInput!): ClientPasswordlessAuthSendVerificationCodeToSmsPayload
+  clientPasswordlessAuthSignIn(input: ClientPasswordlessAuthSignInInput!): ClientPasswordlessAuthSignInPayload
+  """
+  Update the authenticated client's email to the email address provided when requesting an auth code.
+  """
+  clientUpdateEmail(input: ClientUpdateEmailInput!): ClientUpdateEmailPayload
+  """
+  Update the authenticated client's phone number to the number provided when requesting an auth code.
+  """
+  clientUpdatePhoneNumber(input: ClientUpdatePhoneNumberInput!): ClientUpdatePhoneNumberPayload
+  "Confirm an appointment. Updates its state to `confirmed`."
+  confirmAppointment(input: ConfirmAppointmentInput!): ConfirmAppointmentPayload
+  "Create an appointment rating"
+  createAppointmentRating(input: CreateAppointmentRatingInput!): AppointmentRating!
+  "Create a pending cart for the current client"
+  createCart(input: CreateCartInput!): CreateCartPayload
+  """
+  Create an email fulfillment for a gift card item. A digital copy of the gift
+  card will be sent to the recipient after the order is completed.
+  """
+  createCartGiftCardItemEmailFulfillment(input: CreateCartGiftCardItemEmailFulfillmentInput!): CreateCartGiftCardItemEmailFulfillmentPayload
+  "Add a guest to a cart."
+  createCartGuest(input: CreateCartGuestInput!): CreateCartGuestPayload
+  "Create client note for the authenticated client"
+  createClientNote(input: CreateClientNoteInput!): CreateClientNotePayload
+  "Attach a credit card to a client."
+  createCreditCard(card: CreateCreditCardInput!): CreateCreditCardResult
+  "Create a custom form from a custom form template version"
+  createCustomForm(form: CreateCustomFormInput!): CustomForm!
+  "Delete a gift card item email fulfillment."
+  deleteCartGiftCardItemEmailFulfillment(input: DeleteCartGiftCardItemEmailFulfillmentInput!): DeleteCartGiftCardItemEmailFulfillmentPayload
+  """
+  Delete a cart's guest.
+  
+  Using this mutation invalidates existing reservations.
+  """
+  deleteCartGuest(input: DeleteCartGuestInput!): DeleteCartGuestPayload
+  invoiceCollectPayment(input: InvoiceCollectPaymentInput!): InvoiceCollectPaymentPayload
+  """
+  Cancel a membership on the given date. If the current date is given, the membership will be
+  cancelled immediately.
+  
+  If a future date is given, the membership will cancel on the given date.
+  
+  Paused memberships can only be cancelled immediately.
+  """
+  membershipCancel(input: MembershipCancelInput!): MembershipCancelPayload
+  "Pause a membership"
+  membershipPause(input: MembershipPauseInput!): MembershipPausePayload
+  "Update the payment method for a membership"
+  membershipPaymentMethodUpdate(input: MembershipPaymentMethodUpdateInput!): MembershipPaymentMethodUpdatePayload
+  """
+  Update the payment method for a membership and renew it. Note that this
+  will charge the new card immediately if the membership is past due.
+  """
+  membershipPaymentMethodUpdateAndRenew(input: MembershipPaymentMethodUpdateAndRenewInput!): MembershipPaymentMethodUpdateAndRenewPayload
+  "Unpause a paused membership"
+  membershipUnpause(input: MembershipUnpauseInput!): MembershipUnpausePayload
+  "Unschedule a scheduled cancellation for an active or past due membership."
+  membershipUnscheduleCancellation(input: MembershipUnscheduleCancellationInput!): MembershipUnscheduleCancellationPayload
+  """
+  Updates the next charge for date an active membership.
+  
+  This will not renew a membership if the current date is given.
+  """
+  membershipUpdateNextChargeDate(input: MembershipUpdateNextChargeDateInput!): MembershipUpdateNextChargeDatePayload
+  "Remove an offer from the cart."
+  removeCartOffer(input: RemoveCartOfferInput!): RemoveCartOfferPayload
+  """
+  Remove a selected item from a cart.
+  
+  Using this mutation invalidates existing reservations when the item being
+  removed is a bookable item.
+  """
+  removeCartSelectedItem(input: RemoveCartSelectedItemInput!): RemoveCartSelectedItemPayload
+  "Removes a custom form image"
+  removeCustomFormImage(customFormImageId: ID!): RemoveCustomFormImageResult!
+  """
+  Reserve one starting time for bookable cart items, i.e. all bookable items
+  are to be performed starting at this time. Note that this call may fail if
+  the time is no longer available.
+  """
+  reserveCartBookableItems(input: ReserveCartBookableItemsInput!): ReserveCartBookableItemsPayload
+  """
+  Select an available payment method to be used with all selected cart items.
+  Note that this call may fail if the payment method is not compatible with
+  all items.
+  
+  This is currently the only way to associate payment methods with cart items.
+  Other mutations may be added later in order to support more complex payment
+  scenarios.
+  """
+  selectCartPaymentMethod(input: SelectCartPaymentMethodInput!): SelectCartPaymentMethodPayload
+  """
+  Send an ownership code via email that allows the client to take ownership of the cart
+  """
+  sendCartOwnershipCodeByEmail(input: SendCartOwnershipCodeByEmailInput!): SendCartOwnershipCodeByEmailPayload
+  """
+  Send an ownership code via SMS that allows the client to take ownership of the cart
+  """
+  sendCartOwnershipCodeBySms(input: SendCartOwnershipCodeBySmsInput!): SendCartOwnershipCodeBySmsPayload
+  "Starts a client image upload"
+  startCustomFormImageUpload(input: StartCustomFormImageUploadInput!): StartCustomFormImageUploadResult!
+  """
+  Take ownership of a cart, linking the cart
+  to a Boulevard account.
+  
+  This mutation needs to be made using an authenticated client token.
+  
+  Using this mutation invalidates existing reservations.
+  """
+  takeCartOwnership(input: TakeCartOwnershipInput!): TakeCartOwnershipPayload
+  """
+  Take ownership of the cart using a client authorization code that's been sent via SMS or email
+  """
+  takeCartOwnershipByCode(input: TakeCartOwnershipByCodeInput!): TakeCartOwnershipByCodePayload
+  "Update a pending cart"
+  updateCart(input: UpdateCartInput!): UpdateCartPayload
+  "Update a gift card item email fulfillment."
+  updateCartGiftCardItemEmailFulfillment(input: UpdateCartGiftCardItemEmailFulfillmentInput!): UpdateCartGiftCardItemEmailFulfillmentPayload
+  "Update a cart's guest."
+  updateCartGuest(input: UpdateCartGuestInput!): UpdateCartGuestPayload
+  """
+  Update a cart's selected bookable item.
+  
+  Using this mutation invalidates existing reservations when the guest, staff
+  variant, or option IDs are updated.
+  """
+  updateCartSelectedBookableItem(input: UpdateCartSelectedBookableItemInput!): UpdateCartSelectedBookableItemPayload
+  "Update a cart's selected gift card item."
+  updateCartSelectedGiftCardItem(input: UpdateCartSelectedGiftCardItemInput!): UpdateCartSelectedGiftCardItemPayload
+  "Update a cart's selected purchasable item."
+  updateCartSelectedPurchasableItem(input: UpdateCartSelectedPurchasableItemInput!): UpdateCartSelectedPurchasableItemPayload
+  "Update the authenticated client"
+  updateClient(input: UpdateClientInput!): UpdateClientPayload @deprecated(reason: "Deprecated, use updateClientInfo instead.")
+  "Update the authenticated client information"
+  updateClientInfo(input: UpdateClientInfoInput!): UpdateClientInfoPayload
+  updateCommunicationSubscriptions(input: UpdateCommunicationSubscriptionsInput!): UpdateCommunicationSubscriptionsPayload
+  "Update a custom form from a custom form template version"
+  updateCustomForm(form: UpdateCustomFormInput!): CustomForm!
+}
+
+type RootQueryType {
+  appointment(cartId: ID, id: ID!): Appointment
+  "Look up the currently authenticated business"
+  business: Business
+  "Retrieves a cart by ID."
+  cart(id: ID!, paymentMethod: CartPaymentMethod): Cart
+  """
+  Retrieves available dates for all bookable cart items.
+  
+  The search range may be arbitrarily large, but the number of available dates
+  returned is limited by the `limit` argument, which defaults to 31.
+  
+  Note that the search range is always clamped to the location's minimum and
+  maximum booking lead times.
+  """
+  cartBookableDates(id: ID!, limit: Int, locationId: ID, searchRangeLower: Date, searchRangeUpper: Date, staffVariantIds: [ID!], tz: Tz): [CartBookableDate!]
+  """
+  Retrieves available staff variants for a specific bookable cart item, given
+  a time that was retrieved earlier using `cartBookableTimes`. In other words,
+  returns all variants that can be selected for the item while still keeping
+  the overall starting time.
+  
+  ## Caveats
+  
+  Because this query assumes that variants of other items stay constant,
+  variants of multiple items must be updated separately by retrieving the
+  variants for one item first, updating that item, and then retrieving the
+  variants for another item.
+  
+  Timing of an item is affected when the variant is updated, which is why any
+  existing reservations are invalidated and the times must be reserved again
+  using `reserveCartBookableItems`.
+  """
+  cartBookableStaffVariants(bookableTimeId: ID!, id: ID!, itemId: ID!, locationId: ID): [CartAvailableBookableItemStaffVariant!]
+  """
+  Retrieves available times for all bookable cart items, given a date that
+  was retrieved earlier using `cartBookableDates`.
+  """
+  cartBookableTimes(id: ID!, locationId: ID, searchDate: Date!, staffVariantIds: [ID!], tz: Tz): [CartBookableTime!]
+  "Look up the authenticated client"
+  client: Client
+  "Client auth methods and their IDs"
+  clientPasswordlessAuthMethods(clientId: ID!): [AuthMethod!]!
+  customForm(id: ID!): CustomForm!
+  customFormTemplate(id: ID!): CustomFormTemplate
+  "DO NOT USE - Get an invoice by ID"
+  invoice(id: ID!, paymentMethod: InvoicePaymentMethod, tips: [InvoiceTipInput]): Invoice
+  "List locations for the business"
+  locations(after: String, before: String, first: Int, last: Int): LocationConnection
+  "Get a membership by ID"
+  membership(id: ID!): Membership
+  """
+  List appointments for the authenticated client.
+  
+  The appointment connection supports queries on the following fields:
+  
+  * cancelled: Boolean
+  * locationId: Id
+  * staffId: Id
+  * startAt: DateTime
+  """
+  myAppointments(after: String, before: String, first: Int, last: Int, query: QueryString, sort: AppointmentSort): AppointmentConnection
+  "List credit cards for the authenticated client."
+  myCreditCards(after: String, before: String, first: Int, last: Int): CreditCardConnection
+  """
+  List memberships for the authenticated client.
+  
+  The membership connection supports queries on the following fields:
+  
+  * startOn: DateTime
+  * status: SubscriptionStatus
+  """
+  myMemberships(after: String, before: String, first: Int, last: Int, query: QueryString, sort: MembershipSort): MembershipConnection
+  "List referrals for the authenticated client."
+  myReferrals(after: String, before: String, first: Int, last: Int, sort: ReferralSort): ReferralConnection
+  "Get unpaid invoices"
+  myUnpaidInvoices: [UnpaidInvoice]
+  "Look up a Node by its Global ID"
+  node(id: ID!): Node
+  order(id: ID!): Order
+  "Get the referral code data"
+  referralCode(code: String!): ClientReferralCode
+}
+
+type SelectCartPaymentMethodPayload {
+  cart: Cart!
+}
+
+type SendCartOwnershipCodeByEmailPayload {
+  cartOwnershipCodeId: String!
+}
+
+type SendCartOwnershipCodeBySmsPayload {
+  cartOwnershipCodeId: String!
+}
+
+"A Service"
+type Service implements Node {
+  "Service Category"
+  category: ServiceCategory!
+  "Service Category Id"
+  categoryId: ID!
+  "Description"
+  description: String
+  "External Id"
+  externalId: String
+  "The ID of an object"
+  id: ID!
+  "Name"
+  name: String!
+}
+
+"A ServiceCategory"
+type ServiceCategory {
+  "Name"
+  name: String!
+  "The services in this category"
+  services: [Service!]
+}
+
+"A ServiceOption"
+type ServiceOption implements Node {
+  "The ID of an object"
+  id: ID!
+  "Name"
+  name: String!
+}
+
+"A member of a shared membership"
+type SharedMember {
+  "The first name of the member"
+  firstName: String!
+  "The client ID of the member"
+  id: ID!
+  "The last name of the member"
+  lastName: String
+}
+
+"The membership's shared member information"
+type SharedMemberInformation {
+  "If the client is authorized to see the members of the membership"
+  isAuthorized: Boolean!
+  "If the membership is shared"
+  isShared: Boolean!
+  "The clients that share this membership"
+  members: [SharedMember!]!
+}
+
+"Staff"
+type Staff implements Node {
+  "A URL to the Avatar uploaded for this staff within the Boulevard Dashboard"
+  avatar: String
+  "A biography of the staff member"
+  bio: String
+  "The public display name of the staff member. Preferred over other name fields."
+  displayName: String!
+  "The first name of the staff member. Consider using the display name instead."
+  firstName: String!
+  "The ID of an object"
+  id: ID!
+  insertedAt: DateTime!
+  "The last name of the staff member. Consider using the display name instead."
+  lastName: String!
+  "The nickname of the staff member. Consider using the display name instead."
+  nickname: String
+  "The role the staff member holds at the business"
+  role: StaffRole!
+  updatedAt: DateTime!
+}
+
+"Staff Role"
+type StaffRole implements Node {
+  "The ID of an object"
+  id: ID!
+  "Name of the role"
+  name: String!
+}
+
+type StartCustomFormImageUploadResult {
+  customFormImageId: ID!
+  signedPutUrl: String!
+}
+
+type TakeCartOwnershipByCodePayload {
+  cart: Cart!
+}
+
+type TakeCartOwnershipPayload {
+  cart: Cart!
+}
+
+type UnpaidInvoice {
+  appointmentId: ID
+  invoice: Invoice!
+}
+
+type UpdateCartGiftCardItemEmailFulfillmentPayload {
+  cart: Cart!
+  emailFulfillment: CartItemEmailFulfillment!
+}
+
+type UpdateCartGuestPayload {
+  cart: Cart!
+  guest: CartGuest!
+}
+
+type UpdateCartPayload {
+  cart: Cart!
+}
+
+type UpdateCartSelectedBookableItemPayload {
+  cart: Cart!
+}
+
+type UpdateCartSelectedGiftCardItemPayload {
+  cart: Cart!
+}
+
+type UpdateCartSelectedPurchasableItemPayload {
+  cart: Cart!
+}
+
+type UpdateClientInfoPayload {
+  client: Client
+}
+
+type UpdateClientPayload {
+  client: Client
+}
+
+type UpdateCommunicationSubscriptionsPayload {
+  communicationSubscriptions: [CommunicationSubscription!]!
+  success: Boolean!
+}
+
+"A voucher"
+type Voucher implements Node {
+  "Days until the Voucher expires"
+  daysUntilExpiration: Int
+  "A description of the Voucher (derived from the Product)"
+  description: String
+  "When the Voucher expires"
+  expiresOn: Date
+  "The ID of an object"
+  id: ID!
+  "When the Voucher was created"
+  insertedAt: DateTime!
+  "Whether or not the Voucher is expired"
+  isExpired: Boolean!
+  "The locations where this voucher can be redeemed"
+  redeemableLocations: [Location!]!
+  "When the Voucher was redeemed"
+  redeemedAt: DateTime
+  "The list of services the voucher is redeemable for"
+  services: [Service!]!
+  "A title of the Voucher (derived from the Product)"
+  title: String
+  "When the Voucher was last updated"
+  updatedAt: DateTime!
+}
+
+type VoucherConnection {
+  edges: [VoucherEdge]
+  pageInfo: PageInfo!
+}
+
+type VoucherEdge {
+  cursor: String
+  node: Voucher
+}
+
+"A group of Vouchers with metadata"
+type VoucherGroup implements Node {
+  "The ID of an object"
+  id: ID!
+  "A list of Service IDs for which Vouchers in this group may be redeemed"
+  voucherServiceIds: [ID!]!
+  "A list of Service names for which Vouchers in this group may be redeemed"
+  voucherServiceNames: [String!]!
+  "Vouchers within a Voucher group"
+  vouchers(after: String, before: String, first: Int, last: Int, query: QueryString, sort: VouchersSortInput): VoucherConnection
+  "The number of Vouchers in this group"
+  vouchersCount: Int!
+  "The number of Vouchers in this group expiring soon"
+  vouchersExpiringSoonCount: Int!
+}
+
+type VoucherGroupConnection {
+  edges: [VoucherGroupEdge]
+  pageInfo: PageInfo!
+}
+
+type VoucherGroupEdge {
+  cursor: String
+  node: VoucherGroup
+}
+
+"Current answer for the booking question."
+union CartBookingQuestionAnswer = CartBookingQuestionBooleanAnswer | CartBookingQuestionDatetimeAnswer | CartBookingQuestionFloatAnswer | CartBookingQuestionIntegerAnswer | CartBookingQuestionMultiSelectAnswer | CartBookingQuestionSelectAnswer | CartBookingQuestionTextAnswer
+
+"A referral program reward"
+union ReferralProgramReward = ReferralProgramAccountCreditReward | ReferralProgramDiscountReward | ReferralProgramVoucherReward
+
+input AddCartCardPaymentMethodInput {
+  "ID of the cart"
+  id: ID!
+  """
+  Whether to automatically select this credit card as the payment method
+  for the cart, false by default.
+  """
+  select: Boolean
+  "Credit card token obtained from the Credit Card Tokenization endpoint."
+  token: ID!
+}
+
+input AddCartOfferInput {
+  "ID of the cart"
+  id: ID!
+  "The offer code identifier"
+  offerCode: String!
+}
+
+input AddCartSelectedBookableItemInput {
+  "ID of the cart."
+  id: ID!
+  """
+  Optional discount code applied to the item. Invalid discount codes are
+  ignored without an error, check `discountCode` on the selected item to see
+  if the code was valid.
+  """
+  itemDiscountCode: String
+  """
+  Optional ID that identifies the guest this item is booked for. A null
+  value indicates the cart owner, or current client.
+  
+  When finding available times for bookable items, it's assumed that two
+  items having different guests can be booked simultaneously.
+  """
+  itemGuestId: ID
+  "ID of the bookable item."
+  itemId: ID!
+  """
+  Optional IDs of selected bookable item options. Note that the selections
+  must conform to the option group requirements, e.g. limits on the number
+  of options. Otherwise an error is returned.
+  """
+  itemOptionIds: [ID!]
+  "Optional ID of the selected bookable item staff variant."
+  itemStaffVariantId: ID
+}
+
+input AddCartSelectedGiftCardItemInput {
+  "ID of the cart."
+  id: ID!
+  "ID of the gift card item."
+  itemId: ID!
+  """
+  Price applied to the gift card item. See cartAvailableGiftCardItem.minPrice
+  and maxPrice for limits
+  """
+  itemPrice: Money!
+}
+
+input AddCartSelectedPurchasableItemInput {
+  "ID of the cart."
+  id: ID!
+  "This is no longer used."
+  itemDiscountCode: String
+  "ID of the purchasable item."
+  itemId: ID!
+}
+
+input AddressInput {
+  city: String
+  country: String
+  line1: String
+  line2: String
+  name: String
+  province: String
+  state: String
+  zip: String
+}
+
+input AppointmentAddTagsInput {
+  cartId: ID!
+  id: ID!
+  tagIds: [ID!]!
+}
+
+input AppointmentRescheduleAvailableDatesInput {
+  "The ID of the appointment that needs to be rescheduled."
+  appointmentId: ID!
+  "The lower range (inclusive) of dates to search for appointment availability."
+  searchRangeLower: Date!
+  "The upper range (inclusive) of dates to search for appointment availability."
+  searchRangeUpper: Date!
+  """
+  Optional time zone the matches should be converted to, e.g. the client's
+  time zone. The search range dates are also interpreted using this. When
+  null, the location's time zone is used.
+  """
+  tz: Tz
+}
+
+input AppointmentRescheduleAvailableTimesInput {
+  "The ID of the appointment that needs to be rescheduled."
+  appointmentId: ID!
+  "The date that should be searched for available times."
+  date: Date!
+  """
+  Optional time zone the matches should be converted to, e.g. the client's
+  time zone. When null, the location's time zone is used.
+  """
+  tz: Tz
+}
+
+input AppointmentRescheduleInput {
+  "The ID of the appointment that needs to be rescheduled."
+  appointmentId: ID!
+  """
+  The encoded data representing an available appointment slot (can be computed
+  using the appointmentRescheduleAvailableTimes mutation).
+  """
+  bookableTimeId: ID!
+  """
+  Creates a notification for the dashboard users to let them know that the appointment has
+  been self-rescheduled by the client.
+  """
+  sendNotification: Boolean!
+}
+
+input AppointmentSort {
+  direction: AppointmentSortDirection
+  field: AppointmentSortField
+}
+
+input BookingQuestionOptionAnswerInput {
+  optionId: ID!
+}
+
+input CancelAppointmentInput {
+  id: ID!
+  notes: String
+}
+
+input CartAddToWaitlistInput {
+  "ID of the cart."
+  id: ID!
+  "The preferred lower bound date and time of the bookable items."
+  preferredTimeLower: NaiveDateTime!
+  "The preferred upper bound date and time of the bookable items."
+  preferredTimeUpper: NaiveDateTime!
+  """
+  Optional time zone the preferred times should be converted from, e.g. the client's
+  time zone. If a timezone other than the default location's timezone was used when
+  fetching bookable times, then that same timezone should be supplied in this mutation.
+  """
+  tz: Tz
+}
+
+"See `CartAdvanceGratuity`."
+input CartAdvanceGratuityInput {
+  fixed: Money
+  percentage: Float
+}
+
+input CartBookingQuestionAddAnswerInput {
+  answer: CartBookingQuestionAnswerInput!
+  "The ID of the cart."
+  id: ID!
+  "The ID of the booking question"
+  questionId: ID!
+}
+
+input CartBookingQuestionAnswerInput {
+  booleanValue: Boolean
+  datetimeValue: DateTime
+  floatValue: Float
+  integerValue: Int
+  optionValue: BookingQuestionOptionAnswerInput
+  optionValues: [BookingQuestionOptionAnswerInput!]
+  textValue: String
+}
+
+input CartBookingQuestionClearAnswerInput {
+  "The ID of the cart."
+  id: ID!
+  "The ID of the booking question"
+  questionId: ID!
+}
+
+input CartClearInput {
+  "ID of the cart"
+  id: ID!
+}
+
+input CartClearReferralCodeInput {
+  "ID of the cart"
+  id: ID!
+}
+
+input CartClearReservedTimeInput {
+  "ID of the cart"
+  id: ID!
+}
+
+"See `CartClientInformation`."
+input CartClientInformationInput {
+  email: Email
+  """
+  External ID of the client, used to integrate with external systems.
+  
+  The value should be unique for every client. Since the validation happens
+  at checkout, if the external ID is not unique for the new client, the value
+  is ignored.
+  """
+  externalId: String
+  firstName: String
+  lastName: String
+  phoneNumber: PhoneNumber
+}
+
+input CartSetLocationInput {
+  "ID of the cart"
+  id: ID!
+  "ID of the location"
+  locationId: ID!
+}
+
+input CartSetReferralCodeInput {
+  "ID of the cart"
+  id: ID!
+  "Referral code"
+  referralCode: String!
+}
+
+input CartSignMembershipAgreementInput {
+  "ID of the cart"
+  id: ID!
+  "ID of the membership cart item"
+  itemId: ID!
+  "ID of the membership plan agreement to sign"
+  planAgreementId: ID!
+}
+
+input CheckoutCartInput {
+  "ID of the cart"
+  id: ID!
+}
+
+input ClientCreateEmailChangeRequestCodeInput {
+  "The new client email address"
+  email: Email!
+}
+
+input ClientCreatePhoneNumberChangeRequestCodeInput {
+  "The new client phone number"
+  mobilePhone: PhoneNumber!
+}
+
+input ClientPasswordlessAuthMultiClientSignInInput {
+  "6 digit auth code"
+  code: String!
+  "Request id used along with the code for the login."
+  requestId: ID!
+}
+
+input ClientPasswordlessAuthRequestCodeInput {
+  "ID of the auth method to use"
+  methodId: ID!
+  "The page or other source from which the code was requested"
+  requestSource: RequestSource!
+}
+
+input ClientPasswordlessAuthSendVerificationCodeToEmailInput {
+  "Email address to send the auth code to."
+  email: Email!
+  "The page or other source from which the code was requested"
+  requestSource: RequestSource!
+}
+
+input ClientPasswordlessAuthSendVerificationCodeToSmsInput {
+  "Phone number to send the auth code to."
+  phoneNumber: PhoneNumber!
+  "The page or other source from which the code was requested"
+  requestSource: RequestSource!
+}
+
+input ClientPasswordlessAuthSignInInput {
+  "6 digit auth code"
+  code: String!
+  "Request id used along with the code for the login."
+  requestId: ID!
+}
+
+input ClientUpdateEmailInput {
+  "The code sent to the client to verify the email change."
+  code: String!
+  "The request id used along with the code for the client email change."
+  requestId: ID!
+}
+
+input ClientUpdatePhoneNumberInput {
+  "The code sent to the client to verify the phone number change."
+  code: String!
+  "The request id used along with the code for the client phone number change."
+  requestId: ID!
+}
+
+input CommunicationSubscriptionInput {
+  channel: CommunicationChannel!
+  enabled: Boolean!
+  key: CommunicationKey!
+}
+
+input ConfirmAppointmentInput {
+  id: ID!
+}
+
+"Input for creating an appointment rating"
+input CreateAppointmentRatingInput {
+  appointmentId: ID!
+  rating: Int!
+  text: String
+}
+
+"See `CartItemEmailFulfillment`."
+input CreateCartGiftCardItemEmailFulfillmentInput {
+  deliveryDate: Date
+  "ID of the cart."
+  id: ID!
+  "The id of the CartGiftCardItem."
+  itemId: ID!
+  messageFromSender: String
+  recipientEmail: Email!
+  recipientName: String!
+  senderName: String!
+}
+
+input CreateCartGuestInput {
+  email: Email
+  firstName: String
+  id: ID!
+  lastName: String
+  phoneNumber: PhoneNumber
+}
+
+input CreateCartInput {
+  "Optional gratuity"
+  advanceGratuity: CartAdvanceGratuityInput
+  "Optional client information"
+  clientInformation: CartClientInformationInput
+  "Optional message or note from the client to the business"
+  clientMessage: String
+  "Optional discount code"
+  discountCode: String
+  "ID of the cart location"
+  locationId: ID
+  """
+  Referral source for the appointments booked in the cart.
+  
+  This values is mapped to the appointments' 'referral_source' custom
+  field values after checkout.
+  """
+  referralSource: String
+}
+
+input CreateClientNoteInput {
+  "The body (text) of the note."
+  text: String!
+  type: NoteType!
+}
+
+input CreateCreditCardInput {
+  "A friendly nickname associated with the card"
+  nickname: String
+  "A token obtained from Vault"
+  vaultToken: String!
+}
+
+input CreateCustomFormInput {
+  answers: [CustomFormAnswer!]
+  appointmentId: ID!
+  offline: Boolean
+  submit: Boolean
+  submittedAt: DateTime
+  versionId: ID!
+}
+
+input CustomFormAnswer {
+  checkboxAnswer: [ID!]
+  dateAnswer: String
+  dropdownAnswer: [ID!]
+  id: ID!
+  imageAnswer: CustomFormImageAnswer
+  otherAnswer: String
+  radioAnswer: ID
+  selectAnswer: [ID!]
+  signatureAnswer: CustomFormSignatureAnswer
+  textAnswer: String
+  textareaAnswer: String
+}
+
+input CustomFormImageAnswer {
+  customFormImageId: ID
+}
+
+input CustomFormSignatureAnswer {
+  fileUploadId: ID
+  name: String
+}
+
+input DeleteCartGiftCardItemEmailFulfillmentInput {
+  "ID of the cart."
+  id: ID!
+  "The id of the CartGiftCardItem."
+  itemId: ID!
+}
+
+input DeleteCartGuestInput {
+  guestId: ID!
+  id: ID!
+}
+
+input InvoiceCollectPaymentInput {
+  "The amount to collect in cents"
+  amount: Int!
+  cardId: ID
+  id: ID!
+  orderId: ID!
+  saveCard: Boolean! = false
+  tips: [InvoiceTipInput!]
+  token: ID
+}
+
+input InvoiceTipInput {
+  amount: Money
+  percentage: Percentage
+  staffId: ID!
+}
+
+input MembershipCancelInput {
+  """
+  Required date when the membership should cancel. Assumed to be in the location's timezone.
+  """
+  cancelOn: Date!
+  "Membership ID"
+  id: ID!
+  "Required reason for cancelling the membership"
+  reason: MembershipCancelledStateReason!
+  "Custom reason for cancelling (reason must be OTHER)"
+  reasonCustom: String
+  "Send a notification to the customer"
+  sendNotification: Boolean = false
+}
+
+input MembershipPauseInput {
+  "Membership ID"
+  id: ID!
+  """
+  Required reason for pausing the membership.
+  
+    If the membership is past due, reason must be PAYMENT_SCHEDULED.
+  
+    If the given reason is OTHER, reasonCustom must be provided.
+  """
+  reason: MembershipPausedStateReason!
+  "Custom reason for pause (reason must be OTHER)"
+  reasonCustom: String
+  "Send a notification to the customer"
+  sendNotification: Boolean = false
+  "Required date when the membership should unpaused"
+  unpauseOn: Date!
+}
+
+input MembershipPaymentMethodUpdateAndRenewInput {
+  id: ID!
+  paymentMethodId: ID!
+}
+
+input MembershipPaymentMethodUpdateInput {
+  id: ID!
+  paymentMethodId: ID!
+}
+
+input MembershipSort {
+  direction: MembershipSortDirection!
+  field: MembershipSortField!
+}
+
+input MembershipUnpauseInput {
+  "Membership ID"
+  id: ID!
+  "Send a notification to the customer"
+  sendNotification: Boolean = false
+}
+
+input MembershipUnscheduleCancellationInput {
+  "Membership ID"
+  id: ID!
+}
+
+input MembershipUpdateNextChargeDateInput {
+  "Membership ID"
+  id: ID!
+  "Desired next charge date"
+  nextChargeDate: Date!
+  "Send a notification to the customer"
+  sendNotification: Boolean = false
+}
+
+input ReferralInput {
+  additionalInfo: String
+  id: ID
+  referralSourceId: ID
+  referrerClientId: ID
+}
+
+"Input object for sorting referrals."
+input ReferralSort {
+  direction: ReferralSortDirection!
+  field: ReferralSortField!
+}
+
+input RemoveCartOfferInput {
+  "ID of the cart"
+  id: ID!
+  "The offer code identifier"
+  offerId: String!
+}
+
+input RemoveCartSelectedItemInput {
+  "ID of the cart."
+  id: ID!
+  "ID of the selected item."
+  itemId: ID!
+}
+
+input ReserveCartBookableItemsInput {
+  "ID of the bookable time."
+  bookableTimeId: ID!
+  "ID of the cart."
+  id: ID!
+}
+
+input SelectCartPaymentMethodInput {
+  "ID of the cart."
+  id: ID!
+  "ID of the selected payment method."
+  paymentMethodId: ID!
+}
+
+input SendCartOwnershipCodeByEmailInput {
+  "Email to send the ownership code to"
+  email: String!
+}
+
+input SendCartOwnershipCodeBySmsInput {
+  "Mobile phone number to send the ownership code to"
+  mobilePhone: String!
+}
+
+input StartCustomFormImageUploadInput {
+  filename: String!
+  locationId: ID!
+}
+
+input TakeCartOwnershipByCodeInput {
+  "Id of cart to take ownership of"
+  cartId: String!
+  "Id of the authorization code"
+  cartOwnershipCodeId: String!
+  "The code that the client received in their email/SMS"
+  cartOwnershipCodeValue: Int!
+}
+
+input TakeCartOwnershipInput {
+  "ID of the cart"
+  id: ID!
+}
+
+"See `CartItemEmailFulfillment`."
+input UpdateCartGiftCardItemEmailFulfillmentInput {
+  deliveryDate: Date
+  "ID of the cart."
+  id: ID!
+  "The id of the CartGiftCardItem."
+  itemId: ID!
+  messageFromSender: String
+  recipientEmail: Email
+  recipientName: String
+  senderName: String
+}
+
+input UpdateCartGuestInput {
+  email: Email
+  firstName: String
+  guestId: ID!
+  id: ID!
+  lastName: String
+  phoneNumber: PhoneNumber
+}
+
+"""
+Cart fields to update. Only some fields can be updated, there are other
+mutations available to update more fields.
+"""
+input UpdateCartInput {
+  advanceGratuity: CartAdvanceGratuityInput
+  clientInformation: CartClientInformationInput
+  clientMessage: String
+  discountCode: String
+  id: ID!
+  """
+  Referral source for the appointments booked in the cart.
+  
+  This values is mapped to the appointments' 'referral_source' custom
+  field values after checkout.
+  """
+  referralSource: String
+}
+
+input UpdateCartSelectedBookableItemInput {
+  "ID of the cart."
+  id: ID!
+  """
+  Optional discount code applied to the item. Invalid discount codes are
+  ignored without an error, check `discountCode` on the selected item to see
+  if the code was valid.
+  """
+  itemDiscountCode: String
+  """
+  Optional ID that identifies the guest this item is booked for. A null
+  value indicates the cart owner, or current client.
+  
+  When finding available times for bookable items, it's assumed that two
+  items having different guests can be booked simultaneously.
+  """
+  itemGuestId: ID
+  "ID of the selected bookable item."
+  itemId: ID!
+  """
+  Optional IDs of selected bookable item options. Note that the selections
+  must conform to the option group requirements, e.g. limits on the number
+  of options. Otherwise an error is returned.
+  """
+  itemOptionIds: [ID!]
+  "Optional ID of the selected bookable item staff variant."
+  itemStaffVariantId: ID
+}
+
+input UpdateCartSelectedGiftCardItemInput {
+  "ID of a valid CartItemGiftCardDesign"
+  giftCardDesignId: ID
+  "ID of the cart or token."
+  id: ID!
+  "ID of the CartGiftCardItem."
+  itemId: ID!
+  """
+  Price applied to the gift card item. See cartAvailableGiftCardItem.minPrice
+  and maxPrice for limits
+  """
+  itemPrice: Money
+}
+
+input UpdateCartSelectedPurchasableItemInput {
+  "ID of the cart."
+  id: ID!
+  """
+  Optional discount code applied to the item. Invalid discount codes are
+  ignored without an error, check `discountCode` on the selected item to see
+  if the code was valid.
+  """
+  itemDiscountCode: String
+  "ID of the selected purchasable item."
+  itemId: ID!
+}
+
+input UpdateClientInfoInput {
+  address: AddressInput
+  dob: Date
+  emergencyContactName: String
+  emergencyContactPhone: String
+  emergencyContactRelationship: String
+  firstName: String
+  lastName: String
+  pronoun: String
+  referral: ReferralInput
+  sexAssignedAtBirth: SexAssignedAtBirth
+}
+
+input UpdateClientInput {
+  dob: Date
+  email: Email
+  firstName: String
+  lastName: String
+  mobilePhone: PhoneNumber
+  pronoun: String
+}
+
+input UpdateCommunicationSubscriptionsInput {
+  communicationSubscriptions: [CommunicationSubscriptionInput!]!
+}
+
+input UpdateCustomFormInput {
+  answers: [CustomFormAnswer!]
+  id: ID!
+  offline: Boolean
+  submit: Boolean
+  submittedAt: DateTime
+  void: Boolean
+}
+
+input VouchersSortInput {
+  direction: VouchersSortInputSortDirection!
+  field: VouchersSortInputField!
+}
+

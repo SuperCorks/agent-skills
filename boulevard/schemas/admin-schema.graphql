@@ -1,0 +1,6072 @@
+schema {
+  query: RootQueryType
+  mutation: RootMutationType
+}
+
+enum AppointmentCancellationReason {
+  CLIENT_CANCEL
+  CLIENT_LATE_CANCEL
+  MERGED
+  MISTAKE
+  NO_SHOW
+  OFFBOARDED
+  STAFF_CANCEL
+  VOIDED
+}
+
+enum AppointmentState {
+  ACTIVE
+  ARRIVED
+  BOOKED
+  CANCELLED
+  CONFIRMED
+  FINAL
+}
+
+enum AppointmentStateInput {
+  ACTIVE
+  ARRIVED
+  BOOKED
+  CONFIRMED
+}
+
+enum AutoPopulateProductType {
+  PROFESSIONAL
+  RETAIL
+}
+
+enum BookedByType {
+  CLIENT
+  STAFF
+}
+
+"Machine-readable booking validation error code."
+enum BookingErrorCode {
+  """
+  This booking is not associated with any clients, a client is needed to
+  complete the booking.
+  
+  ## Resolution
+  
+  Add a client to the booking.
+  """
+  BOOKING_MISSING_CLIENT
+  """
+  No services have been selected, at least one is required.
+  
+  ## Resolution
+  
+  Add one or more services to the booking.
+  """
+  BOOKING_MISSING_SERVICES
+}
+
+"Machine-readable booking validation warning code."
+enum BookingWarningCode {
+  "The specified resource is already booked during the scheduled time."
+  RESOURCE_DOUBLE_BOOKED
+  "The specified staff does not typically perform the specified service."
+  STAFF_DOES_NOT_PERFORM_SERVICE
+  "The specified staff does not typically perform the specified service."
+  STAFF_DOUBLE_BOOKED
+}
+
+enum CustomFieldValueType {
+  BOOLEAN
+  DATETIME
+  FLOAT
+  INTEGER
+  MULTISELECT
+  SELECT
+  TEXT
+}
+
+enum EventType {
+  "Triggered when a business uninstalls an integration."
+  API_APPLICATION_UNINSTALLED
+  "Triggered when a client's appointment is active."
+  APPOINTMENT_ACTIVE
+  "Triggered when a client has arrived for their appointment."
+  APPOINTMENT_ARRIVED
+  "Triggered when an appointment is cancelled."
+  APPOINTMENT_CANCELLED
+  "Triggered when an appointment is completed."
+  APPOINTMENT_COMPLETED
+  "Triggered when a client has confirmed their appointment."
+  APPOINTMENT_CONFIRMED
+  "Triggered when an appointment is created."
+  APPOINTMENT_CREATED
+  "Triggered when an appointment's time is changed."
+  APPOINTMENT_RESCHEDULED
+  "Triggered when an appointment is updated."
+  APPOINTMENT_UPDATED
+  "Business webhook for a business updated notification."
+  BUSINESS_UPDATED
+  "Triggered when a client updates their appointment reminder preferences"
+  CLIENT_APPOINTMENT_REMINDER_PREFERENCES_UPDATED
+  "Triggered when a client is created."
+  CLIENT_CREATED
+  "Triggered when a client updates their marketing preferences"
+  CLIENT_MARKETING_PREFERENCES_UPDATED
+  "Triggered when a client is merged into another client."
+  CLIENT_MERGED
+  "Triggered when a client is updated."
+  CLIENT_UPDATED
+  "Triggered when a custom form is submitted."
+  CUSTOM_FORM_SUBMITTED
+  "Triggered when tags are added to any taggable entity."
+  ENTITY_TAGS_ADDED
+  "Triggered when tags are removed from any taggable entity."
+  ENTITY_TAGS_REMOVED
+  "Triggered when a gift card's balance is adjusted."
+  GIFT_CARD_BALANCE_ADJUSTED
+  "Triggered when a gift card is created."
+  GIFT_CARD_CREATED
+  "Location webhook for a location created notification."
+  LOCATION_CREATED
+  "Location webhook for a location deleted notification."
+  LOCATION_DELETED
+  "Location webhook for a location update notification."
+  LOCATION_UPDATED
+  "Mailer webhook for an appointment cancellation notification for the client."
+  MAILER_APPOINTMENT_CANCELLATION
+  "Mailer webhook for an appointment confirmation for the client."
+  MAILER_APPOINTMENT_CONFIRMATION
+  "Mailer webhook for an appointment reminder for the client."
+  MAILER_APPOINTMENT_REMINDER
+  "Mailer webhook for an appointment cancellation notification for the staff."
+  MAILER_APPOINTMENT_STAFF_CANCELLATION
+  """
+  Mailer webhook for a new message from a client associated with an existing appointment.
+  """
+  MAILER_APPOINTMENT_STAFF_CLIENT_MESSAGE
+  "Mailer webhook for an appointment notification for the staff."
+  MAILER_APPOINTMENT_STAFF_NOTIFICATION
+  "Mailer webhook for a membership cancellation notification."
+  MAILER_MEMBERSHIP_CANCELLATION
+  "Mailer webhook for a membership pause notification."
+  MAILER_MEMBERSHIP_PAUSE
+  "Mailer webhook for a membership update notification."
+  MAILER_MEMBERSHIP_UPDATE
+  "Triggered when an active or paused membership is cancelled."
+  MEMBERSHIP_CANCELLED
+  "Triggered when a membership is first created, normally via a sale."
+  MEMBERSHIP_CREATED
+  "Triggered when an active membership is paused."
+  MEMBERSHIP_PAUSED
+  "Triggered when a cancelled membership is reactivated."
+  MEMBERSHIP_REACTIVATED
+  "Triggered when a membership renewal fails."
+  MEMBERSHIP_RENEWAL_FAILED
+  "Triggered when a membership renewal succeeds."
+  MEMBERSHIP_RENEWAL_SUCCEEDED
+  "Triggered when a paused membership is unpaused."
+  MEMBERSHIP_UNPAUSED
+  "Triggered when an order is completed (closed)."
+  ORDER_COMPLETED
+  "Triggered when an order is refunded."
+  ORDER_REFUND_CLOSED
+  "Triggered after webhook is created to ensure set up correctly."
+  PING
+  "Triggered when a product's quantity has been adjusted at a location."
+  PRODUCT_QUANTITY_ADJUSTMENT_CREATED
+  "Triggered when a purchase order is sent."
+  PURCHASE_ORDER_SENT
+  "Triggered when a referral is created."
+  REFERRAL_CREATED
+  "Triggered when a referral is deleted."
+  REFERRAL_DELETED
+  "Triggered when a referral reward is given to the referrer client."
+  REFERRAL_REWARD_CREATED
+  "Triggered when a referral is updated."
+  REFERRAL_UPDATED
+  "Triggered when a report export is completed."
+  REPORT_EXPORT_COMPLETED
+  "Triggered when a staff is created."
+  STAFF_CREATED
+  "Triggered when a staff is deactivated."
+  STAFF_DEACTIVATED
+  "Triggered when a staff is reactivated."
+  STAFF_REACTIVATED
+  "Triggered when a staff is restored."
+  STAFF_RESTORED
+  "Triggered when a staff is suspended."
+  STAFF_SUSPENDED
+  "Triggered when a staff is updated."
+  STAFF_UPDATED
+  "Triggered when a timeblock is cancelled."
+  TIMEBLOCK_CANCELLED
+  "Triggered when a timeblock is created."
+  TIMEBLOCK_CREATED
+  "Triggered when a timeblock is rescheduled."
+  TIMEBLOCK_RESCHEDULED
+}
+
+enum MembershipPausedStateReason {
+  CLIENT_REQUESTED
+  CLIENT_REQUESTED_BUSY
+  CLIENT_REQUESTED_FINANCIAL
+  CLIENT_REQUESTED_MEDICAL
+  CLIENT_REQUESTED_TRAVEL
+  OTHER
+  PAYMENT_SCHEDULED
+}
+
+enum MembershipStatusReason {
+  CLIENT_REQUESTED
+  CLIENT_REQUESTED_APPOINTMENT_AVAILABILITY
+  CLIENT_REQUESTED_BUSY
+  CLIENT_REQUESTED_FINANCIAL
+  CLIENT_REQUESTED_MEDICAL
+  CLIENT_REQUESTED_MOVING
+  CLIENT_REQUESTED_NOT_ENOUGH_BENEFITS
+  CLIENT_REQUESTED_QUALITY_OF_SERVICE
+  CLIENT_REQUESTED_TOO_FREQUENT
+  CLIENT_REQUESTED_TRAVEL
+  OTHER
+  PAYMENT_FAILED
+  PAYMENT_SCHEDULED
+}
+
+enum NativeObjectSchema {
+  APPOINTMENT
+  BUSINESS
+  CLIENT
+  GIFT_CARD
+  SERVICE
+}
+
+enum OfferRestrictionClientStatus {
+  MEMBER
+  NEW_CLIENT
+}
+
+enum OrderFeeType {
+  BLVD_OFFSET
+}
+
+enum OrderPaymentMethod {
+  ACCOUNT_CREDIT
+  CARD
+}
+
+enum OrderRefundReason {
+  CUSTOMER_SERVICE
+  DEFECTIVE_PRODUCT
+  OTHER
+  STAFF_ERROR
+}
+
+enum OrderRefundStatus {
+  CLOSED
+  OPEN
+}
+
+enum PaymentCardBrand {
+  AMEX
+  DINERS_CLUB
+  DISCOVER
+  JCB
+  MASTERCARD
+  VISA
+}
+
+enum PurchaseOrderLineItemState {
+  COMPLETE
+  PARTIALLY_RECEIVED
+  PENDING
+}
+
+enum PurchaseOrderState {
+  COMPLETE
+  DRAFT
+  PARTIALLY_RECEIVED
+  RECEIVED
+  SENT
+}
+
+enum ReminderType {
+  APPOINTMENT_REMINDER
+  MARKETING
+}
+
+enum ReportExportContentType {
+  CSV
+  JSON
+}
+
+enum ReportExportFrequency {
+  DAILY
+  MONTHLY
+  ONCE
+  WEEKLY
+}
+
+enum ReportTemplateId {
+  "Stored balances on clients"
+  ACCOUNT_BALANCES
+  "Tracks activity on Account Credit Transactions"
+  ACCOUNT_CREDIT_ACTIVITY
+  "All appointment service records"
+  APPOINTMENT_SERVICE_RECORDS
+  "Enriched Appointment Report"
+  APPOINTMENTS
+  "EWC Associate Pay Report"
+  ASSOCIATE_PAY_EWC
+  "Enriched Appointment Bookings Report"
+  BOOKED_APPOINTMENTS
+  "Enriched Cancelled Appointments Report"
+  CANCELLED_APPOINTMENTS
+  "View Client Birthdays in Current Year"
+  CLIENT_BIRTHDAYS
+  "All client records"
+  CLIENT_RECORDS
+  "Client sales by products and services."
+  CLIENT_SALES
+  "Cash Sales Metrics"
+  CYDF_CASH_SALES
+  "Summary of daily activity by appointments, services, and products."
+  DAILY_SUMMARY
+  "Summary of daily activity by appointments, services, and products."
+  DAILY_SUMMARY_UAT
+  "Summary of daily activity by appointments, services, and products."
+  DAILY_SUMMARY_V2
+  "View information on past due memberships"
+  DECLINE_REASONS
+  "Detailed activity of all sales and refunds"
+  DETAILED_LINE_ITEM
+  "Track Events that cause a change in liability"
+  DETAILED_VOUCHER_ACTIVITY
+  "Discount sales grouped by staff."
+  DISCOUNT_SALES
+  "Summary of discount and offer activity."
+  DISCOUNTS
+  "Credits and debits to merchant bank accounts from dispute activities"
+  DISPUTE_MONETARY_ACTIONS
+  "Tracks the list of disputes"
+  DISPUTES
+  "Unused gift card balances"
+  GIFT_CARD_LIABILITIES
+  "Used gift card balances"
+  GIFT_CARD_REDEMPTIONS
+  "Green Circle Salon products by number of clients and total sales"
+  GREEN_CIRCLE_SALES
+  "Your current catalog of products at each location."
+  INVENTORY_ON_HAND
+  "All invoices"
+  INVOICES
+  "All location records"
+  LOCATION_RECORDS
+  "Track revisit metrics for clients by location"
+  LOCATION_RETENTION_EXISTING
+  "Enriched Loyalty Report"
+  LOYALTY
+  "View information on appointments completed from an automated marketing campaign"
+  MARKETING_AUTOMATED_BILLING
+  "Performance of Automated Campaigns by Location"
+  MARKETING_AUTOMATED_CAMPAIGN_PERFORMANCE
+  "Performance of Marketing Campaigns by Location"
+  MARKETING_CAMPAIGN_PERFORMANCE
+  """
+  Clients that booked appointments after receiving a Marketing Communication within 7 Days
+  """
+  MARKETING_GENERATED_APPOINTMENTS
+  "Performance of Marketing SMS Campaigns by Location"
+  MARKETING_SMS_CAMPAIGN_PERFORMANCE
+  "Track Information on Membership Cancellations"
+  MEMBERSHIP_CANCELLATION
+  "Track how well clients on memberships are being retained"
+  MEMBERSHIP_RETENTION
+  "Track Information on the cost of Memberships"
+  MEMBERSHIP_SALES
+  "Track Information on Scheduled Membership Cancellations"
+  MEMBERSHIP_SCHEDULED_CANCELLATIONS
+  "Tracks information of memberships client sales and retention"
+  MEMBERSHIP_SUMMARY
+  "Track Information on Memberships"
+  MEMBERSHIPS
+  "Detailed performance metrics by operator."
+  OPERATOR_ACTIVITY
+  "EWC Ops Dashboard Metrics"
+  OPS_DASHBOARD
+  "Historical balances on clients"
+  OUTSTANDING_ACCOUNT_CREDIT_LIABILITIES
+  "Historical balances on clients"
+  OUTSTANDING_GIFT_CARD_LIABILITIES
+  "Track unused vouchers in a timeframe"
+  OUTSTANDING_VOUCHER_LIABILITIES
+  "Track Information on the cost of Packages"
+  PACKAGE_SALES
+  "All product records"
+  PRODUCT_RECORDS
+  "Total product sales by order including count, dollar amount, and tax."
+  PRODUCT_SALES
+  "Detailed product sales by staff member."
+  PRODUCT_SALES_BY_STAFF
+  "Product Usage Detail on Services"
+  PRODUCT_USAGE_DETAIL_ON_SERVICES
+  "Changes in product quantities and shrinkage."
+  QUANTITY_ADJUSTMENTS
+  "QuickBooks Integration: Client transactions"
+  QUICKBOOKS_PAYMENTS
+  "QuickBooks Integration: Detailed activity of all sales and refunds"
+  QUICKBOOKS_SALES
+  "Ratings by Client, Staff or Service"
+  RATINGS
+  "Referral program results by existing client"
+  REFERRAL_PROGRAM_LEADERBOARD
+  "Performance metrics by referral source."
+  REFERRAL_SOURCES
+  "Performance metrics by referral source and client name."
+  REFERRAL_SOURCES_BY_CLIENT
+  "Client referrals by date, primary client, and gross sales"
+  REFERRALS
+  "Summary of daily register closeout activities"
+  REGISTER_CLOSEOUT
+  "Summary of Register"
+  REGISTER_SUMMARY
+  "Sales performance by staff member and role."
+  SALES_BREAKDOWN
+  "Product supplier metrics including sales, sales tax and average sale per order."
+  SALES_BY_SUPPLIER
+  "All schedule records"
+  SCHEDULE_RECORDS
+  "All service records"
+  SERVICE_RECORDS
+  "Total service sales by order including count, dollar amount, and tax."
+  SERVICE_SALES
+  "Detailed service sales by staff member."
+  SERVICE_SALES_BY_STAFF
+  "View information on Staff Attendance"
+  STAFF_ATTENDANCE
+  "Track future staff scheduling, utilization and booking metrics"
+  STAFF_LABOR_FORECAST
+  "Detailed performance metrics by staff member."
+  STAFF_PERFORMANCE
+  "Detailed performance metrics by staff member by day of week."
+  STAFF_PERFORMANCE_BY_DAY_OF_WEEK
+  "All staff records"
+  STAFF_RECORDS
+  "Track revisit metrics for clients by staff member"
+  STAFF_RETENTION_EXISTING
+  "Track details of all staff schedules"
+  STAFF_SCHEDULES
+  "View information on scheduled shifts for staff"
+  STAFF_SHIFTS
+  "Recurring sales metrics for subscriptions"
+  SUBSCRIPTIONS
+  "All timeblock report"
+  TIMEBLOCK
+  "All timeblock records"
+  TIMEBLOCK_RECORDS
+  "Summary of daily time clock activities"
+  TIMECARDS
+  "Client transactions"
+  TRANSACTIONS
+  "Client transactions"
+  TRANSACTIONS_UAT
+  "Unused vouchers purchased through packages or memberships"
+  VOUCHER_LIABILITIES
+  "Track Voucher Liability per Location"
+  VOUCHER_LIABILITY_SUMMARY
+  "Membership or package Vouchers redeemed by clients"
+  VOUCHER_REDEMPTIONS
+  "View information of waitlists"
+  WAITLIST
+}
+
+"Types of resource categories."
+enum ResourceCategoryType {
+  "A resource representing a chair."
+  CHAIR
+  "A resource representing equipment."
+  EQUIPMENT
+  "A resource that does not fit into other categories."
+  OTHER
+  "A resource representing a room."
+  ROOM
+}
+
+enum ShiftFrequency {
+  WEEKLY
+}
+
+enum SubscriptionStatus {
+  "The subscription is within an active term and membership benefits are enabled."
+  ACTIVE
+  "The subscription is cancelled and membership benefits are not enabled."
+  CANCELLED
+  """
+  The subscription is no longer within an active term and renewal failed to process (eg. due to non-payment).
+  """
+  PAST_DUE
+  """
+  The subscription is paused until a future date. Membership benefits are not enabled until successful renewal.
+  """
+  PAUSED
+}
+
+enum TimeblockReason {
+  BUSINESS
+  PERSONAL
+}
+
+enum TimeblockRepeatFrequency {
+  MONTHLY
+  WEEKLY
+  YEARLY
+}
+
+"Represents a set of geographical coordinates"
+scalar Coordinates
+
+"""
+Represents a currency type as a three-letter ISO 4217 currency code.
+
+Both upper and lower case formats are accepted as input, but the output
+format is always uppercase.
+
+Mixed case formats are reserved for future use.
+"""
+scalar Currency
+
+"""
+The `Date` scalar type represents a date. The Date appears in a JSON
+response as an ISO8601 formatted string, without a time component.
+"""
+scalar Date
+
+"""
+The `DateTime` scalar type represents a date and time in the UTC
+timezone. The DateTime appears in a JSON response as an ISO8601 formatted
+string, including UTC timezone ("Z"). The parsed date and time string will
+be converted to UTC if there is an offset.
+"""
+scalar DateTime
+
+"""
+The `Interval` scalar type represents a time interval, formatted as an
+ISO8601 duration string.
+"""
+scalar DurationInterval
+
+"""
+Email address validated as an RFC 5322 addr-spec.
+
+See <https://tools.ietf.org/html/rfc5322#section-3.4.1> for more details and
+<https://tools.ietf.org/html/rfc3696#section-3> for an informational summary.
+"""
+scalar Email
+
+"""
+A string used as an idempotency key for requests, with a maximal length of 64 characters.
+"""
+scalar IdempotencyKey
+
+"""
+Represents an amount of money as an integer of the smallest currency unit.
+
+For example, 1 USD is `100` since the cent is the smallest currency unit.
+Similarly, 1 JPY is `1` because the Japanese yen is a zero-decimal currency.
+For more information, see the ISO 4217 standard.
+
+The applicable currency is specified separately.
+"""
+scalar Money
+
+"""
+The `Naive DateTime` scalar type represents a naive date and time without
+timezone. The DateTime appears in a JSON response as an ISO8601 formatted
+string.
+"""
+scalar NaiveDateTime
+
+"""
+Represents a percentage as a specialisation of the `Decimal` scalar, see its
+documentation for more information.
+
+Percentages return 0% as `0.0` and 100% as `100.0`. There is no range of valid
+values, values may be negative or greater than 100% depending on the use case.
+"""
+scalar Percentage
+
+"""
+The PhoneNumber scalar type represents a phone number formatted following the E.164
+internationally recognized standard.
+"""
+scalar PhoneNumber
+
+"""
+Represents a quantity.
+
+Must be an integer >= 0.
+"""
+scalar Quantity
+
+"""
+A String query is a text search made up of values and comparison operators.
+
+Supported value types:
+
+- Field name
+- String
+- Boolean
+- Number (float/int)
+- DateTime - formatted as an ISO 8601 string
+
+We also support 'IS NULL' and 'IS NOT NULL' operators.
+
+Examples:
+
+  "startAt <= '2020-01-01T00:00:00'
+
+  "quantity > 0"
+
+  "categoryId IS NULL"
+
+For strings containing apostrophes, escape them with a backslash:
+  "name = 'O\'Connor'"
+
+Comparisons (<value> <op> <value>) can be combined through the 'AND' and 'OR' operators.
+
+Examples:
+
+  "endAt < '2020-01-01T00:00:00' AND cancelled = true"
+
+Create precedence by surrounding comparisons with parenthesis.
+
+Note: Strings and field names are case sensitive.
+"""
+scalar QueryString
+
+"An integer value of 1-5, inclusive"
+scalar Rating
+
+"""
+Represents a user-defined sort order as a unique path in a tree.
+
+For instance, `.1` and `.0.-10.0` are both valid paths, directly below the
+root and two nodes deep respectively. See the extended description for more
+examples.
+
+Implementations might opt to represent these paths internally as non-empty
+lists of integers.
+
+## Rationale
+
+Regular ordinals are easy to use if you’re reading the order most of the
+time and not writing it. Reordering items is difficult since moving an item
+means you might also have to update ordinals of adjacent items. Moving the
+last item of the list to the beginning means updating every item, assuming
+ordinals are indices.
+
+Floating point ordinals avoid this problem, but halving the difference
+between two successive integers (represented as floating point numbers) can
+only be done approximately tens of times before lack of precision makes the
+approach unusable without frequent reindexing. This is only slightly better
+than using integer ordinals and reindexing every time.
+
+Trees do not have these issues, as long as we’re ready to sacrifice some
+storage space in lieu of fewer updates over time. We can assign each list
+item a path in a tree, as long as the path components are orderable. Since
+we’re not interested in labelling the hierarchy, we can use integers:
+
+    bread (`.0`)
+    cheese (`.10`)
+
+Adding items between is simple as long as we have fewer than 10 in total:
+
+    bread (`.0`)
+    butter (`.5`)
+    cheese (`.10`)
+
+What happens when we run out of space? We can anchor an item to some other
+item by making it a child:
+
+    bread (`.0`)
+    apples (`.0.0`)
+    oranges (`.1`)
+    ...
+    bananas (`.9`)
+    cheese (`.10`)
+
+Since the path components are strictly orderable and there’s no required
+reference point (the starting point is zero out of convention) we can move
+the last item to the top by using a negative path component:
+
+    cheese (`.-10`)
+    bread (`.0`)
+    apples (`.0.0`)
+    oranges (`.1`)
+    ...
+    bananas (`.9`)
+
+We can also move it between bread and apples by making it a child too:
+
+    bread (`.0`)
+    cheese (`.0.-10`)
+    apples (`.0.0`)
+    oranges (`.1`)
+    ...
+    bananas (`.9`)
+
+Note that an item added between cheese and apples has at least two possible
+paths, `.0.-10.0` and `.0.-5`. The shortest path is always encouraged, other
+values will result in redundantly long paths over time.
+
+Paths with components that aren’t defined elsewhere, such as `.99.4.2`, are
+also valid but redundant. This ensures that arbitrary items can be deleted
+without extra updates.
+
+Incrementing/decrementing components by larger integers than one, such as
+ten, is highly recommended as this leaves room for more future items before
+we have to utilise the tree structure.
+
+Reindexing lists like these is also possible, as with lists using simple
+ordinals, but not absolutely necessary unless storage becomes a real issue.
+This is what makes trees different from simple ordinals.
+
+## Note about sorting
+
+Sorting items based on these paths is language-dependent. Some environments
+(such as Erlang/Elixir) allow you to parse these into lists of integers and
+compare them sensibly based on items:
+
+    iex(1)> [2] < [10]
+    true
+
+PostgreSQL also compares arrays of integers in this way which makes it easy
+to use these paths with ORDER BY:
+
+    postgres=# SELECT ARRAY[2] < ARRAY[10];
+     ?column?
+    ----------
+     t
+
+However, JavaScript compares string representations of arrays:
+
+    > [2] < [10]
+    false
+
+This means e.g. `Array.prototype.sort()` won’t work without a custom
+comparator that looks at array item pairs in order.
+"""
+scalar SortPath
+
+"""
+The `Symbol` scalar type is a string with a single-length Unicode
+grapheme as per Extended Grapheme Cluster algorithm.
+
+Typically this is a string of a single character, which also
+supports unicode glyphs (emojis) that consist of multiple
+characters
+"""
+scalar Symbol
+
+"""
+The `Time` scalar type represents a time. The Time appears in a JSON
+response as an ISO8601 formatted string, without a date component.
+"""
+scalar Time
+
+"""
+Represents a time zone as a tz database (a.k.a. tzdata, IANA, Olson) time zone
+name. See <https://en.wikipedia.org/wiki/Tz_database> for more information.
+"""
+scalar Tz
+
+"Represents an absolute URL as defined by RFC3986"
+scalar Url
+
+"""
+The maximum number of times to retry calling the subscriptions webhook, must be an integer in the range 0-100, inclusive
+"""
+scalar WebhookSubscriptionMaxRetries
+
+interface BookingServiceScheduleHold {
+  expiresAt: DateTime!
+  id: ID!
+  startTime: NaiveDateTime!
+}
+
+interface NativeFieldValue {
+  key: String!
+}
+
+interface Node {
+  "The ID of the object."
+  id: ID!
+}
+
+"See the `items` field on `Offer`."
+interface OfferItem {
+  id: ID!
+  "Whether items matching this rule are included or excluded."
+  included: Boolean!
+}
+
+"See the `restrictions` field on `Offer`."
+interface OfferRestriction {
+  id: ID!
+}
+
+interface OrderLine {
+  "Discount amount on this line item, after any refunds."
+  currentDiscountAmount: Money!
+  "Price of this line item, after any refunds."
+  currentPrice: Money!
+  "Total price of this line item, after any refunds."
+  currentSubtotal: Money!
+  discounts: [OrderLineDiscount!]!
+  id: ID!
+  "Discount amount on this line item, before any refunds."
+  initialDiscountAmount: Money!
+  "Price of this line item, before any refunds."
+  initialPrice: Money!
+  "Total price of this line item, before any refunds."
+  initialSubtotal: Money!
+  quantity: Int!
+}
+
+interface OrderLineGroup {
+  id: ID!
+  lines: [OrderLine!]!
+}
+
+interface OrderPayment {
+  id: ID!
+  merchantId: ID!
+  orderId: ID!
+  paidAmount: Money!
+  paymentMeta: OrderPaymentMetadata!
+  "The total amount refunded, if any."
+  refundAmount: Money!
+  refunds: [OrderPaymentRefund!]!
+}
+
+interface OrderRefundPayment {
+  id: ID!
+  """
+  When this payment is one of the original payments on the order, this ID is
+  present and can be used to read more information on the payment. Payments
+  that are created by this refund (e.g. new gift cards when used as refund
+  destinations) have a null ID.
+  """
+  orderPaymentId: ID
+  """
+  Total amount to be refunded to this payment method, including any tax. This
+  value is zero by default, and can be changed by updating the payment method.
+  Note that this amount is always clamped to the `refundLimit` on the payment,
+  regardless of the input value.
+  """
+  refundAmount: Money!
+  """
+  Maximum amount that can be refunded to this payment method. If the total
+  amount to be refunded across the order is greater, the refund must be split
+  between multiple payments. How this split is actually orchestrated is up to
+  the API consumer.
+  """
+  refundLimit: Money!
+}
+
+type AckUninstallAppPayload {
+  appId: ID!
+}
+
+type AddManualAudienceClientsPayload {
+  manualAudienceClients: [Client!]!
+}
+
+type Address {
+  city: String
+  country: String
+  line1: String
+  line2: String
+  province: String
+  state: String
+  zip: String
+}
+
+type AddTagPayload {
+  tags: [Tag!]!
+}
+
+"An appointment"
+type Appointment implements Node {
+  """
+  Service options chosen with this appointment service and their true values,
+  which may be changed from the option definition default values.
+  
+  The `AppointmentServiceOption` type doesn’t expose associated nodes; this
+  is intentional and avoids duplicating data when querying grouped options.
+  You should query the option groups through the `service` node instead and
+  group the options based on IDs.
+  """
+  appointmentServiceOptions: [AppointmentServiceOption!]!
+  "The resources associated with the appointment"
+  appointmentServiceResources: [AppointmentServiceResource!]!
+  "A collection of appointment services."
+  appointmentServices: [AppointmentService!]!
+  bookedByType: BookedByType!
+  """
+  Links to allow direct addition of the appointment to different calendar platforms
+  """
+  calendarLinks: CalendarLinks!
+  "Information about the cancellation, if present"
+  cancellation: AppointmentCancellation
+  "Boolean signifying if the appointment is cancelled or not"
+  cancelled: Boolean!
+  "The client of the appointment"
+  client: Client!
+  "The id of the client of the appointment."
+  clientId: ID!
+  "Message provided by the client"
+  clientMessage: String
+  "When the appointment was created (in Etc/UTC)"
+  createdAt: DateTime!
+  "Custom field data wrapper"
+  custom: NativeObjectMeta
+  "Custom fields"
+  customFields(keys: [String!]!): [NativeFieldValue!]!
+  "The duration of the appointment"
+  duration: Int!
+  "End time for the appointment"
+  endAt: DateTime!
+  "The ID of an object"
+  id: ID!
+  "Indicates whether the appointment is part of a group appointment."
+  isGroupedAppointment: Boolean!
+  "Indicates if the appointment belongs to a recurring series."
+  isRecurring: Boolean!
+  """
+  Indicates that the appointment is due to be carried out remotely,
+  using a platform from remotePlatforms
+  """
+  isRemote: Boolean!
+  "The Location where this appointment was booked."
+  location: Location!
+  "The Id of the Location where this appointment was booked."
+  locationId: ID!
+  "The URL at which a client can manage their own booking"
+  manageUrl: Url!
+  "Internal notes on the appointment"
+  notes: String
+  """
+  Boolean value to indicate whether a notification email should have been sent to the client
+  when the appointment was cancelled.
+  
+  Note: This field is unstable and likely to change in the future. Please get in touch if you
+  need to rely on it for your integration
+  """
+  notifyClientCancel: Boolean!
+  """
+  Boolean value to indicate whether a notification email should have been sent to the client
+  when the appointment was booked.
+  
+  Note: This field is unstable and likely to change in the future. Please get in touch if you
+  need to rely on it for your integration
+  """
+  notifyClientCreate: Boolean!
+  "The id of the order that the appointment was checked out with"
+  orderId: ID
+  "The total remaining forms that need to be completed for this appointment"
+  pendingFormCount: Int!
+  "The rating for this appointment"
+  rating: AppointmentRating
+  "Options for joining a virtual meeting for this appointment"
+  remotePlatforms: RemotePlatforms!
+  "Start time for the appointment"
+  startAt: DateTime!
+  "The state of the appointment."
+  state: AppointmentState!
+  "Tags that have been applied to the appointment"
+  tags: [Tag!]!
+}
+
+type AppointmentCancellation {
+  "Datetime the appointment was cancelled in UTC."
+  cancelledAt: DateTime!
+  notes: String
+  reason: AppointmentCancellationReason!
+}
+
+type AppointmentConnection {
+  edges: [AppointmentEdge]
+  pageInfo: PageInfo!
+}
+
+type AppointmentEdge {
+  cursor: String
+  node: Appointment
+}
+
+"An appointment rating"
+type AppointmentRating {
+  "The appointment for which the rating was left"
+  appointment: Appointment
+  "ID"
+  id: ID!
+  "The datetime the rating was submitted/created"
+  insertedAt: DateTime!
+  "Rating (1-5) of the appointment"
+  rating: Rating!
+  "The optional client feedback"
+  text: String
+}
+
+type AppointmentRatingConnection {
+  edges: [AppointmentRatingEdge]
+  pageInfo: PageInfo!
+}
+
+type AppointmentRatingEdge {
+  cursor: String
+  node: AppointmentRating
+}
+
+type AppointmentRescheduleAvailableDatesPayload {
+  availableDates: [AvailableRescheduleDate!]!
+}
+
+type AppointmentRescheduleAvailableTimesPayload {
+  availableTimes: [AvailableRescheduleTime!]!
+}
+
+type AppointmentReschedulePayload {
+  appointment: Appointment!
+}
+
+"An AppointmentService"
+type AppointmentService implements Node {
+  "The ID of the base AppointmentService."
+  baseAppointmentServiceId: ID
+  "Duration for the service (including options)."
+  duration: Int!
+  "The ISO time at which the appointment service is completely finished."
+  endAt: DateTime!
+  """
+  Length of time (in minutes) both the staff and client remain busy at the end of the appointment (including options).
+  """
+  finishDuration: Int!
+  "The ID of an object"
+  id: ID!
+  """
+  Length of time (in minutes) the client remains busy after the duration (including options).
+  """
+  postClientDuration: Int!
+  """
+  Length of time (in minutes) the staff remains busy after the duration (including options).
+  """
+  postStaffDuration: Int!
+  """
+  Price of the service, before any discounts or taxes are applied (including options).
+  """
+  price: Money!
+  "The service."
+  service: Service!
+  "The id of the service.  This may be null for time blockers."
+  serviceId: ID!
+  "The staff performing this service."
+  staff: Staff!
+  "The ID of the staff member associated with this service"
+  staffId: ID!
+  """
+  A boolean indicating whether the staff was specifically requested by the client.
+  """
+  staffRequested: Boolean!
+  "The ISO time at which the appointment service begins"
+  startAt: DateTime!
+  """
+  Length of time (in minutes) from the start of the appointment until this service begins.
+  """
+  startTimeOffset: Int!
+  "The total duration (in minutes) of this service"
+  totalDuration: Int!
+}
+
+"An AppointmentServiceOption"
+type AppointmentServiceOption implements Node {
+  "ID of the AppointmentService that this object relates to."
+  appointmentServiceId: ID!
+  "Minutes added to duration when selected."
+  durationDelta: Int!
+  "Minutes added to finish time when selected."
+  finishDurationDelta: Int!
+  "The ID of an object"
+  id: ID!
+  "Minutes added to the post service client time."
+  postClientDurationDelta: Int!
+  "Minutes added to the post service staff time."
+  postStaffDurationDelta: Int!
+  "Amount added to price when selected."
+  priceDelta: Int!
+  "ID of the Product that this object relates to."
+  productId: ID
+  "The product name, in case the service option is product based"
+  productName: String
+  "The service option quantity (only applicable to product based service options)"
+  quantity: Int
+  "ID of the ServiceOption that this object relates to."
+  serviceOptionId: ID!
+}
+
+"An AppointmentServiceResource"
+type AppointmentServiceResource implements Node {
+  "ID of the AppointmentService that this object relates to."
+  appointmentServiceId: ID!
+  "The ID of an object"
+  id: ID!
+  "The associated resource"
+  resource: Resource!
+  "ID of the Resource that this object relates to."
+  resourceId: ID!
+}
+
+type AppRole implements Node {
+  "Role Description"
+  description: String!
+  "Editable"
+  editable: Boolean!
+  "The ID of an object"
+  id: ID!
+  "Role Name"
+  name: String!
+  "Permissions"
+  permissions: [Permission!]!
+}
+
+"An arrival"
+type Arrival {
+  "The ID of the appointment associated with the arrival"
+  appointmentId: ID!
+  "The ID of the client associated with the arrival"
+  clientId: ID!
+}
+
+type AvailableRescheduleDate {
+  """
+  Matched date for the booking.
+  
+  Note that this date may differ from the one at the location when a specific
+  time zone is requested using the `tz` argument. The date uses the requested
+  time zone, or the location's time zone when `tz` is null.
+  """
+  date: Date!
+}
+
+type AvailableRescheduleTime {
+  bookableTimeId: ID!
+  "Matched start time for the booking."
+  startTime: DateTime!
+}
+
+"A pending appointment that has yet to be booked."
+type Booking implements Node {
+  "All clients that are receiving services."
+  bookingClients: [BookingClient!]!
+  "All services for all clients."
+  bookingServices: [BookingService!]!
+  "Current validation errors"
+  errors: [BookingError!]!
+  "The ID of an object"
+  id: ID!
+  "The start time of the booking."
+  startTime: NaiveDateTime
+}
+
+type BookingAddAppointmentTagsPayload {
+  booking: Booking!
+  bookingClient: BookingClient!
+  bookingWarnings: [BookingWarning!]!
+}
+
+type BookingAddServiceAddonPayload {
+  booking: Booking!
+  bookingService: BookingService!
+  bookingWarnings: [BookingWarning!]!
+}
+
+type BookingAddServicePayload {
+  booking: Booking!
+  bookingService: BookingService!
+  bookingWarnings: [BookingWarning!]!
+}
+
+"The appointments that were either created or updated as part of the booking."
+type BookingAppointment {
+  "The appointment associated with the booking."
+  appointment: Appointment!
+  "The ID of the appointment associated with the booking."
+  appointmentId: ID!
+  "The ID of the staff who booked the appointment."
+  bookedById: ID!
+  "The ID of the client who the appointment is for."
+  clientId: ID!
+}
+
+"A client attached to a booking"
+type BookingClient {
+  "All tags associated to this client and booking."
+  bookingClientTags: [BookingClientTag!]!
+  "The client data"
+  client: Client!
+  "The ID of the client"
+  clientId: ID!
+  "The booking identifier for the client"
+  id: ID!
+  "The note that will be added to the resulting appointment"
+  note: String
+}
+
+"A tag associated with a booking and booking client"
+type BookingClientTag {
+  "The ID of the booking tag."
+  id: ID!
+  "The tag data."
+  tag: Tag!
+  "The ID of the underlying tag."
+  tagId: ID!
+}
+
+type BookingCompletePayload {
+  booking: Booking!
+  bookingAppointments: [BookingAppointment!]!
+  bookingWarnings: [BookingWarning!]!
+}
+
+type BookingCreateFromAppointmentPayload {
+  booking: Booking!
+  bookingAppointments: [BookingAppointment!]!
+  bookingWarnings: [BookingWarning!]!
+}
+
+type BookingCreatePayload {
+  booking: Booking!
+  bookingWarnings: [BookingWarning!]!
+}
+
+"Booking validation error."
+type BookingError {
+  "Machine-readable code."
+  code: BookingErrorCode!
+  "Detailed geek-readable description."
+  description: String!
+  "Short human-readable message."
+  message: String!
+}
+
+type BookingRemoveAppointmentTagsPayload {
+  booking: Booking!
+  bookingClient: BookingClient!
+  bookingWarnings: [BookingWarning!]!
+}
+
+type BookingRemoveServicePayload {
+  booking: Booking!
+  bookingWarnings: [BookingWarning!]!
+}
+
+"A service attached to a booking."
+type BookingService {
+  "The ID of the base booking service."
+  baseBookingServiceId: ID
+  "The add-on booking services"
+  bookingServiceAddons: [BookingService!]!
+  "The assigned options for this service."
+  bookingServiceOptions: [BookingServiceOption!]!
+  "The assigned resources for this service."
+  bookingServiceResources: [BookingServiceResource!]!
+  "The base duration of the underlying service in minutes."
+  duration: Int!
+  "The ID of the associated appointment service being edited."
+  editingAppointmentServiceId: ID
+  "The finishing duration of the underlying service in minutes."
+  finishDuration: Int!
+  "The clients receiving this service."
+  forClients: [Client!]!
+  "The ID of the booking service."
+  id: ID!
+  "The processing duration of the underlying service in minutes."
+  postClientDuration: Int!
+  "The transition duration of the underlying service in minutes."
+  postStaffDuration: Int!
+  "The price of the service."
+  price: Money!
+  scheduleHolds: [BookingServiceScheduleHold!]!
+  "The service data"
+  service: Service!
+  "The ID of the underlying service."
+  serviceId: ID!
+  "The service provider for this service"
+  staff: Staff
+  """
+  Indicates whether the staff was automatically assigned, equivalent to 'first available'.
+  """
+  staffAutoAssigned: Boolean!
+  "The ID of the underlying staff."
+  staffId: ID
+  "If the staff was requested for this service"
+  staffRequestedByClient: Boolean!
+  "The start time of service."
+  startTime: NaiveDateTime
+}
+
+type BookingServiceAddResourcesPayload {
+  booking: Booking!
+  bookingService: BookingService!
+  bookingWarnings: [BookingWarning!]!
+}
+
+type BookingServiceAddServiceOptionsPayload {
+  booking: Booking!
+  bookingService: BookingService!
+  bookingWarnings: [BookingWarning!]!
+}
+
+"A service option attached to a service in a booking."
+type BookingServiceOption {
+  "The ID of the booking service option."
+  id: ID!
+  """
+  The service option price delta (only applicable to product-based service options)
+  """
+  priceDelta: Money
+  "The service option quantity (only applicable to product-based service options)"
+  quantity: Int
+  "The linked service option."
+  serviceOption: ServiceOption!
+  "The ID of the linked service option."
+  serviceOptionId: ID!
+}
+
+type BookingServiceRemoveResourcesPayload {
+  booking: Booking!
+  bookingService: BookingService!
+  bookingWarnings: [BookingWarning!]!
+}
+
+type BookingServiceRemoveServiceOptionsPayload {
+  booking: Booking!
+  bookingService: BookingService!
+  bookingWarnings: [BookingWarning!]!
+}
+
+"A resource attached to a service in a booking."
+type BookingServiceResource {
+  "The ID of the booking service resource."
+  id: ID!
+  "The linked resource."
+  resource: Resource!
+  """
+  Indicates whether the resource was automatically assigned, equivalent to 'first available'.
+  """
+  resourceAutoAssigned: Boolean!
+  "The ID of the linked resource."
+  resourceId: ID!
+}
+
+"The resource portion of the schedule currently being held on the calendar."
+type BookingServiceResourceHold implements BookingServiceScheduleHold {
+  "The total length of time in minutes that the resource is being held for."
+  duration: Int!
+  "When the schedule hold expires."
+  expiresAt: DateTime!
+  id: ID!
+  "The resource that is being held on the calendar."
+  resource: Staff!
+  "The id of the resource that is being held on the calendar."
+  resourceId: ID!
+  "The scheduled start time for the service being held on the calendar."
+  startTime: NaiveDateTime!
+}
+
+type BookingServiceSetDurationsPayload {
+  booking: Booking!
+  bookingService: BookingService!
+  bookingWarnings: [BookingWarning!]!
+}
+
+type BookingServiceSetPricePayload {
+  booking: Booking!
+  bookingService: BookingService!
+  bookingWarnings: [BookingWarning!]!
+}
+
+type BookingServiceSetStaffPayload {
+  booking: Booking!
+  bookingService: BookingService!
+  bookingWarnings: [BookingWarning!]!
+}
+
+type BookingServiceSetStartTimePayload {
+  booking: Booking!
+  bookingService: BookingService!
+  bookingWarnings: [BookingWarning!]!
+}
+
+"The staff portion of the schedule currently being held on the calendar."
+type BookingServiceStaffHold implements BookingServiceScheduleHold {
+  """
+  The primary duration (in minutes) for the service, the initial block of time
+  where the client is with the professional.
+  """
+  duration: Int!
+  "When the schedule hold expires."
+  expiresAt: DateTime!
+  "The duration (in minutes) of the finishing time for the service."
+  finishDuration: Int!
+  id: ID!
+  "The duration (in minutes) of the processing time for the service."
+  postClientDuration: Int!
+  "The duration (in minutes) of the transition time for the service."
+  postStaffDuration: Int!
+  "The staff member that is assigned to the service."
+  staff: Staff!
+  "The id of the staff member that is assigned to the service."
+  staffId: ID!
+  "The scheduled start time for the service being held on the calendar."
+  startTime: NaiveDateTime!
+}
+
+type BookingServiceUpdateServiceItemOptionsPayload {
+  booking: Booking!
+  bookingService: BookingService!
+  bookingWarnings: [BookingWarning!]!
+}
+
+type BookingSetAppointmentNotePayload {
+  booking: Booking!
+  bookingClient: BookingClient!
+  bookingWarnings: [BookingWarning!]!
+}
+
+type BookingSetClientPayload {
+  booking: Booking!
+  bookingClient: BookingClient!
+  bookingWarnings: [BookingWarning!]!
+}
+
+type BookingSetStartTimePayload {
+  booking: Booking!
+  bookingWarnings: [BookingWarning!]!
+}
+
+"Booking validation warning."
+type BookingWarning {
+  "The booking client ID associated with this booking warning."
+  bookingClientId: ID
+  "The ID associated with this booking."
+  bookingId: ID!
+  "The booking service ID associated with this booking warning."
+  bookingServiceId: ID
+  "The business ID associated with this booking."
+  businessId: ID!
+  "The client ID associated with this booking warning."
+  clientId: ID
+  "Machine-readable code."
+  code: BookingWarningCode!
+  "Detailed geek-readable description."
+  description: String
+  "The location ID associated with this booking."
+  locationId: ID
+  "Short human-readable message."
+  message: String!
+  "The resource ID associated with this booking warning."
+  resourceId: ID
+  "The service ID associated with this booking."
+  serviceId: ID
+  "The staff ID associated with this booking warning."
+  staffId: ID
+}
+
+type BulkUpdateProductsPayload {
+  products: [Product!]
+}
+
+"The authenticated business"
+type Business implements Node {
+  "Address of the business"
+  address: Address!
+  """
+  A setting to let a business decide if a person with multiple client profiles can log in to one of their profiles
+  """
+  allowLoginWithMultipleClients: Boolean
+  "Billing contact email for the business"
+  billingContactEmail: Email
+  "Custom field data wrapper"
+  custom: NativeObjectMeta!
+  "An optional URL to use to direct customers to a business's custom booking flow"
+  customBookingUrl: String
+  "Custom fields"
+  customFields(keys: [String!]!): [NativeFieldValue!]!
+  "The ID of an object"
+  id: ID!
+  "Name of the business"
+  name: String!
+  "Phone number for the business"
+  phone: PhoneNumber
+  """
+  A setting to enable/disable the ability to set and show the business location hours
+  """
+  showLocationHours: Boolean!
+  "Timezone associated with the business"
+  tz: Tz!
+  "Website for the business"
+  website: String
+}
+
+type CalendarLinks {
+  "A deep link to add the appointment directly to Google Calendar"
+  googleCalendar: Url!
+  "A downloadable ICS file to use for native calendar applications"
+  icsDownload: Url!
+  "A deep link to add the appointment directly to Microsoft Office 365"
+  microsoftOffice: Url!
+  "A deep link to add the appointment directly to Microsoft Outlook Online"
+  microsoftOutlook: Url!
+  "A deep link to add the appointment directly to Yahoo Calendar"
+  yahooCalendar: Url!
+}
+
+type CancelAppointmentPayload {
+  appointment: Appointment!
+}
+
+"""
+An admin view of a cart.
+The checked out cart includes order and appointment data.
+"""
+type Cart implements Node {
+  "Appointments booked after checking out this cart."
+  appointments: [Appointment!]!
+  """
+  Client information associated with the cart. Note that this might be missing for
+  incomplete carts.
+  """
+  clientInformation: CartClientInformation
+  """
+  Timestamp of when the cart was completed.
+  
+  This field cannot be edited and once completed cannot be changed.
+  """
+  completedAt: DateTime
+  "The ID of an object"
+  id: ID!
+  "Timestamp when the cart was created."
+  insertedAt: DateTime!
+  "Location associated with the cart."
+  location: Location!
+  "Orders created after checking out this cart."
+  orders: [Order!]!
+  "Timestamp when the cart was last updated."
+  updatedAt: DateTime!
+}
+
+"Client information given when checking out the cart."
+type CartClientInformation {
+  "Email address."
+  email: Email
+  "External ID of the client, used to integrate with external systems."
+  externalId: String
+  "First name."
+  firstName: String!
+  "Last name."
+  lastName: String
+  "Mobile phone number."
+  phoneNumber: PhoneNumber
+}
+
+type CartConnection {
+  edges: [CartEdge]
+  pageInfo: PageInfo!
+}
+
+type CartEdge {
+  cursor: String
+  node: Cart
+}
+
+type CategoryResult {
+  id: ID!
+  title: String!
+}
+
+"A client"
+type Client implements Node {
+  """
+  Whether the client is active internally in Boulevard. Deactivated clients are usually merged with other clients
+  """
+  active: Boolean!
+  """
+  The total number of appointments that this client has booked (excluding cancelled appointemnts)
+  """
+  appointmentCount: Int!
+  "The date and time when the client was created"
+  createdAt: DateTime!
+  "Credit cards on file for the client"
+  creditCardsOnFile: [CreditCard!]!
+  "Account Balance associated with this client"
+  currentAccountBalance: Int!
+  "Account Balance updated at"
+  currentAccountUpdatedAt: DateTime
+  "Custom field data wrapper"
+  custom: NativeObjectMeta
+  "Custom fields"
+  customFields(keys: [String!]!): [NativeFieldValue!]!
+  "Date of birth"
+  dob: Date
+  "Email address"
+  email: Email
+  "External client ID"
+  externalId: String
+  "First name"
+  firstName: String
+  "Whether the client has a credit card on file"
+  hasCardOnFile: Boolean!
+  "The ID of an object"
+  id: ID!
+  "Last name"
+  lastName: String
+  "The client's marketing settings"
+  marketingSettings: [MarketingSetting!]!
+  "ID of the client this client was merged into, if inactive"
+  mergedIntoClientId: ID
+  "Mobile phone number"
+  mobilePhone: PhoneNumber
+  "Full name"
+  name: String
+  "Notes that are available for the client"
+  notes: [Note]!
+  "Primary location (based on last 3 appointments)"
+  primaryLocation: Location
+  "Pronoun"
+  pronoun: String
+  "The client's reminder settings"
+  reminderSettings: [ReminderSetting!]!
+  "Scheduling alert"
+  schedulingAlert: String
+  "Tags that have been applied to the client"
+  tags: [Tag!]!
+  "The date and time when the client was last updated"
+  updatedAt: DateTime!
+}
+
+type ClientConnection {
+  edges: [ClientEdge]
+  pageInfo: PageInfo!
+}
+
+type ClientEdge {
+  cursor: String
+  node: Client
+}
+
+type CreateAccountCreditAdjustmentPayload {
+  client: Client!
+}
+
+type CreateArrivalPayload {
+  arrival: Arrival!
+}
+
+type CreateClientNotePayload {
+  note: Note!
+}
+
+type CreateClientPayload {
+  client: Client!
+}
+
+type CreateDiscountReasonPayload {
+  discountReason: DiscountReason!
+}
+
+type CreateGiftCardBalanceAdjustmentPayload {
+  giftCard: GiftCard!
+}
+
+type CreateGiftCardEmailFulfillmentPayload {
+  giftCardEmailFulfillment: GiftCardEmailFulfillment!
+}
+
+type CreateGiftCardPayload {
+  giftCard: GiftCard!
+}
+
+type CreateManualAudiencePayload {
+  manualAudience: ManualAudience!
+}
+
+type CreateMembershipPlanCategoryPayload {
+  membershipPlanCategory: MembershipPlanCategory!
+}
+
+type CreateMembershipPlanPayload {
+  membershipPlan: MembershipPlan!
+}
+
+type CreateOfferPayload {
+  offer: Offer!
+}
+
+type CreatePackageCategoryPayload {
+  packageCategory: PackageCategory!
+}
+
+type CreatePackagePayload {
+  package: Package!
+}
+
+type CreateProductCategoryPayload {
+  productCategory: ProductCategory!
+}
+
+type CreateProductPayload {
+  product: Product!
+}
+
+type CreateProductQuantityAdjustmentPayload {
+  productQuantityAdjustment: ProductQuantityAdjustment!
+}
+
+type CreatePurchaseOrderPayload {
+  purchaseOrder: PurchaseOrder!
+}
+
+type CreateReportExportPayload {
+  reportExport: ReportExport!
+}
+
+type CreateReportPayload {
+  report: Report!
+}
+
+type CreateSchemaFieldPayload {
+  schemaField: NativeObjectSchemaField!
+}
+
+type CreateServiceCategoryPayload {
+  serviceCategory: ServiceCategory!
+}
+
+type CreateServicePayload {
+  service: Service!
+}
+
+type CreateShiftPayload {
+  shift: Shift!
+}
+
+type CreateStaffPayload {
+  staff: Staff!
+}
+
+type CreateTagPayload {
+  tag: Tag!
+}
+
+type CreateTimeblockPayload {
+  timeblock: Timeblock!
+}
+
+type CreateVoucherGiftCardPayload {
+  giftCard: GiftCard!
+}
+
+type CreateWebhookPayload {
+  webhook: Webhook!
+}
+
+type CreditCard {
+  brand: String
+  expirationMonth: Int
+  expirationYear: Int
+  last4: String
+}
+
+type CustomForm implements Node {
+  "ID of the appointment the form relates to"
+  appointmentId: ID
+  "ID of a client who submitted out the form"
+  clientId: ID
+  formTemplate: FormTemplate!
+  "The ID of an object"
+  id: ID!
+}
+
+type DeleteClientNotePayload {
+  id: ID!
+}
+
+type DeleteProductPayload {
+  id: ID!
+}
+
+type DeletePurchaseOrderPayload {
+  purchaseOrder: PurchaseOrder!
+}
+
+type DeleteReportExportPayload {
+  id: ID!
+}
+
+type DeleteSecretPayload {
+  "Key"
+  key: String!
+}
+
+type DeleteTimeblockPayload {
+  id: ID!
+}
+
+type DeleteWebhookPayload {
+  webhook: Webhook!
+}
+
+type DiscountReason implements Node {
+  "Whether the reason is hidden at checkout."
+  hidden: Boolean!
+  "The ID of an object"
+  id: ID!
+  "Name"
+  name: String!
+}
+
+type DiscountReasonConnection {
+  edges: [DiscountReasonEdge]
+  pageInfo: PageInfo!
+}
+
+type DiscountReasonEdge {
+  cursor: String
+  node: DiscountReason
+}
+
+type FeeLineRefund {
+  "ID of the associated fee"
+  feeLineId: ID!
+  id: ID!
+  "ID of the order refund the fee was refunded on"
+  orderRefundId: ID!
+  "Amount of the fee refunded"
+  refundAmount: Money!
+  refundedAt: DateTime!
+}
+
+type FormTemplate {
+  "Form template ID"
+  id: ID!
+  "Form template name"
+  name: String!
+}
+
+"A gift card"
+type GiftCard implements Node {
+  "List of balance adjustments for the gift card."
+  balanceAdjustments: [GiftCardBalanceAdjustment!]!
+  "Client who purchased the gift card. Can be null."
+  client: Client
+  "The gift card code"
+  code: String!
+  "Current balance of the gift card. USD Only."
+  currentBalance: Money!
+  "Custom field data wrapper"
+  custom: NativeObjectMeta!
+  "Optional gift card email fulfillment"
+  emailFulfillment: GiftCardEmailFulfillment
+  "External gift card ID"
+  externalId: String
+  "The ID of an object"
+  id: ID!
+}
+
+"A balance gift card adjustment in value."
+type GiftCardBalanceAdjustment {
+  adjustmentAmount: Money!
+  adjustmentReason: String
+  currency: Currency!
+  currentBalance: Money!
+  previousBalance: Money!
+}
+
+type GiftCardConnection {
+  edges: [GiftCardEdge]
+  pageInfo: PageInfo!
+}
+
+type GiftCardEdge {
+  cursor: String
+  node: GiftCard
+}
+
+"""
+Gift card recipient email fulfillment. A digital copy of the gift card will be sent
+to the recipient after the gift card is created or on the specified delivery date
+"""
+type GiftCardEmailFulfillment {
+  deliveredOn: Date
+  deliveryDate: Date
+  messageFromSender: String
+  recipientEmail: Email!
+  recipientName: String!
+  senderName: String!
+}
+
+type ListOfStaffShifts {
+  shifts: [StaffShift]!
+}
+
+"A Location"
+type Location implements Node {
+  "Address of the location"
+  address: Address!
+  "Instructions for a client upon arrival at the location"
+  arrivalInstructions: String
+  "Billing contact email for the location"
+  billingContactEmail: Email
+  "Name of the location's business"
+  businessName: String!
+  "Contact email for the location"
+  contactEmail: Email
+  "The coordinates of the location"
+  coordinates: Coordinates
+  "Location external id"
+  externalId: String
+  "Google Place ID"
+  googlePlaceId: String
+  """
+  Stores the location's daily business hours and whether the location is
+  open or closed on a specific day of the week. This is an array of 7 elements
+  for each day of the week, beginning with Sunday.
+  """
+  hours: [LocationDays!]
+  "The ID of an object"
+  id: ID!
+  """
+  Indicates that the location is a remote location, and that appointments for
+  this location are carried out remotely.
+  """
+  isRemote: Boolean!
+  "Name of the location"
+  name: String!
+  "Payment options for the location"
+  paymentOptions: [PaymentOption!]!
+  "Phone number for the location"
+  phone: PhoneNumber
+  "A setting to enable/disable the ability to set and show the location hours"
+  showLocationHours: Boolean!
+  "Staff service price and duration settings for the location"
+  staffServices(after: String, before: String, first: Int, last: Int, serviceId: ID, staffId: ID): StaffServiceConnection
+  "Timezone associated with the location"
+  tz: Tz!
+  "Website for the location"
+  website: String
+}
+
+type LocationConnection {
+  edges: [LocationEdge]
+  pageInfo: PageInfo!
+}
+
+"""
+Represents each day of the week of the location's hours. Open is a boolean
+indicating if the location is open on that day. Start and finish are the exact times
+the location opens and closes on that day.
+"""
+type LocationDays {
+  finish: LocationHours!
+  open: Boolean
+  start: LocationHours!
+}
+
+type LocationEdge {
+  cursor: String
+  node: Location
+}
+
+"""
+Used for the open (start) and close (finish) time of the location's hours.
+Hour stores the hour and minute stores the minutes. For example, 2:30PM would be
+saved as { hour: 14, minute: 30 }.
+"""
+type LocationHours {
+  "Only integers in the range 0..23 are valid"
+  hour: Int
+  minute: Int
+}
+
+type LocationUpdateHoursPayload {
+  location: Location!
+}
+
+"A manual audience"
+type ManualAudience implements Node {
+  "The ID of an object"
+  id: ID!
+  "ManualAudience name"
+  name: String!
+}
+
+type ManualAudienceConnection {
+  edges: [ManualAudienceEdge]
+  pageInfo: PageInfo!
+}
+
+type ManualAudienceEdge {
+  cursor: String
+  node: ManualAudience
+}
+
+type MarketingSetting {
+  email: Boolean!
+  push: Boolean!
+  sms: Boolean!
+  type: ReminderType!
+}
+
+"A client membership sold at the business."
+type Membership implements Node {
+  "The cancellation date of the membership. Can be a future date."
+  cancelOn: Date
+  "Client who owns the membership."
+  client: Client!
+  "The id of the client who owns the membership."
+  clientId: ID!
+  "Ending date for the membership."
+  endOn: Date!
+  "The ID of an object"
+  id: ID!
+  "Duration of the membership interval (eg. 1 month)."
+  interval: DurationInterval!
+  "Location where the membership was purchased"
+  location: Location!
+  "The id of the location where the membership was purchased."
+  locationId: ID!
+  "The membership name."
+  name: String!
+  "The date the membership will next renew"
+  nextChargeDate: Date
+  "Membership plan agreement signature"
+  planAgreementSignature: MembershipPlanAgreementSignature
+  "The product the membership refers to."
+  productId: ID!
+  "Start date of the membership"
+  startOn: Date!
+  "Membership Status. Active, Cancelled, Past Due or Paused"
+  status: SubscriptionStatus!
+  "The reason the membership has the current status"
+  statusReason: MembershipStatusReason
+  """
+  The custom reason the membership has the current status. Is populated when status_reason is other
+  """
+  statusReasonCustom: String
+  "The current term number of the membership"
+  termNumber: Int!
+  "Unit Price (in cents) of the membership"
+  unitPrice: Money!
+  "The date the membership will unpause"
+  unpauseOn: Date
+  "Optional vouchers included with membership"
+  vouchers: [MembershipVoucher!]!
+}
+
+type MembershipCancelPayload {
+  membership: Membership
+}
+
+type MembershipConnection {
+  edges: [MembershipEdge]
+  pageInfo: PageInfo!
+}
+
+type MembershipEdge {
+  cursor: String
+  node: Membership
+}
+
+type MembershipPausePayload {
+  membership: Membership
+}
+
+"Membership plan"
+type MembershipPlan implements Node {
+  "Whether the membership plan is available to sell"
+  active: Boolean!
+  "The day on which the memberships are supposed to renew (1-31)"
+  billingCycleAnchorDay: Int
+  "The membership plan's associated category"
+  category: MembershipPlanCategory
+  "If commission is enabled for the sale of this membership"
+  commissionEnabled: Boolean!
+  "Description"
+  description: String
+  "External Id"
+  externalId: String
+  "The ID of an object"
+  id: ID!
+  "The date and time when the membership plan was created"
+  createdAt: DateTime!
+  "The interval in which  this membership will renew (ex Monthly, Yearly, etc)"
+  interval: DurationInterval!
+  "Versioned list of membership plan agreements"
+  membershipPlanAgreements: [MembershipPlanAgreement]
+  "Whether membership plan agreements are enabled"
+  membershipPlanAgreementsEnabled: Boolean
+  """
+  Whether the membership plan is eligible to be shared between clients, false by default.
+  """
+  shareable: Boolean!
+  "Taxable"
+  taxable: Boolean!
+  "The name of the memberhsip plan"
+  name: String!
+  "Price"
+  unitPrice: Money!
+  "The date and time when the membership plan was last updated"
+  updatedAt: DateTime!
+}
+
+type MembershipPlanActivateAtLocationPayload {
+  "Active"
+  active: Boolean!
+  "Location ID"
+  locationId: ID!
+  "Membership Plan ID"
+  membershipPlanId: ID!
+}
+
+"The membership plan agreement"
+type MembershipPlanAgreement {
+  body: String!
+  version: Int!
+}
+
+"Membership plan agreement signature"
+type MembershipPlanAgreementSignature {
+  signedAt: DateTime!
+  planAgreement: MembershipPlanAgreement!
+}
+
+type MembershipPlanCategory implements Node {
+  "The ID of an object"
+  id: ID!
+  membershipPlans: [MembershipPlan!]!
+  name: String
+}
+
+type MembershipPlanCategoryConnection {
+  edges: [MembershipPlanCategoryEdge]
+  pageInfo: PageInfo!
+}
+
+type MembershipPlanCategoryEdge {
+  cursor: String
+  node: MembershipPlanCategory
+}
+
+type MembershipPlanConnection {
+  edges: [MembershipPlanEdge]
+  pageInfo: PageInfo!
+}
+
+type MembershipPlanDeactivateAtLocationPayload {
+  "Active"
+  active: Boolean!
+  "Location Id"
+  locationId: ID!
+  "Membership Plan ID"
+  membershipPlanId: ID!
+}
+
+type MembershipPlanEdge {
+  cursor: String
+  node: MembershipPlan
+}
+
+type MembershipRenewPayload {
+  membership: Membership
+}
+
+type MembershipUnpausePayload {
+  membership: Membership
+}
+
+type MembershipUnscheduleCancellationPayload {
+  membership: Membership
+}
+
+type MembershipUpdateNextChargeDatePayload {
+  membership: Membership
+}
+
+"A membership service voucher"
+type MembershipVoucher {
+  "Number of vouchers included"
+  quantity: Int!
+  "Services the voucher can be redeemed for"
+  services: [Service!]!
+}
+
+type NativeFieldBooleanValue implements NativeFieldValue {
+  booleanValue: String
+  key: String!
+}
+
+type NativeFieldDatetimeValue implements NativeFieldValue {
+  datetimeValue: DateTime
+  key: String!
+}
+
+type NativeFieldFloatValue implements NativeFieldValue {
+  floatValue: String
+  key: String!
+}
+
+type NativeFieldIntegerValue implements NativeFieldValue {
+  integerValue: String
+  key: String!
+}
+
+type NativeFieldMultiselectValue implements NativeFieldValue {
+  key: String!
+  multiselectValues: [NativeObjectSchemaFieldOption!]!
+}
+
+type NativeFieldSelectValue implements NativeFieldValue {
+  key: String!
+  selectValue: NativeObjectSchemaFieldOption
+}
+
+type NativeFieldTextValue implements NativeFieldValue {
+  key: String!
+  textValue: String
+}
+
+type NativeObjectMeta {
+  booleanValue(key: String!): Boolean
+  datetimeValue(key: String!): DateTime
+  floatValue(key: String!): Float
+  integerValue(key: String!): Int
+  multiselectValues(key: String!): [NativeObjectSchemaFieldOption!]
+  selectValue(key: String!): NativeObjectSchemaFieldOption
+  textValue(key: String!): String
+}
+
+type NativeObjectSchemaField {
+  "When this field was first created"
+  insertedAt: DateTime!
+  "The object schema"
+  key: String!
+  "Name of the field for public display purposes"
+  name: String!
+  "Options available for select/multiselect fields"
+  options: [NativeObjectSchemaFieldOption]
+  "The object schema"
+  schema: NativeObjectSchema!
+  "When this field was last updated"
+  updatedAt: DateTime!
+  "The value type (eg, DateTime)"
+  valueType: CustomFieldValueType!
+}
+
+type NativeObjectSchemaFieldConnection {
+  edges: [NativeObjectSchemaFieldEdge]
+  pageInfo: PageInfo!
+}
+
+type NativeObjectSchemaFieldEdge {
+  cursor: String
+  node: NativeObjectSchemaField
+}
+
+type NativeObjectSchemaFieldOption {
+  id: ID!
+  label: String!
+}
+
+"Client related notes"
+type Note implements Node {
+  "The date and time when the note was created"
+  createdAt: DateTime!
+  "The ID of an object"
+  id: ID!
+  "Note creation date"
+  insertedAt: DateTime!
+  "Note text"
+  text: String!
+}
+
+type Offer implements Node {
+  """
+  Whether the offer can be applied to all first time membership sales by default. Defaults to false.
+  
+  See `items` for how this interacts with item rules.
+  """
+  applicableToAllMemberships: Boolean!
+  """
+  Whether the offer can be applied to all packages by default. Defaults to false.
+  
+  See `items` for how this interacts with item rules.
+  """
+  applicableToAllPackages: Boolean!
+  """
+  Whether the offer can be applied to products by default. Defaults to false.
+  
+  See `items` for how this interacts with item rules.
+  """
+  applicableToAllProducts: Boolean!
+  """
+  Whether the offer can be applied to services by default. Defaults to false.
+  
+  See `items` for how this interacts with item rules.
+  """
+  applicableToAllServices: Boolean!
+  "Whether the offer can be applied to gift cards. Defaults to false."
+  applicableToGiftCards: Boolean!
+  """
+  Whether the offer should automatically be applied at checkout or during the
+  booking flow. Defaults to false.
+  """
+  autoApply: Boolean!
+  "The amount of times an offer can be applied per client."
+  clientUsageLimit: Int
+  """
+  Offer code, case-insensitively unique. Returns the offer id if the offer
+  doesn't have a code.
+  """
+  code: String!
+  "The date and time when the offer was created"
+  createdAt: DateTime!
+  "The discount value."
+  discount: OfferDiscount
+  """
+  Whether or not the fixed dollar discount should be distributed across all
+  items in the order. Defaults to false.
+  """
+  distributedDiscount: Boolean!
+  "Whether the offer should appear alongside other offers. Defaults to false."
+  hidden: Boolean!
+  "The ID of an object"
+  id: ID!
+  """
+  Rules that include/exclude items to which the offer applies.
+  
+  There are three levels of specificity, considered in this order:
+  
+  1. Any items of a specific type get their base value from the type flag on
+     the offer, e.g. `applicableToAllServices`, and are included or excluded
+     by default based its value.
+  
+     This flag also defines the behaviour for items/categories created in the
+     future when there's no matching rule defined.
+  
+  2. Any item matching an item rule in this list with `included: true` is
+     included, regardless of its previous status.
+  
+  3. Any item matching an item rule in this list with `included: false` is
+     excluded, regardless of its previous status.
+  
+  This mechanism supports a number of scenarios, e.g. including all items
+  except some, excluding all items except some, or flexible category-based
+  inclusions with exceptions.
+  """
+  items: [OfferItem!]!
+  "Offer name, case-insensitively unique."
+  name: String!
+  """
+  Rules that restrict contexts in which the offer can be used.
+  
+  When evaluated, restriction are grouped by type. An order can be applied
+  when every group has at least one matching restriction. In other words, the
+  restrictions form a logical conjunction (AND) of disjunctions (OR).
+  """
+  restrictions: [OfferRestriction!]!
+  "The date and time when the offer was last updated"
+  updatedAt: DateTime!
+}
+
+"Offer can be used by clients having a particular status."
+type OfferClientStatusRestriction implements OfferRestriction {
+  clientStatus: OfferRestrictionClientStatus!
+  id: ID!
+}
+
+type OfferConnection {
+  edges: [OfferEdge]
+  pageInfo: PageInfo!
+}
+
+type OfferDateBookedRestriction implements OfferRestriction {
+  dateBooked: OfferRestrictionDateRange!
+  id: ID!
+}
+
+type OfferDatePaidRestriction implements OfferRestriction {
+  datePaid: OfferRestrictionDateRange!
+  id: ID!
+}
+
+type OfferDaysPerformedRestriction implements OfferRestriction {
+  daysPerformed: [Int!]!
+  id: ID!
+}
+
+type OfferEdge {
+  cursor: String
+  node: Offer
+}
+
+type OfferFixedDiscount {
+  "Fixed amount discounted from each applicable line."
+  fixedAmount: Money
+}
+
+"Offer can be used at a particular location."
+type OfferLocationRestriction implements OfferRestriction {
+  id: ID!
+  location: Location!
+}
+
+type OfferManualAudienceRestriction implements OfferRestriction {
+  id: ID!
+  manualAudience: ManualAudience!
+}
+
+"Offer can be used by clients having a particular membership."
+type OfferMembershipRestriction implements OfferRestriction {
+  id: ID!
+  membership: Membership!
+}
+
+type OfferPackageCategoryItem implements OfferItem {
+  id: ID!
+  included: Boolean!
+  packageCategory: PackageCategory!
+}
+
+type OfferPercentageDiscount {
+  "Percentage amount discounted from each applicable line."
+  percentageAmount: Percentage
+}
+
+type OfferPlanCategoryItem implements OfferItem {
+  id: ID!
+  included: Boolean!
+  planCategory: MembershipPlanCategory!
+}
+
+type OfferProductCategoryItem implements OfferItem {
+  id: ID!
+  included: Boolean!
+  productCategory: ProductCategory!
+}
+
+type OfferProductItem implements OfferItem {
+  id: ID!
+  included: Boolean!
+  product: Product!
+}
+
+type OfferRestrictionDateRange {
+  lower: Date!
+  upper: Date!
+}
+
+type OfferRestrictionTimeRange {
+  lower: Time!
+  upper: Time!
+}
+
+type OfferServiceCategoryItem implements OfferItem {
+  id: ID!
+  included: Boolean!
+  serviceCategory: ServiceCategory!
+}
+
+type OfferServiceItem implements OfferItem {
+  id: ID!
+  included: Boolean!
+  service: Service!
+}
+
+type OfferTimePerformedRestriction implements OfferRestriction {
+  id: ID!
+  timePerformed: OfferRestrictionTimeRange!
+}
+
+type OktaGate {
+  callbackUrl: String
+  clientId: String
+  clientSecretProvided: Boolean!
+  initiateUrl: String
+  logoutUrl: String
+  orgName: String
+  reauthenticationDuration: DurationInterval!
+  ssoEnabled: Boolean!
+}
+
+"A commerce order"
+type Order implements Node {
+  "Vouchers applied on this order"
+  appliedVouchers: [OrderVoucher!]!
+  "The client associated with the order."
+  client: Client
+  "The id of the client associated with the order."
+  clientId: ID
+  "The date and time when the order was closed."
+  closedAt: DateTime
+  "The staff member that closed the order."
+  closedBy: Staff
+  "The date and time when the order was created"
+  createdAt: DateTime!
+  feeLines: [OrderFeeLine!]!
+  "The ID of an object"
+  id: ID!
+  lineGroups: [OrderLineGroup!]!
+  "The location where this transaction was made."
+  location: Location!
+  "The unique id for the location where this transaction was made."
+  locationId: ID!
+  "An optional note tied to the order."
+  note: String
+  "Unique order number for the business."
+  number: String!
+  "Payment groups for the order"
+  paymentGroups: [OrderPaymentGroup!]!
+  "Closed refunds against the order"
+  refunds: [OrderRefund!]!
+  summary: OrderSummary!
+  "The date and time when the order was last updated"
+  updatedAt: DateTime!
+}
+
+type OrderAccountCreditLine implements OrderLine {
+  "See field on interface."
+  currentDiscountAmount: Money!
+  "See field on interface."
+  currentPrice: Money!
+  "See field on interface."
+  currentSubtotal: Money!
+  discounts: [OrderLineDiscount!]!
+  id: ID!
+  "See field on interface."
+  initialDiscountAmount: Money!
+  "See field on interface."
+  initialPrice: Money!
+  "See field on interface."
+  initialSubtotal: Money!
+  quantity: Int!
+}
+
+type OrderAccountCreditPayment implements OrderPayment {
+  clientAccountBalance: Int!
+  clientName: String!
+  id: ID!
+  merchantId: ID!
+  orderId: ID!
+  paidAmount: Money!
+  paymentMeta: OrderPaymentMetadata!
+  "See interface field."
+  refundAmount: Money!
+  refunds: [OrderPaymentRefund!]!
+}
+
+type OrderAppointmentLineGroup implements OrderLineGroup {
+  id: ID!
+  lines: [OrderLine!]!
+}
+
+type OrderCardPayment implements OrderPayment {
+  "Card payment authorization entry method, if any"
+  authEntryMethod: String
+  "Card payment authorization code, if any."
+  cardAuthCode: String
+  cardBrand: PaymentCardBrand!
+  "Expiration month of the associated card."
+  cardExpMonth: Int!
+  "Expiration year of the associated card."
+  cardExpYear: Int!
+  cardLast4: String!
+  "EMV Application Id, if any"
+  emvApplicationId: String
+  "EMV Application Label, if any"
+  emvApplicationLabel: String
+  id: ID!
+  merchantId: ID!
+  orderId: ID!
+  paidAmount: Money!
+  paymentMeta: OrderPaymentMetadata!
+  "See interface field."
+  refundAmount: Money!
+  refunds: [OrderPaymentRefund!]!
+}
+
+type OrderCashPayment implements OrderPayment {
+  id: ID!
+  merchantId: ID!
+  orderId: ID!
+  paidAmount: Money!
+  paymentMeta: OrderPaymentMetadata!
+  "See interface field."
+  refundAmount: Money!
+  refunds: [OrderPaymentRefund!]!
+}
+
+type OrderConnection {
+  edges: [OrderEdge]
+  pageInfo: PageInfo!
+}
+
+type OrderCreatePayload {
+  order: Order!
+}
+
+type OrderEdge {
+  cursor: String
+  node: Order
+}
+
+type OrderFeeLine {
+  "Absolute amount for the fee. Null if percentageAmount is set."
+  absoluteAmount: Money
+  "Current calculated amount for the fee."
+  calculatedAmount: Money!
+  calculatedTaxAmount: Money!
+  id: ID!
+  "Human-readable fee label."
+  label: String
+  "Percentage amount for the fee. Null if absoluteAmount is set."
+  percentageAmount: Percentage
+  refunds: [FeeLineRefund]!
+  "Machine-readable fee type."
+  type: OrderFeeType
+}
+
+type OrderGiftCardLine implements OrderLine {
+  "See field on interface."
+  currentDiscountAmount: Money!
+  "See field on interface."
+  currentPrice: Money!
+  "See field on interface."
+  currentSubtotal: Money!
+  discounts: [OrderLineDiscount!]!
+  "Gift card code."
+  giftCardCode: String!
+  "The ID of the Gift Card purchased"
+  giftCardId: ID!
+  id: ID!
+  "See field on interface."
+  initialDiscountAmount: Money!
+  "See field on interface."
+  initialPrice: Money!
+  "See field on interface."
+  initialSubtotal: Money!
+  quantity: Int!
+}
+
+type OrderGiftCardPayment implements OrderPayment {
+  giftCardBalance: Int!
+  giftCardCode: String!
+  giftCardDisabledAt: DateTime
+  giftCardId: ID!
+  id: ID!
+  merchantId: ID!
+  orderId: ID!
+  paidAmount: Money!
+  paymentMeta: OrderPaymentMetadata!
+  "See interface field."
+  refundAmount: Money!
+  refunds: [OrderPaymentRefund!]!
+}
+
+type OrderGratuityAddPayload {
+  order: Order!
+}
+
+type OrderGratuityLine implements OrderLine {
+  "See field on interface."
+  currentDiscountAmount: Money!
+  "See field on interface."
+  currentPrice: Money!
+  "See field on interface."
+  currentSubtotal: Money!
+  discounts: [OrderLineDiscount!]!
+  id: ID!
+  "See field on interface."
+  initialDiscountAmount: Money!
+  "See field on interface."
+  initialPrice: Money!
+  "The staff member initially associated with the service sale."
+  initialStaffId: ID!
+  "See field on interface."
+  initialSubtotal: Money!
+  quantity: Int!
+}
+
+type OrderGratuityRemovePayload {
+  order: Order!
+}
+
+type OrderInvoiceAllocation {
+  amountPaid: Money!
+  amountUnpaid: Money!
+  invoiceId: ID!
+  invoiceNumber: String!
+  merchantId: ID!
+  orderId: ID!
+  refundAmount: Money!
+}
+
+type OrderLineDiscount {
+  description: String
+  discountAmount: Money!
+  discountPercentage: Float
+  discountReason: DiscountReason
+  id: ID!
+}
+
+type OrderOtherPayment implements OrderPayment {
+  id: ID!
+  merchantId: ID!
+  note: String
+  orderId: ID!
+  paidAmount: Money!
+  paymentMeta: OrderPaymentMetadata!
+  "See interface field."
+  refundAmount: Money!
+  refunds: [OrderPaymentRefund!]!
+}
+
+type OrderPaymentCreatePayload {
+  order: Order!
+}
+
+type OrderPaymentGroup {
+  id: ID!
+  independentMerchant: Boolean!
+  invoiceAllocations: [OrderInvoiceAllocation!]!
+  merchantId: ID!
+  merchantName: String!
+  payments: [OrderPayment!]!
+  "Total for that merchant (includes fees and taxes)."
+  total: Int!
+  "Pre-tax fee amount for this payment group."
+  totalFees: Int!
+  totalPaid: Int!
+  "Total left to pay for this merchant (includes all fees and taxes)"
+  totalUnpaid: Int!
+}
+
+type OrderPaymentMetadata {
+  label: String
+}
+
+type OrderPaymentRefund {
+  full: Boolean!
+  id: ID!
+  refundAmount: Money!
+  refundId: ID!
+  refundedAt: DateTime!
+}
+
+type OrderProductCardLine implements OrderLine {
+  "See field on interface."
+  currentDiscountAmount: Money!
+  "See field on interface."
+  currentPrice: Money!
+  "See field on interface."
+  currentSubtotal: Money!
+  discounts: [OrderLineDiscount!]!
+  id: ID!
+  "See field on interface."
+  initialDiscountAmount: Money!
+  "See field on interface."
+  initialPrice: Money!
+  "See field on interface."
+  initialSubtotal: Money!
+  quantity: Int!
+}
+
+type OrderProductCardPayment implements OrderPayment {
+  "Amounts paid for using the Product Card (Prepaid Units)"
+  activeAmounts: [OrderProductCardPaymentActiveAmount!]!
+  id: ID!
+  merchantId: ID!
+  orderId: ID!
+  paidAmount: Money!
+  paymentMeta: OrderPaymentMetadata!
+  productCardBalance: Int!
+  productCardId: ID!
+  productId: ID!
+  refundAmount: Money!
+  refunds: [OrderPaymentRefund!]!
+}
+
+"Contains the id of the appointment service option paid for and price"
+type OrderProductCardPaymentActiveAmount {
+  appointmentServiceOptionId: ID!
+  unitPrice: Int!
+}
+
+type OrderProductLine implements OrderLine {
+  "See field on interface."
+  currentDiscountAmount: Money!
+  "See field on interface."
+  currentPrice: Money!
+  "See field on interface."
+  currentSubtotal: Money!
+  "Discounts applied to the product when purchased."
+  discounts: [OrderLineDiscount!]!
+  "Gift card code."
+  giftCardCode: String
+  id: ID!
+  "See field on interface."
+  initialDiscountAmount: Money!
+  "See field on interface."
+  initialPrice: Money!
+  "See field on interface."
+  initialSubtotal: Money!
+  "Product name."
+  name: String!
+  "The ID of the Product purchased"
+  productId: ID!
+  "The quantity of product purchased."
+  quantity: Int!
+  "Closed refunds against the product line item."
+  refunds: [OrderRefundLine]!
+  "The staff member associated with the product sale."
+  seller: Staff
+}
+
+"A commerce order refund"
+type OrderRefund implements Node {
+  closedAt: DateTime
+  closedBy: Staff
+  "The date and time when the order refund was created"
+  createdAt: DateTime!
+  "The ID of an object"
+  id: ID!
+  "Refund number"
+  number: String!
+  "The Id of the Order that this refund was made against"
+  orderId: ID!
+  "Payment details for the order refund"
+  payments: [OrderRefundPayment!]!
+  """
+  Value that describes why this refund was made. When the reason is `OTHER`,
+  `refundReasonText` should also be set.
+  """
+  refundReason: OrderRefundReason
+  "Additional description, usually available when the refund reason is `OTHER`."
+  refundReasonText: String
+  "Closed status of the refund"
+  status: OrderRefundStatus!
+  "Summary totals of the refund"
+  summary: OrderRefundSummary!
+  "The date and time when the order refund was last updated"
+  updatedAt: DateTime!
+}
+
+type OrderRefundAccountCreditPayment implements OrderRefundPayment {
+  id: ID!
+  orderPaymentId: ID
+  refundAmount: Money!
+  refundLimit: Money!
+}
+
+type OrderRefundCardPayment implements OrderRefundPayment {
+  id: ID!
+  orderPaymentId: ID
+  refundAmount: Money!
+  refundLimit: Money!
+}
+
+type OrderRefundCashPayment implements OrderRefundPayment {
+  id: ID!
+  orderPaymentId: ID
+  refundAmount: Money!
+  refundLimit: Money!
+}
+
+type OrderRefundGiftCardPayment implements OrderRefundPayment {
+  giftCardCode: String
+  id: ID!
+  orderPaymentId: ID
+  refundAmount: Money!
+  refundLimit: Money!
+}
+
+type OrderRefundLine {
+  "The ID of the refund line item."
+  id: ID!
+  "The amount that was refunded."
+  refundAmount: Money!
+  "The order refund ID."
+  refundId: ID!
+  "The date and time when the refund occurred"
+  refundedAt: DateTime!
+}
+
+type OrderRefundOtherPayment implements OrderRefundPayment {
+  id: ID!
+  orderPaymentId: ID
+  refundAmount: Money!
+  refundLimit: Money!
+}
+
+type OrderRefundProductCardPayment implements OrderRefundPayment {
+  id: ID!
+  orderPaymentId: ID
+  refundAmount: Money!
+  refundLimit: Money!
+}
+
+type OrderRefundSummary {
+  "Amount to be refunded, without tax."
+  refundAmount: Money!
+  """
+  Tax to be refunded, calculated automatically on top of the refund amount
+  based on selected line items.
+  """
+  refundTax: Money!
+  "Total amount to be refunded, including tax."
+  refundTotal: Money!
+}
+
+type OrderRefundVoucherPayment implements OrderRefundPayment {
+  id: ID!
+  orderPaymentId: ID
+  refundAmount: Money!
+  refundLimit: Money!
+}
+
+type OrderRetailLineGroup implements OrderLineGroup {
+  id: ID!
+  lines: [OrderLine!]!
+}
+
+type OrderServiceLine implements OrderLine {
+  "See field on interface."
+  currentDiscountAmount: Money!
+  "See field on interface."
+  currentPrice: Money!
+  "See field on interface."
+  currentSubtotal: Money!
+  discounts: [OrderLineDiscount!]!
+  id: ID!
+  "See field on interface."
+  initialDiscountAmount: Money!
+  "See field on interface."
+  initialPrice: Money!
+  "The staff member initially associated with the service sale."
+  initialStaffId: ID!
+  "See field on interface."
+  initialSubtotal: Money!
+  "True if the service was paid for with a voucher"
+  isPaidByVoucher: Boolean!
+  "Service name."
+  name: String!
+  quantity: Int!
+  "The ID of the Service purchased"
+  serviceId: ID!
+  """
+  The list price of the service captured at the time of first adding that
+  service to an order, before applying any vouchers.
+  """
+  unitListPrice: Money
+}
+
+type OrderSummary {
+  "Sum of all line discounts after any refunds."
+  currentDiscountAmount: Money!
+  "Sum of all fee amounts after any refunds."
+  currentFeeAmount: Money!
+  "Sum of all line gratuity amounts after any refunds."
+  currentGratuityAmount: Money!
+  "Sum of all line amounts after any refunds."
+  currentSubtotal: Money!
+  "Sum of all line tax amounts after any refunds."
+  currentTaxAmount: Money!
+  "Grand total, after any refunds."
+  currentTotal: Money!
+  "Sum of all line discounts before any refunds."
+  initialDiscountAmount: Money!
+  "Sum of all fee amounts before any refunds."
+  initialFeeAmount: Money!
+  "Sum of all line gratuity amounts before any refunds."
+  initialGratuityAmount: Money!
+  "Sum of all line amounts before any refunds."
+  initialSubtotal: Money!
+  "Sum of all line tax amounts before any refunds."
+  initialTaxAmount: Money!
+  "Grand total, before any refunds."
+  initialTotal: Money!
+  "Total amount refunded of the grand total."
+  refundAmount: Money!
+}
+
+type OrderUpdateNotePayload {
+  order: Order!
+}
+
+"Vouchers applied to a given order"
+type OrderVoucher {
+  id: ID!
+  voucher: Voucher!
+}
+
+type OrderVoucherPayment implements OrderPayment {
+  id: ID!
+  merchantId: ID!
+  orderId: ID!
+  paidAmount: Money!
+  paymentMeta: OrderPaymentMetadata!
+  "See interface field."
+  refundAmount: Money!
+  refunds: [OrderPaymentRefund!]!
+}
+
+"Package"
+type Package implements Node {
+  "Account credit granted by the sale of this package, in cents"
+  accountCreditAmount: Money
+  "Whether the package is available to sell"
+  active: Boolean!
+  "The packages's associated category"
+  category: PackageCategory
+  "If commission is enabled for the sale of this package"
+  commissionEnabled: Boolean!
+  "Description"
+  description: String
+  "External Id"
+  externalId: String
+  "The ID of an object"
+  id: ID!
+  "The date and time when the package was created"
+  createdAt: DateTime!
+  "Taxable"
+  taxable: Boolean!
+  "The name of the package"
+  name: String!
+  "Price"
+  unitPrice: Money!
+  "The date and time when the package was last updated"
+  updatedAt: DateTime!
+  "Vouchers awarded to a client upon purchase"
+  vouchers: [ProductVoucher!]!
+}
+
+type PackageActivateAtLocationPayload {
+  "Active"
+  active: Boolean!
+  "Location ID"
+  locationId: ID!
+  "package ID"
+  packageId: ID!
+}
+
+type PackageCategory implements Node {
+  "The ID of an object"
+  id: ID!
+  name: String
+  packages: [Package!]!
+}
+
+type PackageCategoryConnection {
+  edges: [PackageCategoryEdge]
+  pageInfo: PageInfo!
+}
+
+type PackageCategoryEdge {
+  cursor: String
+  node: PackageCategory
+}
+
+type PackageConnection {
+  edges: [PackageEdge]
+  pageInfo: PageInfo!
+}
+
+type PackageDeactivateAtLocationPayload {
+  "Active"
+  active: Boolean!
+  "Location Id"
+  locationId: ID!
+  "package ID"
+  packageId: ID!
+}
+
+type PackageEdge {
+  cursor: String
+  node: Package
+}
+
+type PageInfo {
+  "When paginating forwards, the cursor to continue."
+  endCursor: String
+  "When paginating forwards, are there more items?"
+  hasNextPage: Boolean!
+  "When paginating backwards, are there more items?"
+  hasPreviousPage: Boolean!
+  "When paginating backwards, the cursor to continue."
+  startCursor: String
+}
+
+type PaymentOption {
+  "If the payment option is active or has been soft deleted"
+  active: Boolean!
+  "ID"
+  id: ID!
+  "Name of the payment option"
+  name: String!
+}
+
+type Permission implements Node {
+  "Description"
+  description: String!
+  "Enabled"
+  enabled: Boolean!
+  "The ID of an object"
+  id: ID!
+  "Key"
+  key: String!
+  "Name"
+  name: String!
+}
+
+type PingWebhookPayload {
+  webhook: Webhook!
+}
+
+"A product"
+type Product implements Node {
+  "Active"
+  active: Boolean!
+  "Barcode"
+  barcode: String
+  "Brand name"
+  brandName: String
+  "Product category"
+  category: ProductCategory
+  "Product category Id"
+  categoryId: ID
+  "Color"
+  color: String
+  "The date and time when the product was created"
+  createdAt: DateTime!
+  "Description"
+  description: String
+  "External Id"
+  externalId: String
+  "The ID of an object"
+  id: ID!
+  "Name"
+  name: String!
+  """
+  Current quantities of the product at each Location where quantity tracking is enabled.
+  """
+  quantities(after: String, before: String, first: Int, last: Int): ProductQuantityConnection
+  "Quantity Tracking Enabled"
+  quantityTrackingEnabled: Boolean
+  "Size"
+  size: String
+  "SKU"
+  sku: String
+  "Taxable"
+  taxable: Boolean!
+  "Unit cost"
+  unitCost: Money!
+  "Unit price"
+  unitPrice: Money!
+  "The date and time when the product was last updated"
+  updatedAt: DateTime!
+  vouchers: [ProductVoucher!]!
+}
+
+type ProductActivateAtLocationPayload {
+  "Active"
+  active: Boolean!
+  "Location Id"
+  locationId: ID!
+  "Product Id"
+  productId: ID!
+}
+
+type ProductBrandNamesAndCategories {
+  brandNames: [String!]!
+  categories: [CategoryResult!]!
+}
+
+"A ProductCategory"
+type ProductCategory implements Node {
+  "Commission Enabled"
+  commissionEnabled: Boolean!
+  "The date and time when the product category was created"
+  createdAt: DateTime!
+  "The ID of an object"
+  id: ID!
+  "Name"
+  name: String!
+  "Retail. If true, products in this category will show during checkout"
+  retail: Boolean!
+  "The date and time when the product category was last updated"
+  updatedAt: DateTime!
+}
+
+type ProductCategoryConnection {
+  edges: [ProductCategoryEdge]
+  pageInfo: PageInfo!
+}
+
+type ProductCategoryEdge {
+  cursor: String
+  node: ProductCategory
+}
+
+type ProductConnection {
+  edges: [ProductEdge]
+  pageInfo: PageInfo!
+}
+
+type ProductDeactivateAtLocationPayload {
+  "Active"
+  active: Boolean!
+  "Location Id"
+  locationId: ID!
+  "Product Id"
+  productId: ID!
+}
+
+type ProductEdge {
+  cursor: String
+  node: Product
+}
+
+"A product quantity at a specific location"
+type ProductQuantity {
+  "The location where the product has this quantity."
+  location: Location!
+  "The ID of the location where the product has this quantity."
+  locationId: ID!
+  "The quantity available for the product at the location"
+  quantity: Int!
+}
+
+"An inventory quantity adjustment"
+type ProductQuantityAdjustment implements Node {
+  "The ID of an object"
+  id: ID!
+  "The Location where the quantity adjustment occurred"
+  location: Location!
+  "The Id of the Location where the quantity adjustment occurred"
+  locationId: ID!
+  "The Product that had its quantity adjusted."
+  product: Product!
+  "The Id of the Product that had its quantity adjusted"
+  productId: ID!
+  "The quantity change for the adjustment"
+  quantityChange: Int!
+  "The reason for the adjustment"
+  reason: String!
+  "The unit cost associated with the adjustment"
+  unitCost: Money
+}
+
+type ProductQuantityConnection {
+  edges: [ProductQuantityEdge]
+  pageInfo: PageInfo!
+}
+
+type ProductQuantityEdge {
+  cursor: String
+  node: ProductQuantity
+}
+
+"A product service voucher"
+type ProductVoucher {
+  "Number of vouchers included"
+  quantity: Int!
+  "Services the voucher can be redeemed for"
+  services: [Service!]!
+  "Redeemable cash value for this voucher"
+  voucherRedemptionValue: Money
+}
+
+"A PurchaseOrder"
+type PurchaseOrder implements Node {
+  "Count of products found from purchase order auto populate options"
+  bulkInventoryCount(autoPopulateOptions: AutoPopulateOptionsInput!): Int
+  "ISO 8601 datetime when the purchase order is expected to be received"
+  expectedOn: Date
+  "The ID of an object"
+  id: ID!
+  "Purchase order product line items"
+  lineItems: [PurchaseOrderLineItem!]
+  "Purchase order location"
+  location: Location
+  "Purchase order location id"
+  locationId: ID!
+  "Purchase order memo"
+  memo: String
+  "Number identifier of the purchase order"
+  number: Int!
+  "ISO 8601 datetime when the purchase order was ordered"
+  orderedOn: Date
+  "List of product brand names and categories by supplier"
+  productBrandNamesAndCategories(supplierId: ID!): ProductBrandNamesAndCategories
+  "UTC timestamp when the purchase order was sent"
+  sentAt: DateTime
+  "State of the purchase order"
+  state: PurchaseOrderState!
+  "The subtotal across all purchase order products"
+  subtotal: Money
+  "Purchase order supplier"
+  supplier: Supplier!
+  "Purchase Order supplier id"
+  supplierId: ID
+  "Total units ordered across all products in the purchase order"
+  unitsOrdered: Int!
+  "Total units received across all products in the purchase order"
+  unitsReceived: Int!
+}
+
+type PurchaseOrderConnection {
+  edges: [PurchaseOrderEdge]
+  pageInfo: PageInfo!
+}
+
+type PurchaseOrderEdge {
+  cursor: String
+  node: PurchaseOrder
+}
+
+"A PurchaseOrderLineItem"
+type PurchaseOrderLineItem implements Node {
+  "The ID of an object"
+  id: ID!
+  "Line item's product"
+  product: Product!
+  "Line item's product id"
+  productId: ID!
+  """
+  Purchase order line item state.
+  
+  Pending, Partially Received, Complete
+  """
+  state: PurchaseOrderLineItemState!
+  "Cost per unit for the line item product"
+  unitCost: Money!
+  "Current units in stock for the line item product"
+  unitsAvailable: Int!
+  "Units of product desired to have on hand for the line item product"
+  unitsDesired: Int
+  "Units ordered for the line item product"
+  unitsOrdered: Int!
+  """
+  Current units waiting to be received on other purchase orders for the line item product at the same location
+  """
+  unitsPending: Int!
+  "Units received for the the line item product"
+  unitsReceived: Int!
+}
+
+"A referral"
+type Referral implements Node {
+  "The first name of the referred client."
+  clientFirstName: String
+  "Client ID"
+  clientId: ID!
+  "The date and time when the referral was created"
+  createdAt: DateTime!
+  "Whether or not the referral is from a referral program."
+  fromReferralProgram: Boolean
+  "The ID of an object"
+  id: ID!
+  "Referral Source"
+  referralSource: ReferralSource
+  "The referring client"
+  referrerClient: Client
+  """
+  If account credits were given as a referral program reward, returns the
+  amount of the reward credit.
+  """
+  referrerRewardAmount: Int
+  """
+  If a referral program reward was given, returns the date the reward was
+  created.
+  """
+  referrerRewardCreatedAt: NaiveDateTime
+  "The date and time when the referral was last updated"
+  updatedAt: DateTime!
+  """
+  If vouchers were given as a referral program reward, returns the number of
+  vouchers given.
+  """
+  voucherQuantity: Int
+  """
+  If vouchers were given as a referral program reward, returns the names of
+  eligible services.
+  """
+  voucherRewardServices: [String!]
+}
+
+type ReferralSource implements Node {
+  "If the referral source is active or has been soft deleted"
+  active: Boolean!
+  "Whether or not this referral source has been enabled for all locations"
+  allLocations: Boolean!
+  "The ID of an object"
+  id: ID!
+  "When the referral source was created"
+  insertedAt: DateTime!
+  """
+  Location ID of location that owns the referral source.  If null, owned by the business
+  """
+  locationId: ID
+  """
+  Locations that have access to the referral source, but cannot necessarily edit the referral source
+  """
+  locations: [Location!]!
+  "Name of the source of the referral"
+  name: String!
+}
+
+type ReminderSetting {
+  email: Boolean!
+  push: Boolean!
+  sms: Boolean!
+  type: ReminderType!
+}
+
+type RemotePlatform {
+  url: Url!
+}
+
+type RemotePlatforms {
+  microsoftTeams: RemotePlatform!
+}
+
+type RemoveManualAudienceClientsPayload {
+  manualAudienceClients: [Client!]!
+}
+
+type RemoveTagPayload {
+  tags: [Tag!]!
+}
+
+"""
+A report is a configuration that provides a data export pipeline to generate an export for a specific point in time.
+Templates for these configurations are described in the input arguments for the createReport mutation.
+You can execute a report to generate data via the createReportExport mutation
+"""
+type Report implements Node {
+  """
+  List of filter attributes available for use in the Report Export API. See type `ReportFilter`
+  """
+  availableFilters: [String!]!
+  "The date and time when the report was created"
+  createdAt: DateTime!
+  "Folder"
+  folder: ReportFolder!
+  "The ID of an object"
+  id: ID!
+  "Name"
+  name: String!
+  "Template ID"
+  templateId: ReportTemplateId!
+  "The date and time when the report was trashed (null if not trashed)"
+  trashedAt: DateTime
+  "The date and time when the report was last updated"
+  updatedAt: DateTime!
+}
+
+type ReportConnection {
+  edges: [ReportEdge]
+  pageInfo: PageInfo!
+}
+
+type ReportEdge {
+  cursor: String
+  node: Report
+}
+
+"Report Export"
+type ReportExport implements Node {
+  """
+  Timestamp of the current export.
+  May be null if the first export has not been performed yet.
+  """
+  currentExportAt: DateTime
+  "Content Type of the exported file (used as file extension)."
+  fileContentType: ReportExportContentType!
+  """
+  A permanent, cryptographically signed url which redirects
+  to the most recently exported file
+  """
+  fileUrl: String!
+  "Frequency"
+  frequency: ReportExportFrequency!
+  "The ID of an object"
+  id: ID!
+  "Report"
+  report: Report!
+  "Filters to be applied at query execution time"
+  reportFilters: [ReportFilter!]!
+  "Report Id"
+  reportId: ID!
+  "Time of day (in UTC) when the export should be executed."
+  utcExecutionTime: Time
+}
+
+type ReportExportConnection {
+  edges: [ReportExportEdge]
+  pageInfo: PageInfo!
+}
+
+type ReportExportEdge {
+  cursor: String
+  node: ReportExport
+}
+
+type ReportFilter {
+  attributeName: String!
+  relativeDateQuery: ReportFilterRelativeDateQuery
+}
+
+type ReportFilterRelativeDateQuery {
+  between: [DurationInterval!]
+  greater: DurationInterval
+  greaterEqual: DurationInterval
+  less: DurationInterval
+  lessEqual: DurationInterval
+}
+
+"The containing folder for a report"
+type ReportFolder {
+  "Name"
+  name: String!
+}
+
+"A resource entity."
+type Resource implements Node {
+  "The category to which this resource belongs."
+  category: ResourceCategory!
+  "The ID of the resource category."
+  categoryId: ID!
+  "A description of the resource."
+  description: String
+  "The hexadecimal color representing the resource."
+  hexColor: String!
+  "The ID of an object"
+  id: ID!
+  "The name of the resource."
+  name: String!
+}
+
+"A resource category entity."
+type ResourceCategory {
+  "The unique identifier for the resource category."
+  id: ID!
+  "The name of the resource category."
+  name: String!
+  "The type of the resource category."
+  type: ResourceCategoryType!
+}
+
+type RootMutationType {
+  ackUninstallApp: AckUninstallAppPayload
+  "Add clients to a manual audience"
+  addManualAudienceClients(input: AddManualAudienceClientsInput!): AddManualAudienceClientsPayload
+  "Apply a tag to a taggable entity"
+  addTag(input: AddTagInput!): AddTagPayload
+  "Reschedule the provided appointment to a new date and time."
+  appointmentReschedule(input: AppointmentRescheduleInput!): AppointmentReschedulePayload
+  "Get the available dates for the provided appointment."
+  appointmentRescheduleAvailableDates(input: AppointmentRescheduleAvailableDatesInput!): AppointmentRescheduleAvailableDatesPayload
+  """
+  Get the available appointment times on a particular date for the provided appointment.
+  """
+  appointmentRescheduleAvailableTimes(input: AppointmentRescheduleAvailableTimesInput!): AppointmentRescheduleAvailableTimesPayload
+  "Add appointment tags to booking client for a given booking"
+  bookingAddAppointmentTags(input: BookingAddAppointmentTagsInput!): BookingAddAppointmentTagsPayload
+  "Add a service to a booking"
+  bookingAddService(input: BookingAddServiceInput!): BookingAddServicePayload
+  "Add a service add-on to a booking"
+  bookingAddServiceAddon(input: BookingAddServiceAddonInput!): BookingAddServiceAddonPayload
+  "Complete a booking"
+  bookingComplete(input: BookingCompleteInput!): BookingCompletePayload
+  "Create a booking"
+  bookingCreate(input: BookingCreateInput!): BookingCreatePayload
+  "Create a booking from an existing appointment"
+  bookingCreateFromAppointment(input: BookingCreateFromAppointmentInput!): BookingCreateFromAppointmentPayload
+  "Remove appointment tags from booking in the context of the booking client"
+  bookingRemoveAppointmentTags(input: BookingRemoveAppointmentTagsInput!): BookingRemoveAppointmentTagsPayload
+  "Remove a service from a booking"
+  bookingRemoveService(input: BookingRemoveServiceInput!): BookingRemoveServicePayload
+  "Add resources to a given service item for a booking"
+  bookingServiceAddResources(input: BookingServiceAddResourcesInput!): BookingServiceAddResourcesPayload
+  "Add service options to a given service item for a booking"
+  bookingServiceAddServiceOptions(input: BookingServiceAddServiceOptionsInput!): BookingServiceAddServiceOptionsPayload
+  "Remove resources from a given service item for a booking"
+  bookingServiceRemoveResources(input: BookingServiceRemoveResourcesInput!): BookingServiceRemoveResourcesPayload
+  "Remove service options from a given service item for a booking"
+  bookingServiceRemoveServiceOptions(input: BookingServiceRemoveServiceOptionsInput!): BookingServiceRemoveServiceOptionsPayload
+  "Set durations for a given service for a booking"
+  bookingServiceSetDurations(input: BookingServiceSetDurationsInput!): BookingServiceSetDurationsPayload
+  "Set the price for a given service item in a booking"
+  bookingServiceSetPrice(input: BookingServiceSetPriceInput!): BookingServiceSetPricePayload
+  "Set a staff member on a given service item for a booking"
+  bookingServiceSetStaff(input: BookingServiceSetStaffInput!): BookingServiceSetStaffPayload
+  "Set the start time for a given service item in a booking"
+  bookingServiceSetStartTime(input: BookingServiceSetStartTimeInput!): BookingServiceSetStartTimePayload
+  "Updates service item options"
+  bookingServiceUpdateServiceItemOptions(input: BookingServiceUpdateServiceItemOptionsInput!): BookingServiceUpdateServiceItemOptionsPayload
+  "Set appointment note for a booking"
+  bookingSetAppointmentNote(input: BookingSetAppointmentNoteInput!): BookingSetAppointmentNotePayload
+  "Set client for a booking"
+  bookingSetClient(input: BookingSetClientInput!): BookingSetClientPayload
+  "Set start time for a booking"
+  bookingSetStartTime(input: BookingSetStartTimeInput!): BookingSetStartTimePayload
+  "Bulk update products."
+  bulkUpdateProducts(input: BulkUpdateProductsInput!): BulkUpdateProductsPayload
+  """
+  Cancel an Appointment.
+  Cancelling an Appointment automatically updates its state to `cancelled`
+  """
+  cancelAppointment(input: CancelAppointmentInput!): CancelAppointmentPayload
+  "Adjust the account credit balance for a client"
+  createAccountCreditAdjustment(input: CreateAccountCreditAdjustmentInput!): CreateAccountCreditAdjustmentPayload
+  "Create an arrival"
+  createArrival(input: CreateArrivalInput!): CreateArrivalPayload
+  "Create a client"
+  createClient(input: CreateClientInput!): CreateClientPayload
+  "Create a client note"
+  createClientNote(input: CreateClientNoteInput!): CreateClientNotePayload
+  "Create a discount reason"
+  createDiscountReason(input: CreateDiscountReasonInput!): CreateDiscountReasonPayload
+  "Creates a gift card and generates an order to apply initial balance"
+  createGiftCard(input: CreateGiftCardInput!): CreateGiftCardPayload
+  "Create a GiftCard balance adjustment"
+  createGiftCardBalanceAdjustment(input: CreateGiftCardBalanceAdjustmentInput!): CreateGiftCardBalanceAdjustmentPayload
+  "Creates an email fulfillment for a gift card."
+  createGiftCardEmailFulfillment(input: CreateGiftCardEmailFulfillmentInput!): CreateGiftCardEmailFulfillmentPayload
+  "Create a Manual Audience"
+  createManualAudience(input: CreateManualAudienceInput!): CreateManualAudiencePayload
+  "Create a membership plan"
+  createMembershipPlan(input: CreateMembershipPlanInput!): CreateMembershipPlanPayload
+  "Create a membership plan category"
+  createMembershipPlanCategory(input: CreateMembershipPlanCategoryInput!): CreateMembershipPlanCategoryPayload
+  createOffer(input: CreateOfferInput!): CreateOfferPayload
+  "Create a package"
+  createPackage(input: CreatePackageInput!): CreatePackagePayload
+  "Create a package category"
+  createPackageCategory(input: CreatePackageCategoryInput!): CreatePackageCategoryPayload
+  "Create a product."
+  createProduct(input: CreateProductInput!): CreateProductPayload
+  "Create a product category"
+  createProductCategory(input: CreateProductCategoryInput!): CreateProductCategoryPayload
+  "Create a quantity adjustment"
+  createProductQuantityAdjustment(input: CreateProductQuantityAdjustmentInput!): CreateProductQuantityAdjustmentPayload
+  "Create a purchase order."
+  createPurchaseOrder(input: CreatePurchaseOrderInput!): CreatePurchaseOrderPayload
+  "Create a report from a specified template ID"
+  createReport(input: CreateReportInput!): CreateReportPayload
+  """
+  Exports a report and uploads it to the fileUrl specified in the output.
+  
+  A report can be exported once or on recurring basis - see the `frequency` field.
+  
+  See 'Report export' guide in the Admin API docs for the longer description.
+  """
+  createReportExport(input: CreateReportExportInput!): CreateReportExportPayload
+  "Create a new field on a native object"
+  createSchemaField(input: CreateSchemaFieldInput!): CreateSchemaFieldPayload
+  "Create a service"
+  createService(input: CreateServiceInput!): CreateServicePayload
+  "Create a service category"
+  createServiceCategory(input: CreateServiceCategoryInput!): CreateServiceCategoryPayload
+  "Create a Shift for a particular Staff"
+  createShift(input: CreateShiftInput!): CreateShiftPayload
+  "Create a staff member"
+  createStaff(input: CreateStaffInput!): CreateStaffPayload
+  "Create a Tag"
+  createTag(input: CreateTagInput!): CreateTagPayload
+  "Create a timeblock"
+  createTimeblock(input: CreateTimeblockInput!): CreateTimeblockPayload
+  "Creates a gift card and applies service vouchers."
+  createVoucherGiftCard(input: CreateVoucherGiftCardInput!): CreateVoucherGiftCardPayload
+  """
+  Create a webhook.
+  
+  A webhook URL must be in a valid URL format and secure SSL.
+  Once your webhook is created, you will receive a ping event notification to verify
+  it was setup correctly.
+  """
+  createWebhook(input: CreateWebhookInput!): CreateWebhookPayload
+  "Delete a client note"
+  deleteClientNote(input: DeleteClientNoteInput!): DeleteClientNotePayload
+  "Delete a product."
+  deleteProduct(input: DeleteProductInput!): DeleteProductPayload
+  """
+  Delete a purchase order
+  
+  Only draft purchase orders will be deleted. Sent purchase orders will be marked inactive instead.
+  """
+  deletePurchaseOrder(input: DeletePurchaseOrderInput!): DeletePurchaseOrderPayload
+  deleteReportExport(input: DeleteReportExportInput!): DeleteReportExportPayload
+  "Delete a Secret"
+  deleteSecret(input: DeleteSecretInput!): DeleteSecretPayload
+  "Delete a timeblock."
+  deleteTimeblock(input: DeleteTimeblockInput!): DeleteTimeblockPayload
+  """
+  Delete a webhook.
+  
+  Deleting a webhook will delete all subscriptions and historical events that the webhook received.
+  """
+  deleteWebhook(input: DeleteWebhookInput!): DeleteWebhookPayload
+  "Update a location's hours"
+  locationUpdateHours(input: LocationUpdateHoursInput!): LocationUpdateHoursPayload
+  """
+  Cancel a membership on the given date. If the current date is given, the membership will be
+  cancelled immediately.
+  
+  If a future date is given, the membership will cancel on the given date.
+  
+  Paused memberships can only be cancelled immediately.
+  """
+  membershipCancel(input: MembershipCancelInput!): MembershipCancelPayload
+  "Pause a membership"
+  membershipPause(input: MembershipPauseInput!): MembershipPausePayload
+  "Activate a membership plan at a location."
+  membershipPlanActivateAtLocation(input: MembershipPlanActivateAtLocationInput!): MembershipPlanActivateAtLocationPayload
+  "Deactivate a membership plan at a location."
+  membershipPlanDeactivateAtLocation(input: MembershipPlanDeactivateAtLocationInput!): MembershipPlanDeactivateAtLocationPayload
+  "Renews an active or past due membership, charging the client"
+  membershipRenew(input: MembershipRenewInput!): MembershipRenewPayload
+  "Unpauses a paused membership"
+  membershipUnpause(input: MembershipUnpauseInput!): MembershipUnpausePayload
+  "Unschedule a scheduled cancellation for an active or past due membership."
+  membershipUnscheduleCancellation(input: MembershipUnscheduleCancellationInput!): MembershipUnscheduleCancellationPayload
+  """
+  Updates the next charge date for an active membership.
+  
+  This will not renew a membership if the current date is given.
+  To renew a membership immediately, use the membershipRenew mutation.
+  """
+  membershipUpdateNextChargeDate(input: MembershipUpdateNextChargeDateInput!): MembershipUpdateNextChargeDatePayload
+  orderCreate(input: OrderCreateInput!): OrderCreatePayload
+  orderGratuityAdd(input: OrderGratuityAddInput!): OrderGratuityAddPayload
+  orderGratuityRemove(input: OrderGratuityRemoveInput!): OrderGratuityRemovePayload
+  orderPaymentCreate(input: OrderPaymentCreateInput!): OrderPaymentCreatePayload
+  "Update order's note"
+  orderUpdateNote(input: OrderUpdateNoteInput!): OrderUpdateNotePayload
+  "Activate a package at a location."
+  packageActivateAtLocation(input: PackageActivateAtLocationInput!): PackageActivateAtLocationPayload
+  "Deactivate a package at a location."
+  packageDeactivateAtLocation(input: PackageDeactivateAtLocationInput!): PackageDeactivateAtLocationPayload
+  """
+  Ping a webhook
+  
+  Pinging a webhook will fire a basic request (not tied to any stored event) to the provided webhook by Id
+  """
+  pingWebhook(input: PingWebhookInput!): PingWebhookPayload
+  "Activate a product at a location."
+  productActivateAtLocation(input: ProductActivateAtLocationInput!): ProductActivateAtLocationPayload
+  "Deactivate a product at a location."
+  productDeactivateAtLocation(input: ProductDeactivateAtLocationInput!): ProductDeactivateAtLocationPayload
+  "Remove clients from a manual_audience"
+  removeManualAudienceClients(input: RemoveManualAudienceClientsInput!): RemoveManualAudienceClientsPayload
+  "Remove a tag from a taggable entity"
+  removeTag(input: RemoveTagInput!): RemoveTagPayload
+  "Activate a service at a location."
+  serviceActivateAtLocation(input: ServiceActivateAtLocationInput!): ServiceActivateAtLocationPayload
+  "Deactivate a service at a location."
+  serviceDeactivateAtLocation(input: ServiceDeactivateAtLocationInput!): ServiceDeactivateAtLocationPayload
+  "Set the product's quantity at the provided location"
+  setProductQuantity(input: SetProductQuantityInput!): SetProductQuantityPayload
+  "Unset the product's quantity at the provided location"
+  unsetProductQuantity(input: UnsetProductQuantityInput!): UnsetProductQuantityPayload
+  "Update an Appointment."
+  updateAppointment(input: UpdateAppointmentInput!): UpdateAppointmentPayload
+  "Update a business"
+  updateBusiness(input: UpdateBusinessInput!): UpdateBusinessPayload
+  """
+  Update a cart's selected bookable item.
+  
+  Using this mutation invalidates existing reservations when the guest, staff
+  variant, or option IDs are updated.
+  
+  Compared to the same mutation in the Client API, this allows the caller to change fields
+  that are not safe to update via the Client API.
+  
+  For more options, refer the Client API's version of this mutation.
+  """
+  updateCartSelectedBookableItem(input: UpdateCartSelectedBookableItemInput!): UpdateCartSelectedBookableItemPayload
+  "Update a client"
+  updateClient(input: UpdateClientInput!): UpdateClientPayload
+  "Update a client's marketing settings"
+  updateClientMarketingSettings(input: UpdateClientMarketingSettingsInput!): UpdateClientMarketingSettingsPayload
+  "Update client notes"
+  updateClientNote(input: UpdateClientNoteInput!): UpdateClientNotePayload
+  "Update a client's reminder settings"
+  updateClientReminderSettings(input: UpdateClientReminderSettingsInput!): UpdateClientReminderSettingsPayload
+  "Update a Gift Card"
+  updateGiftCard(input: UpdateGiftCardInput!): UpdateGiftCardPayload
+  "Update a location"
+  updateLocation(input: UpdateLocationInput!): UpdateLocationPayload
+  "Update a membership plan"
+  updateMembershipPlan(input: UpdateMembershipPlanInput!): UpdateMembershipPlanPayload
+  "Update a membership plan category"
+  updateMembershipPlanCategory(input: UpdateMembershipPlanCategoryInput!): UpdateMembershipPlanCategoryPayload
+  updateOffer(input: UpdateOfferInput!): UpdateOfferPayload
+  updateOktaGate(input: UpdateOktaGateInput!): UpdateOktaGatePayload
+  "Update a package"
+  updatePackage(input: UpdatePackageInput!): UpdatePackagePayload
+  "Update a package category"
+  updatePackageCategory(input: UpdatePackageCategoryInput!): UpdatePackageCategoryPayload
+  "Update a product."
+  updateProduct(input: UpdateProductInput!): UpdateProductPayload
+  "Update a product."
+  updateProductCategory(input: UpdateProductCategoryInput!): UpdateProductCategoryPayload
+  "Update a purchase order."
+  updatePurchaseOrder(input: UpdatePurchaseOrderInput!): UpdatePurchaseOrderPayload
+  """
+  Update an already scheduled report export.
+  
+  See 'Report export' guide in the Admin API docs for the longer description.
+  """
+  updateReportExport(input: UpdateReportExportInput!): UpdateReportExportPayload
+  "Update a service"
+  updateService(input: UpdateServiceInput!): UpdateServicePayload
+  "Update a service category"
+  updateServiceCategory(input: UpdateServiceCategoryInput!): UpdateServiceCategoryPayload
+  "Update a staff member"
+  updateStaff(input: UpdateStaffInput!): UpdateStaffPayload
+  "Update a staff member's assigned locations"
+  updateStaffLocation(input: UpdateStaffLocationInput!): UpdateStaffLocationPayload
+  """
+  Update a webhook.
+  
+  The URL field is not able to be updated once a webhook is created.
+  Updates to the name and events fields are permitted.
+  """
+  updateWebhook(input: UpdateWebhookInput!): UpdateWebhookPayload
+  "Upsert a Secret"
+  upsertSecret(input: UpsertSecretInput!): UpsertSecretPayload
+  "Grant a voucher"
+  vouchersCreate(input: VouchersCreateInput!): VouchersCreatePayload
+  vouchersVoid(input: VouchersVoidInput!): VouchersVoidPayload
+}
+
+type RootQueryType {
+  "Look up an appointment by ID"
+  appointment(id: ID!): Appointment
+  "Appointment ratings"
+  appointmentRatings(after: String, before: String, clientId: ID, first: Int, last: Int, locationIds: [ID!], maxRating: Rating, minRating: Rating, serviceId: ID, staffId: ID): AppointmentRatingConnection
+  """
+  List appointments for a location
+  
+  The appointment connection supports queries on the following fields:
+  
+  * id: Id
+  * startAt: DateTime
+  * createdAt: DateTime
+  * cancelled: Boolean
+  * staffId: Id
+  """
+  appointments(after: String, before: String, clientId: ID, first: Int, last: Int, locationId: ID!, query: QueryString): AppointmentConnection
+  booking(id: ID!): Booking
+  "Look up the currently authenticated business"
+  business: Business
+  "Look up a cart."
+  cart(id: ID!): Cart
+  """
+  List Carts for a business.
+  
+  The Cart connection supports queries on the following fields:
+  
+  * id: Id
+  * insertedAt: DateTime, in UTC timezone (Z or +0000 suffix)
+  * updatedAt: DateTime, in UTC timezone (Z or +0000 suffix)
+  * completedAt: DateTime, in UTC timezone (Z or +0000 suffix)
+  """
+  carts(after: String, before: String, first: Int, last: Int, query: QueryString): CartConnection
+  "Look up a client by ID"
+  client(id: ID!): Client
+  """
+  List Clients for a business.
+  
+  The Client connection supports queries on the following fields:
+  
+  * id: Id
+  * email: String
+  * name: String
+  * mobilePhone: String
+  * active: Boolean
+  * externalId: String
+  * primaryLocation: Id
+  * createdAt: DateTime, in UTC timezone (Z or +0000 suffix)
+  * updatedAt: DateTime, in UTC timezone (Z or +0000 suffix)
+  
+  Apart from currently supported query parameters we also introduce two custom filters:
+  * emails: list_of(String)
+  * clientIds: list_of(Id)
+  """
+  clients(after: String, before: String, clientIds: [ID!], emails: [String!], first: Int, last: Int, query: QueryString): ClientConnection
+  "Look up a discount reason"
+  discountReason(id: ID!): DiscountReason
+  "List discount reasons for a business"
+  discountReasons(after: String, before: String, first: Int, last: Int): DiscountReasonConnection
+  "Look up a gift card by ID"
+  giftCard(id: ID!): GiftCard
+  """
+  List gift cards for a business.
+  
+  The Gift Card connection support queries on the following fields:
+  
+  * clientId: ID
+  * code: String
+  * externalId: String
+  """
+  giftCards(after: String, before: String, first: Int, last: Int, query: QueryString): GiftCardConnection
+  "Look up a location"
+  location(id: ID!): Location
+  "Locations"
+  locations(after: String, before: String, first: Int, last: Int): LocationConnection
+  """
+  List Manual Audiences for a business
+  
+  Clients can be added to and removed from manual audiences via the addManualAudienceClients and removeManualAudienceClients mutations
+  """
+  manualAudiences(after: String, before: String, first: Int, last: Int): ManualAudienceConnection
+  "Look up a membership by ID."
+  membership(id: ID!): Membership
+  "Look up a membership plan"
+  membershipPlan(id: ID!): MembershipPlan
+  membershipPlanCategories(after: String, before: String, first: Int, last: Int): MembershipPlanCategoryConnection
+  "List membership plans for a business"
+  membershipPlans(after: String, before: String, first: Int, inactive: Boolean, last: Int): MembershipPlanConnection
+  "List memberships for a business."
+  memberships(after: String, before: String, first: Int, last: Int): MembershipConnection
+  "List native object fields"
+  nativeObjectFields(after: String, before: String, first: Int, last: Int, schema: NativeObjectSchema!): NativeObjectSchemaFieldConnection
+  "Look up a Node by its Global ID"
+  node(id: ID!): Node
+  offers(after: String, before: String, first: Int, last: Int): OfferConnection
+  oktaGate: OktaGate!
+  "Look up an order"
+  order(id: ID!): Order
+  """
+  List Orders for a location.
+  
+  The Order connection supports queries on the following fields:
+  
+  * id: ID
+  * clientId: ID
+  * closedAt: DateTime
+  * updatedAt: DateTime
+  * createdAt: DateTime
+  """
+  orders(after: String, before: String, first: Int, last: Int, locationId: ID!, query: QueryString): OrderConnection
+  "Look up a package"
+  package(id: ID!): Package
+  packageCategories(after: String, before: String, first: Int, last: Int): PackageCategoryConnection
+  "List packages for a business"
+  packages(after: String, before: String, first: Int, inactive: Boolean, last: Int): PackageConnection
+  "Permissions"
+  permissions: [Permission!]!
+  "Look up a product"
+  product(id: ID!): Product
+  "List product categories for a business"
+  productCategories(after: String, before: String, first: Int, last: Int): ProductCategoryConnection
+  "Look up a product category"
+  productCategory(id: ID!): ProductCategory
+  """
+  List products for a business
+  
+  The Product connection supports queries on the following fields:
+  
+  * id: ID
+  * categoryId: ID
+  * externalId: String
+  """
+  products(after: String, before: String, first: Int, inactive: Boolean, includePackages: Boolean = true, includePlans: Boolean = true, last: Int, query: QueryString): ProductConnection
+  "Look up a purchase order"
+  purchaseOrder(id: ID!): PurchaseOrder
+  "List purchase orders for a business"
+  purchaseOrders(after: String, before: String, first: Int, last: Int, locationId: ID, query: QueryString): PurchaseOrderConnection
+  "Look up a report export"
+  reportExport(id: ID!): ReportExport
+  "List report exports for a business"
+  reportExports(after: String, before: String, first: Int, last: Int): ReportExportConnection
+  "List all reports for the currently authenticated business"
+  reports(after: String, before: String, first: Int, last: Int): ReportConnection
+  "Look up a secret for a particular AppInstallation"
+  secret(key: String!): Secret
+  "Look up all secrets for an AppInstallation"
+  secrets: [Secret!]!
+  "Look up a service"
+  service(id: ID!): Service
+  "List service categories for a business"
+  serviceCategories(after: String, before: String, first: Int, last: Int): ServiceCategoryConnection
+  "Look up a service category"
+  serviceCategory(id: ID!): ServiceCategory
+  "List services for a business"
+  services(after: String, before: String, first: Int, last: Int): ServiceConnection
+  """
+  List Staff Shifts for a business
+  The Staff Shifts connection supports queries on the following fields:
+  * staffIds: list(Id)
+  """
+  shifts(endIso8601: Date!, locationId: ID!, staffIds: [ID!], startIso8601: Date!): ListOfStaffShifts
+  """
+  List Staff for a business
+  
+  The Staff connection supports queries on the following fields:
+  
+  * id: Id
+  * email: String
+  * name: String
+  * mobilePhone: String
+  * active: Boolean
+  """
+  staff(after: String, before: String, first: Int, last: Int, query: QueryString): StaffConnection
+  "Look up a staff by ID"
+  staffMember(id: ID!): Staff
+  "Staff Roles"
+  staffRoles(after: String, before: String, first: Int, last: Int): StaffRoleConnection
+  """
+  List Tags for a business
+  
+  Tags can be added to and removed from taggable entities via the addTag and removeTag mutations
+  """
+  tags(after: String, before: String, first: Int, last: Int): TagConnection
+  "Find a Timeblock for a Staff in a Location"
+  timeblock(locationId: ID!, staffId: ID!, startTime: DateTime!): Timeblock
+  """
+  List timeblocks for a location
+  
+  The timeblocks connection supports queries on the following fields:
+  
+  * staffId: Id
+  * startAt: DateTime
+  * cancelled: Boolean
+  """
+  timeblocks(after: String, before: String, first: Int, last: Int, locationId: ID!, query: QueryString): TimeblockConnection
+  "List Webhooks"
+  webhooks(after: String, before: String, first: Int, last: Int): WebhookConnection
+}
+
+"Secret"
+type Secret {
+  "Key"
+  key: String!
+  "Value"
+  value: String!
+}
+
+"A service"
+type Service implements Node {
+  "Active"
+  active: Boolean!
+  """
+  Addons can only booked alongside a standalone service and are not exposed in
+  online booking.
+  """
+  addon: Boolean!
+  "Get any addons that are bookable at the given location."
+  addons(locationId: ID!): [ServiceAddon!]!
+  "Service Category"
+  category: ServiceCategory!
+  "Service Category Id"
+  categoryId: ID!
+  "The date and time when the service was created"
+  createdAt: DateTime!
+  "Custom field data wrapper"
+  custom: NativeObjectMeta!
+  "Custom fields"
+  customFields(keys: [String!]!): [NativeFieldValue!]!
+  """
+  Default duration in minutes.
+  
+  This duration must not be used to display to customers during booking, but
+  rather it is used for administration for setting duration by the business.
+  
+  The actual duration may vary based on service rules depending on the location
+  and staff member performing the service.
+  """
+  defaultDuration: Int!
+  """
+  Default price in cents.
+  
+  This price must not be used to display to customers during booking, but
+  rather it is used for administration for setting prices by the business.
+  
+  The actual price may vary based on service rules depending on the location
+  and staff member performing the service.
+  """
+  defaultPrice: Int!
+  "Description"
+  description: String
+  "External Id"
+  externalId: String
+  "The ID of an object"
+  id: ID!
+  "Name"
+  name: String!
+  "Service Option Groups"
+  serviceOptionGroups: [ServiceOptionGroup!]!
+  "Get any service overrides that may be set"
+  serviceOverrides(clientId: ID, locationId: ID!, staffId: ID): ServiceOverride!
+  "Get any service status overrides that may be set"
+  serviceStatus(clientId: ID, locationId: ID!, staffId: ID): ServiceStatus!
+  "Order which this service is displayed alongside others"
+  sortPath: SortPath!
+  "The date and time when the service was last updated"
+  updatedAt: DateTime!
+}
+
+type ServiceActivateAtLocationPayload {
+  "Active"
+  active: Boolean!
+  "Location Id"
+  locationId: ID!
+  "Service Id"
+  serviceId: ID!
+}
+
+"A service addon"
+type ServiceAddon implements Node {
+  "An alias this addon service goes by in this context"
+  alias: String
+  "A more complete description of this addon service in this context"
+  description: String
+  "The ID of an object"
+  id: ID!
+  "The linked addon service"
+  service: Service!
+}
+
+"A ServiceCategory"
+type ServiceCategory implements Node {
+  "Active"
+  active: Boolean!
+  "The date and time when the service category was created"
+  createdAt: DateTime!
+  "The ID of an object"
+  id: ID!
+  "Name"
+  name: String!
+  "Services"
+  services(after: String, before: String, first: Int, last: Int): ServiceConnection
+  "Order which this service category is displayed alongside others"
+  sortPath: SortPath!
+  "The date and time when the service category was last updated"
+  updatedAt: DateTime!
+}
+
+type ServiceCategoryConnection {
+  edges: [ServiceCategoryEdge]
+  pageInfo: PageInfo!
+}
+
+type ServiceCategoryEdge {
+  cursor: String
+  node: ServiceCategory
+}
+
+type ServiceConnection {
+  edges: [ServiceEdge]
+  pageInfo: PageInfo!
+}
+
+type ServiceDeactivateAtLocationPayload {
+  "Active"
+  active: Boolean!
+  "Location Id"
+  locationId: ID!
+  "Service Id"
+  serviceId: ID!
+}
+
+type ServiceEdge {
+  cursor: String
+  node: Service
+}
+
+type ServiceOption implements Node {
+  "Default number of minutes that will be added to duration when selected."
+  defaultDurationDelta: Int!
+  "Default number of minutes that will be added to the finish time when selected."
+  defaultFinishDurationDelta: Int!
+  "Default number of minutes added to the post service client time."
+  defaultPostClientDurationDelta: Int!
+  "Default number of minutes added to the post service staff time."
+  defaultPostStaffDurationDelta: Int!
+  "Default amount that will be added to price when selected."
+  defaultPriceDelta: Int!
+  "Description of service option."
+  description: String
+  "The ID of an object"
+  id: ID!
+  "Name of service option."
+  name: String!
+  "ID of the Product that this object relates to."
+  productId: ID
+  "Actual product name if service option is product-based"
+  productName: String
+  serviceOptionGroupId: ID!
+  "The sort path that should be applied."
+  sortPath: SortPath!
+}
+
+"A Service Option Group"
+type ServiceOptionGroup implements Node {
+  "Description of the ServiceOptionGroup."
+  description: String
+  "The ID of an object"
+  id: ID!
+  "The maximum value that's accepted."
+  maxLimit: Int
+  "The minimum value that's accepted."
+  minLimit: Int
+  "Name of the ServiceOptionGroup."
+  name: String!
+  "The ID of the Service that this ServiceOptionGroup relates to."
+  serviceId: ID!
+  "The ServiceOptions within this group."
+  serviceOptions: [ServiceOption!]!
+  "The path to use for sorting."
+  sortPath: SortPath!
+}
+
+"""
+A set of data overrides specific to a service for different sets of accommodations, e.g. staff or client accommodations
+"""
+type ServiceOverride {
+  """
+  Duration in minutes.
+  
+  The default `duration` is on the service.
+  """
+  duration: Int!
+  """
+  Finish duration
+  
+  The default `finish_duration` is on the service.
+  """
+  finishDuration: Int!
+  """
+  Post client duration
+  
+  The default `post_client_duration` is on the service.
+  """
+  postClientDuration: Int!
+  """
+  Post staff duration
+  
+  The default `post_staff_duration` is on the service.
+  """
+  postStaffDuration: Int!
+  """
+  Price in cents.
+  
+  The default price is on the service.
+  """
+  price: Money!
+}
+
+"""
+A set of status overrides specific to a service for different sets of accommodations, e.g. staff or client accommodations
+"""
+type ServiceStatus {
+  "Indicates whether or not this service is active with the given context."
+  active: Boolean!
+  "Indicates whether or not this service is bookable with the given context."
+  bookable: Boolean!
+}
+
+type SetProductQuantityPayload {
+  productQuantity: ProductQuantity!
+}
+
+type Shift implements Node {
+  "Whether the Staff is available or unavailable for this shift"
+  available: Boolean!
+  "ISO 8601 formatted date of the shift"
+  date: Date!
+  "ISO 8601 formatted end time of this shift"
+  endTime: Time!
+  "The ID of an object"
+  id: ID!
+  "The Location the shift is scheduled at"
+  location: Location!
+  "The Id of the Location the shift is scheduled at"
+  locationId: ID
+  "Recurrence rules of the shift if applicable"
+  recurrence: ShiftRecurrence
+  "The Staff the shift is scheduled for"
+  staff: Staff!
+  "The Id of the Staff the shift is scheduled for"
+  staffId: ID
+  "ISO 8601 formatted start time of this shift"
+  startTime: Time!
+  "Reason for being unavailable, if available = false"
+  unavailableReason: String
+}
+
+type ShiftRecurrence {
+  "Frequency at which the shift repeats."
+  frequency: ShiftFrequency!
+  "End date for recurrence"
+  until: Date
+}
+
+"A staff member"
+type Staff implements Node {
+  "Active"
+  active: Boolean
+  "Alternate Id"
+  alternateId: String
+  appRole: AppRole!
+  appRoleId: ID
+  "Avatar"
+  avatar: String
+  "Friendly bio for the staff"
+  bio: String
+  "The date and time when the staff was created"
+  createdAt: DateTime!
+  "Display name, preferred over other name fields in client-facing features"
+  displayName: String!
+  "Email address"
+  email: Email
+  "If the staff is enabled for future locations"
+  enabledForFutureLocations: Boolean!
+  "External Id"
+  externalId: String
+  """
+  A staff member's client facing nickname.
+  If the value of this field is non-null, it overrides the business setting for display_name
+  in all client facing areas.
+  """
+  externalNickname: String
+  "External bookability"
+  externallyBookable: Boolean
+  "First name"
+  firstName: String!
+  "The ID of an object"
+  id: ID!
+  "Last name"
+  lastName: String
+  """
+  Object describing what actions the current staff member can perform with
+  a location.
+  """
+  locationAbilities(locationId: ID!): StaffLocationAbilities!
+  """
+  List of locations the staff is assigned to. Lists all business locations if staff is admin.
+  """
+  locations: [Location!]
+  "Mobile phone"
+  mobilePhone: PhoneNumber
+  "Full name"
+  name: String!
+  "Nick name"
+  nickname: String
+  "Role"
+  role: StaffRole!
+  "Role ID"
+  staffRoleId: ID!
+  suspended: Boolean
+  "The date and time when the staff was last updated"
+  updatedAt: DateTime!
+}
+
+type StaffConnection {
+  edges: [StaffEdge]
+  pageInfo: PageInfo!
+}
+
+type StaffEdge {
+  cursor: String
+  node: Staff
+}
+
+type StaffLocation {
+  active: Boolean!
+  locationId: ID!
+  staffId: ID!
+}
+
+"""
+Object describing what actions the current staff member can perform with
+a location.
+"""
+type StaffLocationAbilities {
+  editLoyaltyPointHistory: Boolean!
+  viewLoyaltyPointHistory: Boolean!
+}
+
+"A staff role"
+type StaffRole implements Node {
+  "The ID of an object"
+  id: ID!
+  "Name"
+  name: String!
+}
+
+type StaffRoleConnection {
+  edges: [StaffRoleEdge]
+  pageInfo: PageInfo!
+}
+
+type StaffRoleEdge {
+  cursor: String
+  node: StaffRole
+}
+
+"""
+The service price and duration settings for a particular staff at a given location.
+"""
+type StaffService {
+  location: Location!
+  locationId: ID!
+  price: Money!
+  service: Service!
+  serviceId: ID!
+  staff: Staff!
+  staffId: ID!
+  totalDuration: Int!
+}
+
+type StaffServiceConnection {
+  edges: [StaffServiceEdge]
+  pageInfo: PageInfo!
+}
+
+type StaffServiceEdge {
+  cursor: String
+  node: StaffService
+}
+
+type StaffShift {
+  available: Boolean!
+  bookingInterval: Int
+  clockIn: Time
+  clockOut: Time
+  day: Int
+  locationId: ID!
+  recurrence: String
+  recurrenceEnd: Date
+  recurrenceInterval: Int
+  recurrenceStart: Date
+  resourceId: ID
+  staffId: ID
+  unavailableReason: String
+}
+
+"An inventory supplier"
+type Supplier implements Node {
+  "Supplier's address"
+  address: Address
+  "Default memo set for the supplier"
+  defaultMemo: String
+  "When this supplier was de-activated"
+  deletedAt: DateTime
+  "Supplier's email"
+  email: Email
+  "Expected shipping duration in days"
+  expectedShipDays: Int
+  "Supplier's fax number"
+  faxNumber: String
+  "The ID of an object"
+  id: ID!
+  "Supplier's name"
+  name: String!
+  "Notes"
+  notes: String
+  "Supplier's phone number"
+  phoneNumber: PhoneNumber
+  "Supplier representative's email"
+  representativeEmail: Email
+  "Supplier representative's name"
+  representativeName: String
+  "Supplier representative's phone number"
+  representativePhoneNumber: PhoneNumber
+  "Supplier's website"
+  website: String
+}
+
+"A tag"
+type Tag implements Node {
+  "The ID of an object"
+  id: ID!
+  "Tag name"
+  name: String!
+  "Emoji symbol associated with the tag"
+  symbol: Symbol
+}
+
+type TagConnection {
+  edges: [TagEdge]
+  pageInfo: PageInfo!
+}
+
+type TagEdge {
+  cursor: String
+  node: Tag
+}
+
+"A time blocked on staff's calendar."
+type Timeblock implements Node {
+  "If the timeblock was cancelled"
+  cancelled: Boolean
+  "The duration of the timeblock"
+  duration: Int!
+  "End time for the timeblock"
+  endAt: DateTime!
+  "The ID of an object"
+  id: ID!
+  "The location associated with the timeblock"
+  location: Location!
+  "The reason for the time being blocked"
+  reason: TimeblockReason
+  "The staff whose time is blocked"
+  staff: Staff!
+  "The ID of the staff whose time is blocked"
+  staffId: ID!
+  "Start time for the timeblock"
+  startAt: DateTime!
+  "The title of the timeblock"
+  title: String
+}
+
+type TimeblockConnection {
+  edges: [TimeblockEdge]
+  pageInfo: PageInfo!
+}
+
+type TimeblockEdge {
+  cursor: String
+  node: Timeblock
+}
+
+type UnsetProductQuantityPayload {
+  productQuantity: ProductQuantity!
+}
+
+type UpdateAppointmentPayload {
+  appointment: Appointment!
+}
+
+type UpdateBusinessPayload {
+  business: Business!
+}
+
+type UpdateCartSelectedBookableItemPayload {
+  cart: Cart!
+}
+
+type UpdateClientMarketingSettingsPayload {
+  marketingSetting: MarketingSetting!
+}
+
+type UpdateClientNotePayload {
+  note: Note!
+}
+
+type UpdateClientPayload {
+  client: Client!
+}
+
+type UpdateClientReminderSettingsPayload {
+  reminderSetting: ReminderSetting!
+}
+
+type UpdateGiftCardPayload {
+  giftCard: GiftCard!
+}
+
+type UpdateLocationPayload {
+  location: Location!
+}
+
+type UpdateMembershipPlanCategoryPayload {
+  membershipPlanCategory: MembershipPlanCategory!
+}
+
+type UpdateMembershipPlanPayload {
+  membershipPlan: MembershipPlan!
+}
+
+type UpdateOfferPayload {
+  offer: Offer!
+}
+
+type UpdateOktaGatePayload {
+  oktaGate: OktaGate!
+}
+
+type UpdatePackageCategoryPayload {
+  packageCategory: PackageCategory!
+}
+
+type UpdatePackagePayload {
+  package: Package!
+}
+
+type UpdateProductCategoryPayload {
+  productCategory: ProductCategory!
+}
+
+type UpdateProductPayload {
+  product: Product!
+}
+
+type UpdatePurchaseOrderPayload {
+  purchaseOrder: PurchaseOrder!
+}
+
+type UpdateReportExportPayload {
+  reportExport: ReportExport!
+}
+
+type UpdateServiceCategoryPayload {
+  serviceCategory: ServiceCategory!
+}
+
+type UpdateServicePayload {
+  service: Service!
+}
+
+type UpdateStaffLocationPayload {
+  staffLocation: StaffLocation!
+}
+
+type UpdateStaffPayload {
+  staff: Staff!
+}
+
+type UpdateWebhookPayload {
+  webhook: Webhook!
+}
+
+type UpsertSecretPayload {
+  "The upserted Secret"
+  secret: Secret!
+}
+
+type Voucher implements Node {
+  expiresOn: Date
+  "The ID of an object"
+  id: ID!
+  "The order which contained the purchase for this voucher"
+  originatingOrder: Order
+  "The purchased product which awarded this voucher"
+  product: Product
+  "When the Voucher was redeemed"
+  redeemedAt: DateTime
+  "The list of services the voucher is redeemable for"
+  services: [Service!]!
+}
+
+type VouchersCreatePayload {
+  vouchers: [Voucher!]!
+}
+
+type VouchersVoidPayload {
+  voucher: Voucher!
+}
+
+"A webhook"
+type Webhook implements Node {
+  "The date and time when the webhook was created"
+  createdAt: DateTime!
+  "The ID of an object"
+  id: ID!
+  "Location the webhook is optionally scoped to"
+  location: Location
+  "Id of the Location the webhook is optionally scoped to"
+  locationId: ID
+  "Name of the webhook"
+  name: String!
+  "Events to which the webhook is subscribed"
+  subscriptions: [WebhookSubscription!]!
+  "The date and time when the webhook was last updated"
+  updatedAt: DateTime!
+  "URL of the webhook"
+  url: String!
+}
+
+type WebhookConnection {
+  edges: [WebhookEdge]
+  pageInfo: PageInfo!
+}
+
+type WebhookEdge {
+  cursor: String
+  node: Webhook
+}
+
+type WebhookSubscription implements Node {
+  """
+  A custom Graph Query that is used to generate the webhook payload, by calling the platform_admin graph.
+  If not present, the default payload will be provided.
+  
+  Note: This property is currently read-only. Please get in touch if you'd like to include non-standard
+  fields in your webhook payloads.
+  """
+  customQuery: String
+  enabled: Boolean!
+  eventType: EventType!
+  "The ID of an object"
+  id: ID!
+  maxRetries: WebhookSubscriptionMaxRetries!
+}
+
+"Discount applied"
+union OfferDiscount = OfferFixedDiscount | OfferPercentageDiscount
+
+input AddManualAudienceClientsInput {
+  "The Global IDs of the clients to be added to manual audience"
+  clientIds: [ID!]!
+  "The Global ID of the manual audience to add clients to"
+  manualAudienceId: ID!
+}
+
+input AddTagInput {
+  "The Global ID of the entity to be tagged"
+  entityId: ID!
+  "The Global ID of the tag to be applied"
+  tagId: ID!
+}
+
+input AppointmentRescheduleAvailableDatesInput {
+  "The ID of the appointment that needs to be rescheduled."
+  appointmentId: ID!
+  "The lower range (inclusive) of dates to search for appointment availability."
+  searchRangeLower: Date!
+  "The upper range (inclusive) of dates to search for appointment availability."
+  searchRangeUpper: Date!
+  """
+  Optional time zone the matches should be converted to, e.g. the client's
+  time zone. The search range dates are also interpreted using this. When
+  null, the location's time zone is used.
+  """
+  tz: Tz
+}
+
+input AppointmentRescheduleAvailableTimesInput {
+  "The ID of the appointment that needs to be rescheduled."
+  appointmentId: ID!
+  "The date that should be searched for available times."
+  date: Date!
+  """
+  Optional time zone the matches should be converted to, e.g. the client's
+  time zone. When null, the location's time zone is used.
+  """
+  tz: Tz
+}
+
+input AppointmentRescheduleInput {
+  "The ID of the appointment that needs to be rescheduled."
+  appointmentId: ID!
+  """
+  The encoded data representing an available appointment slot (can be computed
+  using the appointmentRescheduleAvailableTimes mutation).
+  """
+  bookableTimeId: ID!
+  """
+  Creates a notification for the dashboard users to let them know that the appointment has
+  been self-rescheduled by the client.
+  """
+  sendNotification: Boolean!
+}
+
+input AutoPopulateOptionsInput {
+  lowStock: Boolean!
+  productBrandNames: [String!]!
+  productCategoryIds: [ID!]!
+  productTypes: [AutoPopulateProductType!]!
+}
+
+input BookingAddAppointmentTagsInput {
+  bookingClientId: ID!
+  bookingId: ID!
+  tagIds: [ID!]!
+}
+
+input BookingAddServiceAddonInput {
+  baseBookingServiceId: ID!
+  bookingClientId: ID!
+  bookingId: ID!
+  serviceId: ID!
+}
+
+input BookingAddServiceInput {
+  bookingClientId: ID!
+  bookingId: ID!
+  serviceId: ID!
+  staffId: ID
+}
+
+input BookingCompleteInput {
+  bookWithStaffId: ID!
+  bookingId: ID!
+  notifyClient: Boolean = false
+}
+
+input BookingCreateFromAppointmentInput {
+  appointmentId: ID!
+}
+
+input BookingCreateInput {
+  clientId: ID
+  locationId: ID!
+  startTime: NaiveDateTime
+}
+
+input BookingRemoveAppointmentTagsInput {
+  bookingClientId: ID!
+  bookingClientTagIds: [ID!]!
+  bookingId: ID!
+}
+
+input BookingRemoveServiceInput {
+  bookingId: ID!
+  bookingServiceId: ID!
+}
+
+input BookingServiceAddResourcesInput {
+  bookingId: ID!
+  bookingServiceId: ID!
+  resourceIds: [ID!]!
+}
+
+input BookingServiceAddServiceOptionsInput {
+  bookingId: ID!
+  bookingServiceId: ID!
+  serviceOptionIds: [ID!]!
+}
+
+input BookingServiceRemoveResourcesInput {
+  bookingId: ID!
+  bookingServiceId: ID!
+  bookingServiceResourceIds: [ID!]!
+}
+
+input BookingServiceRemoveServiceOptionsInput {
+  bookingId: ID!
+  bookingServiceId: ID!
+  bookingServiceOptionIds: [ID!]!
+}
+
+input BookingServiceSetDurationsInput {
+  bookingId: ID!
+  bookingServiceId: ID!
+  duration: Int
+  finishDuration: Int
+  postClientDuration: Int
+  postStaffDuration: Int
+}
+
+input BookingServiceSetPriceInput {
+  bookingId: ID!
+  bookingServiceId: ID!
+  price: Money
+}
+
+input BookingServiceSetStaffInput {
+  bookingId: ID!
+  bookingServiceId: ID!
+  staffId: ID
+  staffRequestedByClient: Boolean
+}
+
+input BookingServiceSetStartTimeInput {
+  bookingId: ID!
+  bookingServiceId: ID!
+  startTime: NaiveDateTime
+}
+
+input BookingServiceUpdateServiceItemOptionsInput {
+  bookingId: ID!
+  bookingServiceId: ID!
+  bookingServiceOptions: [BookingUpdateServiceOptionInput]!
+}
+
+input BookingSetAppointmentNoteInput {
+  bookingClientId: ID!
+  bookingId: ID!
+  note: String
+}
+
+input BookingSetClientInput {
+  bookingId: ID!
+  clientId: ID!
+}
+
+input BookingSetStartTimeInput {
+  bookingId: ID!
+  startTime: NaiveDateTime!
+}
+
+input BookingUpdateServiceOptionInput {
+  priceDelta: Int
+  quantity: Int
+  serviceOptionId: ID!
+}
+
+input BulkUpdateProductsInput {
+  active: Boolean
+  "Product Id"
+  ids: [ID!]
+}
+
+input CancelAppointmentInput {
+  id: ID!
+  notes: String
+  notifyClient: Boolean
+  reason: AppointmentCancellationReason!
+}
+
+input CoordinatesInput {
+  latitude: Float!
+  longitude: Float!
+}
+
+input CreateAccountCreditAdjustmentInput {
+  "Adjustment reason (will automatically be suffixed with [ADMIN API])"
+  adjustmentReason: String
+  "Balance delta"
+  balanceDelta: Int!
+  "Client Id"
+  id: ID!
+  "Location Id"
+  locationId: ID!
+  "Staff Id"
+  staffId: ID!
+}
+
+input CreateArrivalInput {
+  "The email or phone number of the client associated with the appointment"
+  emailOrPhoneNumber: String!
+  "The ID of the location where the appointment was booked"
+  locationId: ID!
+}
+
+input CreateClientInput {
+  dob: Date
+  email: Email
+  externalId: String
+  firstName: String
+  lastName: String
+  mobilePhone: PhoneNumber
+  pronoun: String
+}
+
+input CreateClientNoteInput {
+  clientId: ID!
+  text: String!
+}
+
+input CreateDiscountReasonInput {
+  "Whether the reason is hidden at checkout. Default value is false."
+  hidden: Boolean = false
+  name: String!
+}
+
+input CreateGiftCardBalanceAdjustmentInput {
+  "Adjustment reason (will automatically be suffixed with [ADMIN API])"
+  adjustmentReason: String
+  "Amount to debit or credit the gift card. Negative for debits."
+  amount: Money!
+  "The Boulevard Global ID of the gift card"
+  giftCardId: ID!
+  """
+  Idempotency key used to deduplicate requests. Repeated request that share the same idempotency key will not produce any side effects.
+  """
+  idempotencyKey: IdempotencyKey
+  "Optional note to include with the adjustment"
+  note: String
+  """
+  The Boulevard Global ID of the product to redeem against. Only required if debiting card.
+  """
+  productId: ID
+}
+
+input CreateGiftCardEmailFulfillmentInput {
+  deliveryDate: Date
+  giftCardId: ID!
+  messageFromSender: String
+  recipientEmail: Email!
+  recipientName: String!
+  senderName: String!
+}
+
+input CreateGiftCardInput {
+  "Initial balance (in cents) for the gift card"
+  amount: Money!
+  "Optional ID of the client with which to associate the gift card"
+  clientId: ID
+  "Required code for the gift card."
+  code: String!
+  "The originating location for the gift card"
+  locationId: ID!
+  "Optional note to associate with the gift card order"
+  note: String
+}
+
+input CreateManualAudienceInput {
+  "The Global IDs of the clients to be added to manual audience"
+  clientIds: [ID!]!
+  "The name of the manual audience"
+  name: String!
+}
+
+input CreateMembershipPlanCategoryInput {
+  "Category name"
+  name: String!
+}
+
+input CreateMembershipPlanInput {
+  "Whether the membership plan is available to sell"
+  active: Boolean
+  "The day on which the memberships are supposed to renew (1-31)"
+  billingCycleAnchor: Int
+  "Membership plan category Id"
+  categoryId: ID
+  """
+  Membership plan category name.
+  Will create a new category by the provided name if one does not exist already.
+  Will be ignored if `categoryId` is also supplied in the input.
+  """
+  categoryName: String
+  "If commission is enabled for the sale of this membership"
+  commissionEnabled: Boolean!
+  "Description"
+  description: String
+  "External Id"
+  externalId: String
+  "The interval in which the membership will renew (ex Monthly, Yearly, etc)"
+  interval: DurationInterval!
+  "Whether this plan is eligible to be shared between clients, false by default."
+  shareable: Boolean!
+  "Taxable"
+  taxable: Boolean!
+  "The name of the membership plan"
+  name: String!
+  "Price"
+  unitPrice: Money!
+}
+
+input CreateOfferInput {
+  applicableToAllMemberships: Boolean = false
+  applicableToAllPackages: Boolean = false
+  applicableToAllProducts: Boolean = false
+  applicableToAllServices: Boolean = false
+  applicableToGiftCards: Boolean = false
+  autoApply: Boolean = false
+  clientUsageLimit: Int
+  code: String
+  discountAmount: Money
+  discountPercentage: Percentage
+  distributedDiscount: Boolean = false
+  items: [CreateOfferItemInput!]
+  name: String!
+  restrictions: [CreateOfferRestrictionInput!]
+}
+
+input CreateOfferItemInput {
+  included: Boolean!
+  packageCategoryId: ID
+  planCategoryId: ID
+  productCategoryId: ID
+  productId: ID
+  serviceCategoryId: ID
+  serviceId: ID
+}
+
+input CreateOfferRestrictionInput {
+  clientStatus: OfferRestrictionClientStatus
+  dateBooked: OfferRestrictionDateRangeInput
+  datePaid: OfferRestrictionDateRangeInput
+  daysPerformed: [Int!]
+  locationId: ID
+  manualAudienceId: ID
+  timePerformed: OfferRestrictionTimeRangeInput
+}
+
+input CreatePackageCategoryInput {
+  "Category name"
+  name: String!
+}
+
+input CreatePackageInput {
+  "Account credit granted by the sale of this package, in cents"
+  accountCreditAmount: Money
+  "Whether the package is available to sell"
+  active: Boolean
+  "package category Id"
+  categoryId: ID
+  """
+  Package category name.
+  Will create a new category by the provided name if one does not exist already.
+  Will be ignored if `categoryId` is also supplied in the input.
+  """
+  categoryName: String
+  "If commission is enabled for the sale of this package"
+  commissionEnabled: Boolean!
+  "Description"
+  description: String
+  "External Id"
+  externalId: String
+  "Vouchers"
+  productVouchers: [PackageProductVoucherInput!]
+  "Taxable"
+  taxable: Boolean!
+  "The name of the package"
+  name: String!
+  "Price"
+  unitPrice: Money!
+}
+
+input CreateProductCategoryInput {
+  "Commission Enabled"
+  commissionEnabled: Boolean
+  "Name"
+  name: String!
+  "Retail. If true, products in this category will show during checkout"
+  retail: Boolean
+}
+
+input CreateProductInput {
+  "Whether to auto enable the product at all locations. Defaults to false"
+  autoEnable: Boolean
+  "Barcode"
+  barcode: String
+  "Brand name"
+  brandName: String
+  "Product category Id"
+  categoryId: ID
+  """
+  Product category name.
+  Will create a new category by the provided name if one does not exist already.
+  Will be ignored if `categoryId` is also supplied in the input.
+  """
+  categoryName: String
+  "Color"
+  color: String
+  "Description"
+  description: String
+  "External Id"
+  externalId: String
+  "Customer-facing product name"
+  name: String!
+  "Initial quantity to set at a specific location"
+  quantities: [CreateProductQuantityInput!]
+  "Quantity Tracking Enabled"
+  quantityTrackingEnabled: Boolean
+  "Size"
+  size: String
+  "SKU"
+  sku: String
+  "Taxable"
+  taxable: Boolean
+  "Unit cost"
+  unitCost: Money
+  "Unit price"
+  unitPrice: Money!
+}
+
+input CreateProductQuantityAdjustmentInput {
+  """
+  The expected current quantity for the product at the location.
+  If the provided value does not match the current value the adjustment will be rejected.
+  """
+  expectedQuantity: Int!
+  "The ID of the location where the change in quantity should occur"
+  locationId: ID!
+  "The ID of the product for which to adjust quantity"
+  productId: ID!
+  "The delta adjustment amount"
+  quantityChange: Int!
+  "The reason for the adjustment"
+  reason: String!
+  """
+  The unit cost of the adjustment. The unit cost will default to the
+  product's current unit cost.
+  """
+  unitCost: Money
+}
+
+input CreateProductQuantityInput {
+  locationId: ID!
+  quantity: Int!
+  reason: String
+}
+
+input CreatePurchaseOrderInput {
+  "Auto populate inventory options"
+  autoPopulateOptions: AutoPopulateOptionsInput
+  "ISO 8601 datetime when the purchase order is expected to be received"
+  expectedOn: Date
+  "External Id"
+  externalId: String
+  "Purchase order product line items"
+  lineItems: [CreatePurchaseOrderLineItemInput!]
+  "Purchase order location"
+  locationId: ID!
+  "Purchase order memo"
+  memo: String
+  "ISO 8601 datetime when the purchase order was ordered"
+  orderedOn: Date
+  "Purchase order supplier (vendor)"
+  supplierId: ID!
+}
+
+"PurchaseOrderLineItem input on create"
+input CreatePurchaseOrderLineItemInput {
+  productId: ID!
+  unitsOrdered: Int
+  unitsReceived: Int
+}
+
+input CreateReportExportInput {
+  "Content Type"
+  fileContentType: ReportExportContentType! = CSV
+  "Frequency"
+  frequency: ReportExportFrequency!
+  "Report filters"
+  reportFilters: [ReportFilterInput!]
+  "Report Id"
+  reportId: ID!
+  "Time of day (in UTC) when the export should be executed."
+  utcExecutionTime: Time
+}
+
+input CreateReportInput {
+  "Template Name"
+  name: String!
+  "Template ID"
+  templateId: ReportTemplateId!
+}
+
+input CreateSchemaFieldInput {
+  key: String!
+  name: String!
+  "Options for select and multiselect fields"
+  options: [CustomFieldOptionInput]
+  schema: NativeObjectSchema!
+  valueType: CustomFieldValueType!
+}
+
+input CreateServiceCategoryInput {
+  "Name"
+  name: String!
+}
+
+input CreateServiceInput {
+  "Is a service addon"
+  addon: Boolean
+  "Service Category"
+  categoryId: ID!
+  "Description"
+  description: String
+  "External Id"
+  externalId: String
+  "Name"
+  name: String!
+}
+
+input CreateShiftInput {
+  "Whether the staff is available or unavailable for this shift"
+  available: Boolean!
+  "ISO 8601 formatted date of the shift"
+  date: Date!
+  "ISO 8601 formatted end time of this shift"
+  endTime: Time!
+  "The location the shift should be scheduled at."
+  locationId: ID!
+  "Optional recurrence rule for the shift. If left null, the shift will not repeat"
+  recurrence: ShiftRecurrenceInput
+  "The staff the shift should be scheduled for"
+  staffId: ID!
+  "ISO 8601 formatted start time of this shift"
+  startTime: Time!
+  "Reason for being unavailable, if available is false"
+  unavailableReason: String
+}
+
+input CreateStaffInput {
+  bio: String
+  email: Email
+  externalNickname: String
+  firstName: String!
+  lastName: String
+  mobilePhone: PhoneNumber
+  nickname: String
+  roleId: ID!
+}
+
+input CreateTagInput {
+  "The name of the tag"
+  name: String!
+  "A short graphical representation (eg an emoji) for the tag"
+  symbol: Symbol
+}
+
+input CreateTimeblockInput {
+  "Duration (in minutes)"
+  duration: Int!
+  "Location ID"
+  locationId: ID!
+  "Reason for blocking the time"
+  reason: TimeblockReason
+  "Options for repeating timeblock"
+  recurring: TimeblockRecurringOptions
+  "ID of a staff member whose time will be blocked"
+  staffId: ID!
+  "Starting time"
+  startTime: DateTime!
+  "Title"
+  title: String
+}
+
+input CreateVoucherGiftCardInput {
+  "The client with whom to associate the gift card."
+  clientId: ID!
+  "Required code for the gift card."
+  code: String!
+  "The originating location for the gift card."
+  locationId: ID!
+  "A note to be displayed in the gift card history."
+  note: String
+  """
+  An id of package product. If passed, the value of `services` is overridden based on the product data.
+  """
+  packageProductId: ID
+  "A list of services with corresponding voucher quantities."
+  services: [GiftCardServiceInput!]!
+}
+
+input CreateWebhookInput {
+  "Optional location to scope the webhook notifications."
+  locationId: ID
+  "Optional name for the webhook."
+  name: String
+  "List of events to which you want your webhook subscribed."
+  subscriptions: [WebhookSubscriptionInput!]!
+  "The URL for the webhook."
+  url: String!
+}
+
+input CustomFieldInput {
+  booleanValue: Boolean
+  datetimeValue: DateTime
+  floatValue: Float
+  integerValue: Int
+  key: String!
+  optionValue: CustomFieldOptionValueInput
+  optionValues: [CustomFieldOptionValueInput!]
+  textValue: String
+}
+
+input CustomFieldOptionInput {
+  label: String!
+}
+
+input CustomFieldOptionValueInput {
+  optionId: ID!
+}
+
+input DeleteClientNoteInput {
+  id: ID!
+}
+
+input DeleteProductInput {
+  "The id of the product to delete"
+  id: ID
+}
+
+input DeletePurchaseOrderInput {
+  "Purchase order Id"
+  id: ID!
+}
+
+input DeleteReportExportInput {
+  "Report Export Id"
+  id: ID!
+}
+
+input DeleteSecretInput {
+  "Key"
+  key: String!
+}
+
+input DeleteTimeblockInput {
+  "The id of the timeblock to delete"
+  id: ID!
+}
+
+input DeleteWebhookInput {
+  "Id of the webhook"
+  id: ID!
+}
+
+input GiftCardServiceInput {
+  id: ID!
+  quantity: Int!
+}
+
+"""
+Represents each day of the week of the location's hours. Open is a boolean
+indicating if the location is open on that day. Start and finish are the exact times
+the location opens and closes on that day.
+"""
+input LocationDaysInput {
+  finish: LocationHoursInput!
+  open: Boolean!
+  start: LocationHoursInput!
+}
+
+"""
+Used for the open (start) and close (finish) time of the location's hours.
+Hour stores the hour and min stores the minutes. For example, 2:30PM would be
+saved as { hour: 14, min: 30 }.
+"""
+input LocationHoursInput {
+  "Only integers in the range 0..23 are valid"
+  hour: Int!
+  min: Int!
+}
+
+input LocationUpdateHoursInput {
+  hours: [LocationDaysInput!]!
+  id: ID!
+}
+
+input MembershipCancelInput {
+  """
+  Required date when the membership should cancel. Assumed to be in the location's timezone.
+  """
+  cancelOn: Date!
+  "Membership ID"
+  id: ID!
+  "Required reason for cancelling the membership"
+  reason: MembershipPausedStateReason!
+  "Custom reason for cancelling (reason must be OTHER)"
+  reasonCustom: String
+  "Send a notification to the customer"
+  sendNotification: Boolean = false
+}
+
+input MembershipPauseInput {
+  "Membership ID"
+  id: ID!
+  """
+  Required reason for pausing the membership.
+  
+    If the membership is past due, reason must be PAYMENT_SCHEDULED.
+  
+    If the given reason is OTHER, reasonCustom must be provided.
+  """
+  reason: MembershipPausedStateReason!
+  "Custom reason for pause (reason must be OTHER)"
+  reasonCustom: String
+  "Send a notification to the customer"
+  sendNotification: Boolean = false
+  "Required date when the membership should unpaused"
+  unpauseOn: Date!
+}
+
+input MembershipPlanActivateAtLocationInput {
+  "Location ID"
+  locationId: ID!
+  "Membership Plan ID"
+  membershipPlanId: ID!
+}
+
+input MembershipPlanDeactivateAtLocationInput {
+  "Location ID"
+  locationId: ID!
+  "Membership Plan ID"
+  membershipPlanId: ID!
+}
+
+input MembershipRenewInput {
+  "Membership ID"
+  id: ID!
+}
+
+input MembershipUnpauseInput {
+  "Membership ID"
+  id: ID!
+  "Send a notification to the customer"
+  sendNotification: Boolean = false
+}
+
+input MembershipUnscheduleCancellationInput {
+  "Membership ID"
+  id: ID!
+}
+
+input MembershipUpdateNextChargeDateInput {
+  "Membership ID"
+  id: ID!
+  "Desired next charge date"
+  nextChargeDate: Date!
+  "Send a notification to the customer"
+  sendNotification: Boolean = false
+}
+
+input OfferRestrictionDateRangeInput {
+  lower: Date!
+  upper: Date!
+}
+
+input OfferRestrictionTimeRangeInput {
+  lower: Time!
+  upper: Time!
+}
+
+input OrderCreateInput {
+  clientId: ID!
+  locationId: ID!
+  "The ID of the staff member to be associated with the sale."
+  sellerId: ID
+}
+
+input OrderGratuityAddInput {
+  "Amount for the gratuity"
+  absoluteAmount: Money!
+  orderId: ID!
+  staffId: ID!
+}
+
+input OrderGratuityRemoveInput {
+  "ID of a gratuity line item"
+  gratuityId: ID!
+  orderId: ID!
+}
+
+input OrderPaymentCreateInput {
+  amount: Money!
+  clientId: ID
+  method: OrderPaymentMethod!
+  orderId: ID!
+  "The card token (obtained from our Tokenization API)"
+  paymentToken: String
+}
+
+input OrderUpdateNoteInput {
+  note: String!
+  orderId: ID!
+}
+
+input PackageActivateAtLocationInput {
+  "Location ID"
+  locationId: ID!
+  "package ID"
+  packageId: ID!
+}
+
+input PackageDeactivateAtLocationInput {
+  "Location ID"
+  locationId: ID!
+  "package ID"
+  packageId: ID!
+}
+
+input PackageProductVoucherInput {
+  expiresIn: DurationInterval
+  id: ID
+  productVoucherServices: [PackageProductVoucherServiceInput!]
+  quantity: Int
+}
+
+input PackageProductVoucherServiceInput {
+  id: ID
+  serviceId: ID
+}
+
+input PingWebhookInput {
+  "Id of the webhook"
+  id: ID!
+}
+
+input ProductActivateAtLocationInput {
+  "Location Id"
+  locationId: ID!
+  "Product Id"
+  productId: ID!
+}
+
+input ProductDeactivateAtLocationInput {
+  "Location Id"
+  locationId: ID!
+  "Product Id"
+  productId: ID!
+}
+
+input RemoveManualAudienceClientsInput {
+  "The Global IDs of the clients to be removed from the manual audience"
+  clientIds: [ID!]!
+  "The Global ID of the manual audience to remove clients from"
+  manualAudienceId: ID!
+}
+
+input RemoveTagInput {
+  "The Global ID of the tagged entity"
+  entityId: ID!
+  "The Global ID of the tag to be removed"
+  tagId: ID!
+}
+
+input ReportFilterInput {
+  attributeName: String!
+  relativeDateQuery: ReportFilterRelativeDateQueryInput!
+}
+
+"Only one of the fields can be set for that object."
+input ReportFilterRelativeDateQueryInput {
+  between: [DurationInterval!]
+  greater: DurationInterval
+  greaterEqual: DurationInterval
+  less: DurationInterval
+  lessEqual: DurationInterval
+}
+
+input ServiceActivateAtLocationInput {
+  "Location Id"
+  locationId: ID!
+  "Service Id"
+  serviceId: ID!
+}
+
+input ServiceDeactivateAtLocationInput {
+  "Location Id"
+  locationId: ID!
+  "Service Id"
+  serviceId: ID!
+}
+
+input SetProductQuantityInput {
+  "The ID of the location where the quantity should be set"
+  locationId: ID!
+  "The ID of the product for which to set the quantity"
+  productId: ID!
+  quantity: Int!
+  "The reason for the adjustment"
+  reason: String
+}
+
+input ShiftRecurrenceInput {
+  """
+  Frequency at which to repeat the shift.
+  
+  API supports only WEEKLY for now.
+  """
+  frequency: ShiftFrequency!
+  "Optional (and inclusive) end date for recurrence"
+  until: Date
+}
+
+input TimeblockEndAfter {
+  """
+  Repeat the timeblock a specified number of times. Cannot be used with 'datetime'.
+  """
+  count: Int
+  "Repeat the timeblock until specified time. Cannot be used with 'count'."
+  datetime: DateTime
+}
+
+input TimeblockRecurringOptions {
+  "How many events should be created."
+  endAfter: TimeblockEndAfter!
+  "How often the timeblock should be repeated."
+  frequency: TimeblockRepeatFrequency!
+  "Repeat interval for specified frequency."
+  interval: Int!
+}
+
+input UnsetProductQuantityInput {
+  "The ID of the location where the quantity should be removed"
+  locationId: ID!
+  "The ID of the product for which to remove the quantity"
+  productId: ID!
+}
+
+input UpdateAppointmentInput {
+  customFields: [CustomFieldInput!]
+  id: ID!
+  notes: String
+  state: AppointmentStateInput
+}
+
+input UpdateBusinessInput {
+  customFields: [CustomFieldInput!]
+}
+
+input UpdateCartSelectedBookableItemInput {
+  """
+  Optional deposit amount to override the default percentage-based calculations.
+  
+  Once set, this can be cleared by setting the value back to `null`.
+  
+  Note that the final deposit amount is capped to the total item price,
+  even if the override amount is higher. For the actual value of the
+  deposit, always check the `depositAmount` field.
+  """
+  depositOverrideAmount: Money
+  "ID of the cart."
+  id: ID!
+  "ID of the selected bookable item."
+  itemId: ID!
+}
+
+input UpdateClientInput {
+  customFields: [CustomFieldInput!]
+  dob: Date
+  email: Email
+  "Client External Id"
+  externalId: String
+  firstName: String
+  "Client Id"
+  id: ID!
+  lastName: String
+  mobilePhone: PhoneNumber
+  pronoun: String
+}
+
+input UpdateClientMarketingSettingsInput {
+  email: Boolean
+  "Client Id"
+  id: ID!
+  push: Boolean
+  sms: Boolean
+  type: ReminderType!
+}
+
+input UpdateClientNoteInput {
+  id: ID!
+  text: String
+}
+
+input UpdateClientReminderSettingsInput {
+  email: Boolean
+  "Client Id"
+  id: ID!
+  push: Boolean
+  sms: Boolean
+  type: ReminderType!
+}
+
+input UpdateGiftCardInput {
+  code: String
+  customFields: [CustomFieldInput!]
+  externalId: String
+  id: ID!
+}
+
+input UpdateLocationInput {
+  coordinates: CoordinatesInput
+  externalId: String
+  id: ID!
+}
+
+input UpdateMembershipPlanCategoryInput {
+  "ID"
+  id: String!
+  "Category name"
+  name: String!
+}
+
+input UpdateMembershipPlanInput {
+  "Whether the membership plan is available to sell"
+  active: Boolean
+  "The day on which the memberships are supposed to renew (1-31)"
+  billingCycleAnchor: Int
+  "Membership plan category Id"
+  categoryId: ID
+  "If commission is enabled for the sale of this membership"
+  commissionEnabled: Boolean
+  "Description"
+  description: String
+  "External Id"
+  externalId: String
+  "ID"
+  id: ID!
+  "The interval in which the membership will renew (ex Monthly, Yearly, etc)"
+  interval: DurationInterval
+  "Whether this plan is eligible to be shared between clients, false by default."
+  shareable: Boolean
+  "Taxable"
+  taxable: Boolean
+  "The name of the membership plan"
+  name: String
+  "Price"
+  unitPrice: Money
+}
+
+input UpdateOfferInput {
+  applicableToAllMemberships: Boolean
+  applicableToAllPackages: Boolean
+  applicableToAllProducts: Boolean
+  applicableToAllServices: Boolean
+  applicableToGiftCards: Boolean
+  autoApply: Boolean
+  clientUsageLimit: Int
+  code: String
+  discountAmount: Money
+  discountPercentage: Percentage
+  distributedDiscount: Boolean
+  id: ID!
+  items: [UpdateOfferItemInput!]
+  name: String
+  restrictions: [UpdateOfferRestrictionInput!]
+}
+
+input UpdateOfferItemInput {
+  id: ID
+  included: Boolean
+  packageCategoryId: ID
+  planCategoryId: ID
+  productCategoryId: ID
+  productId: ID
+  serviceCategoryId: ID
+  serviceId: ID
+}
+
+input UpdateOfferRestrictionInput {
+  clientStatus: OfferRestrictionClientStatus
+  dateBooked: OfferRestrictionDateRangeInput
+  datePaid: OfferRestrictionDateRangeInput
+  daysPerformed: [Int!]
+  id: ID
+  locationId: ID
+  manualAudienceId: ID
+  timePerformed: OfferRestrictionTimeRangeInput
+}
+
+input UpdateOktaGateInput {
+  clientId: String
+  clientSecret: String
+  orgName: String
+  reauthenticationDuration: DurationInterval
+  ssoEnabled: Boolean
+}
+
+input UpdatePackageCategoryInput {
+  "ID"
+  id: String!
+  "Category name"
+  name: String!
+}
+
+input UpdatePackageInput {
+  "Account credit granted by the sale of this package, in cents"
+  accountCreditAmount: Money
+  "Whether the package is available to sell"
+  active: Boolean
+  "package category Id"
+  categoryId: ID
+  "If commission is enabled for the sale of this package"
+  commissionEnabled: Boolean
+  "Description"
+  description: String
+  "External Id"
+  externalId: String
+  "ID"
+  id: ID!
+  "Vouchers"
+  productVouchers: [PackageProductVoucherInput!]
+  "Taxable"
+  taxable: Boolean
+  "The name of the package"
+  name: String
+  "Price"
+  unitPrice: Money
+}
+
+input UpdateProductCategoryInput {
+  "Commission Enabled"
+  commissionEnabled: Boolean
+  "Id"
+  id: ID!
+  "Name"
+  name: String
+  "Retail. If true, products in this category will show during checkout"
+  retail: Boolean
+}
+
+input UpdateProductInput {
+  "Barcode"
+  barcode: String
+  "Brand name"
+  brandName: String
+  "Product category Id"
+  categoryId: ID
+  """
+  Product category name.
+  Will create a new category by the provided name if one does not exist already.
+  Will be ignored if `categoryId` is also supplied in the input.
+  """
+  categoryName: String
+  "Color"
+  color: String
+  "Description"
+  description: String
+  "External Id"
+  externalId: String
+  "Product Id"
+  id: ID!
+  "Customer-facing product name"
+  name: String
+  "Quantity Tracking Enabled"
+  quantityTrackingEnabled: Boolean
+  "Size"
+  size: String
+  "SKU"
+  sku: String
+  "Taxable"
+  taxable: Boolean
+  "Unit cost"
+  unitCost: Money
+  "Unit price"
+  unitPrice: Money
+}
+
+input UpdatePurchaseOrderInput {
+  "Auto populate inventory options"
+  autoPopulateOptions: AutoPopulateOptionsInput
+  "Whether the purchase order has been completed"
+  complete: Boolean
+  "ISO 8601 datetime when the purchase order is expected to be received"
+  expectedOn: Date
+  "External Id"
+  externalId: String
+  "Purchase order Id"
+  id: ID!
+  "Purchase order product line items"
+  lineItems: [UpdatePurchaseOrderLineItemInput!]
+  "Purchase order memo"
+  memo: String
+  "ISO 8601 datetime when the purchase order was ordered"
+  orderedOn: Date
+  "Whether the purchase order has been sent to the supplier"
+  send: Boolean
+  "Purchase order supplier (vendor)"
+  supplierId: ID
+}
+
+"PurchaseOrderLineItem input on update"
+input UpdatePurchaseOrderLineItemInput {
+  delete: Boolean
+  id: ID
+  productId: ID
+  unitCost: Money
+  unitsOrdered: Int
+  unitsReceived: Int
+}
+
+input UpdateReportExportInput {
+  "Content Type"
+  fileContentType: ReportExportContentType
+  "Frequency"
+  frequency: ReportExportFrequency
+  "Report Export Id"
+  id: ID!
+  "Report filters"
+  reportFilters: [ReportFilterInput!]
+  "Time of day (in UTC) when the export should be executed."
+  utcExecutionTime: Time
+}
+
+input UpdateServiceCategoryInput {
+  "Id"
+  id: ID!
+  "Name"
+  name: String
+}
+
+input UpdateServiceInput {
+  "Is a service addon"
+  addon: Boolean
+  "Service Category"
+  categoryId: ID
+  "Custom Field"
+  customFields: [CustomFieldInput!]
+  "Description"
+  description: String
+  "External Id"
+  externalId: String
+  "Id"
+  id: ID!
+  "Name"
+  name: String
+}
+
+input UpdateStaffInput {
+  bio: String
+  email: Email
+  enabledForFutureLocations: Boolean
+  externalNickname: String
+  firstName: String
+  id: ID!
+  lastName: String
+  mobilePhone: PhoneNumber
+  nickname: String
+  roleId: ID
+}
+
+input UpdateStaffLocationInput {
+  active: Boolean!
+  locationId: ID!
+  staffId: ID!
+}
+
+input UpdateWebhookInput {
+  "Id of the webhook"
+  id: ID!
+  "Optional name for the webhook."
+  name: String
+  "List of events to which you want your webhook subscribed."
+  subscriptions: [WebhookSubscriptionInput!]
+}
+
+input UpsertSecretInput {
+  "Key"
+  key: String!
+  "Value"
+  value: String!
+}
+
+input VouchersCreateInput {
+  "The owner of the voucher."
+  clientId: ID!
+  expiresOn: Date
+  """
+  Primary location of the voucher. This gets replaced by membership's location id if membership ID is passed.
+  """
+  locationId: ID!
+  "Optional membership id to connect the voucher to."
+  membershipId: ID
+  quantity: Quantity
+  "List of service ids that the voucher can be redeemed for."
+  serviceIds: [ID!]!
+}
+
+input VouchersVoidInput {
+  reason: String
+  staffId: ID!
+  voucherId: ID!
+}
+
+input WebhookSubscriptionInput {
+  delete: Boolean
+  eventType: EventType
+  id: ID
+  maxRetries: WebhookSubscriptionMaxRetries
+}
+

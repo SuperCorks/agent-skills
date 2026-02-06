@@ -1,0 +1,2 @@
+# Keep SDL schemas, ignore large JSON introspection dumps
+schemas/*.json
