@@ -5,6 +5,7 @@
  * - https://app.asana.com/0/PROJECT/TASK
  * - https://app.asana.com/0/PROJECT/TASK/f
  * - https://app.asana.com/0/0/TASK/f (inbox/my tasks view)
+ * - https://app.asana.com/1/WORKSPACE/project/PROJECT/task/TASK (new format)
  */
 
 const { SkillError } = require('./errors');
@@ -13,7 +14,7 @@ const { SkillError } = require('./errors');
  * Parse an Asana task URL
  * 
  * @param {string} url - Asana task URL
- * @returns {{ taskGid: string, projectGid: string | null }}
+ * @returns {{ taskGid: string, projectGid: string | null, workspaceGid: string | null }}
  * @throws {SkillError} If the URL format is invalid
  */
 function parseAsanaUrl(url) {
@@ -33,12 +34,33 @@ function parseAsanaUrl(url) {
     throw new SkillError('ASANA_URL_INVALID', 'Not an Asana URL');
   }
 
-  // Parse path: /0/PROJECT/TASK or /0/PROJECT/TASK/f
   const pathParts = parsed.pathname.split('/').filter(Boolean);
-  
-  // Expected: ["0", "PROJECT_GID", "TASK_GID"] or ["0", "PROJECT_GID", "TASK_GID", "f"]
+
+  // New format: /1/WORKSPACE/project/PROJECT/task/TASK
+  if (pathParts[0] === '1' && pathParts.includes('task')) {
+    const taskIndex = pathParts.indexOf('task');
+    if (taskIndex === -1 || taskIndex + 1 >= pathParts.length) {
+      throw new SkillError('ASANA_URL_INVALID', 'Missing task GID in URL');
+    }
+    
+    const taskGid = pathParts[taskIndex + 1];
+    if (!/^\d+$/.test(taskGid)) {
+      throw new SkillError('ASANA_URL_INVALID', `Invalid task GID: ${taskGid}`);
+    }
+
+    // Extract workspace and project if present
+    const workspaceGid = pathParts[1] && /^\d+$/.test(pathParts[1]) ? pathParts[1] : null;
+    const projectIndex = pathParts.indexOf('project');
+    const projectGid = projectIndex !== -1 && projectIndex + 1 < pathParts.length 
+      ? pathParts[projectIndex + 1] 
+      : null;
+
+    return { taskGid, projectGid, workspaceGid };
+  }
+
+  // Classic format: /0/PROJECT/TASK or /0/PROJECT/TASK/f
   if (pathParts.length < 3 || pathParts[0] !== '0') {
-    throw new SkillError('ASANA_URL_INVALID', 'Expected /0/PROJECT/TASK format');
+    throw new SkillError('ASANA_URL_INVALID', 'Expected /0/PROJECT/TASK or /1/.../task/TASK format');
   }
 
   const projectGid = pathParts[1];
@@ -57,6 +79,7 @@ function parseAsanaUrl(url) {
   return {
     taskGid,
     projectGid: projectGid === '0' ? null : projectGid,
+    workspaceGid: null,
   };
 }
 
