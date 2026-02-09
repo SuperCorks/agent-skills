@@ -1,60 +1,66 @@
 ---
 name: feature-dev
-description: A 7-phase standard workflow for robust feature development, from discovery to shipping.
+description: Single-agent staged workflow for robust feature development from discovery through implementation, validation, and delivery.
 ---
 
 # Feature Development Workflow
 
-This standard operating procedure ensures consistent, high-quality feature delivery.
+Use this skill to run an end-to-end feature workflow without assuming runtime subagents.
 
-## Phase 1: Discovery
-**Goal**: Understand WHAT is being built and WHY.
-**Actions**:
-*   Read the user request thoroughly.
-*   Identify the core problem and user intent.
-*   List technical constraints.
+## When to use
+- You need to implement a feature or bug fix with clear quality gates.
+- The task needs planning, coding, testing, and delivery in one guided flow.
+- You want deterministic stage outputs and explicit halt conditions.
 
-## Phase 2: Codebase Exploration
-**Goal**: Understand WHERE changes are needed.
-**Actions**:
-*   Use `Codebase Explorer` to map relevant files.
-*   Trace execution paths for existing features similar to the new one.
-*   Identify dependencies and potential side effects.
-*   **Output**: A list of files to modify and a mental model of the architecture.
+## Inputs expected
+- User request and success criteria.
+- Repository context (current behavior, architecture, constraints).
+- Applicable non-functional requirements (security, performance, compatibility).
 
-## Phase 3: Clarifying Questions
-**Goal**: Resolve ambiguity.
-**Actions**:
-*   If requirements are vague, stop and ask the user.
-*   Propose potential solutions to check alignment.
-*   Confirm the "Definition of Done".
+## Workflow
+1. Discovery and intent lock:
+- Restate the problem, constraints, and definition of done.
+- Ask clarifying questions only if they materially affect implementation.
 
-## Phase 4: Architecture Design
-**Goal**: Plan HOW to build it.
-**Actions**:
-*   Propose an implementation plan.
-*   List existing components to reuse.
-*   Define new data structures or APIs.
-*   **Gate**: Ask user for approval of the plan before coding.
+2. Codebase exploration:
+- Map relevant entry points and likely change hotspots.
+- Trace the current execution path for impacted behavior.
 
-## Phase 5: Implementation
-**Goal**: Write the code.
-**Actions**:
-*   Follow the plan.
-*   Create new files/components first.
-*   Integrate into existing logic.
-*   Keep changes focused (small batches).
+3. Plan and approval gate:
+- Produce a concrete implementation plan with acceptance criteria.
+- Halt before coding if scope or requirements are ambiguous.
 
-## Phase 6: Quality Review
-**Goal**: Verify correctness and safety.
-**Actions**:
-*   Run `Security Auditor` to check for risks.
-*   Run lints/tests if available.
-*   Manual self-review: "Did I break existing functionality?"
+4. Implementation:
+- Apply focused changes that match the approved plan.
+- Avoid unrelated refactors.
 
-## Phase 7: Summary & Ship
-**Goal**: Hand off to the user.
-**Actions**:
-*   Summarize what was changed.
-*   Provide instructions on how to test the new feature.
-*   List any remaining "todos" or follow-up items.
+5. Validation:
+- Run project-appropriate lint/build/test checks.
+- Perform targeted security and maintainability review.
+
+6. Documentation and handoff:
+- Update user-facing docs when behavior changes.
+- Summarize changes, checks run, and any follow-up items.
+
+## Output format (evidence required)
+- Problem summary.
+- Definition of done.
+- Implementation plan.
+- Files changed.
+- Commands executed (exact) and results summary.
+- Risks and follow-ups.
+
+## Quality gate / halt conditions
+- Halt if required requirements are unknown or contradictory.
+- Halt if validation checks fail and report root cause plus next corrective action.
+- Do not claim orchestration of runtime subagents; use staged execution only.
+
+## Specialist skill references (manual/conditional)
+- Planning-heavy tasks: use `architect-planning`.
+- Architecture mapping: use `codebase-explorer`.
+- Security review: use `security-guidance`.
+- Test strategy and execution: use `test-engineer`.
+- Maintainability review: use `pr-review-guidelines`.
+- Docs updates: use `docs-maintainer`.
+- Refactor-only tasks: use `code-simplifier`.
+- Branch/PR gates: use `git-workflow-gates`.

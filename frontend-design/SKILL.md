@@ -1,48 +1,46 @@
 ---
 name: frontend-design
-description: Guidelines for creating distinctive, non-generic user interfaces. Focuses on typography, spatial layout, and avoiding "AI-generated" aesthetics.
+description: UX and accessibility review guidance for distinctive, usable interfaces with explicit blocker-first output.
 ---
 
-# Frontend Design Guidelines
+# Frontend Design and UX Review
 
-Use this skill when designing UI components or reviewing frontend code to ensuring the output is polished, distinctive, and accessible.
+Use this skill for design-focused frontend QA with concrete a11y and consistency criteria.
 
-## Core Philosophy: Avoid "Generic AI" Aesthetic
+## When to use
+- Reviewing frontend changes for usability, consistency, and accessibility.
+- Designing or refining UI while preserving established system patterns.
+- Producing action-oriented UX findings for implementation.
 
-AI-generated UIs often abuse rounded corners, excessive gradients, and standard colors (Tailwind blues/grays). To create distinctive software:
+## Inputs expected
+- Changed UI files/components and expected behavior.
+- Existing design system/pattern constraints.
+- Any provided references (screenshots, mockups, Figma links).
 
-1.  **Typography Choices**:
-    *   Avoid default pairings like Inter/Roboto unless mandated.
-    *   Use distinct weights: ultra-bold headings vs. crisp, legible body text.
-    *   Consider monospaced fonts for data-heavy or technical displays.
+## Workflow
+1. Semantics and structure:
+- Validate correct element usage (buttons vs links, heading hierarchy, landmarks).
 
-2.  **Spatial Design**:
-    *   **Asymmetry**: Don't center everything. Use offset layouts to guide the eye.
-    *   **Density**: Don't fear negative space, but avoid "loose" layouts where information density is too low.
-    *   **Grid Breaking**: Occasionally break the grid for key elements to create visual interest.
+2. Interaction behavior:
+- Verify hover/focus/active states and keyboard navigation.
+- Ensure visible focus indicators.
 
-3.  **Color & Backgrounds**:
-    *   Avoid standard "skeleton loader" grays.
-    *   Use subtle textures or noise instead of flat colors for large backgrounds.
-    *   Ensure high contrast ratios (WCAG AA minimum).
+3. Accessibility checks:
+- Labels, accessible names, alt text, and necessary ARIA usage.
+- Ensure error/empty/loading states are understandable.
 
-## Interaction Patterns
+4. Visual consistency:
+- Confirm spacing/typography/tokens align with existing system.
+- Flag generic/boilerplate UI patterns that reduce clarity.
 
-*   **Feedback**: Every interactive element must have a `:hover` and `:active` state.
-*   **Transitions**: Use fast transitions (100ms-200ms) for UI feedback. Avoid sluggish animations (>500ms) unless meaningful.
-*   **Focus**: Custom focus rings are mandatory; never rely on browser defaults if they clash with the design, but ensure they are visible.
+## Output format (evidence required)
+- Summary verdict: `pass` or `needs changes`.
+- Blockers first:
+  - What is wrong
+  - Criterion violated (a11y/semantics/consistency/usability)
+  - Concrete fix
+- Non-blocking suggestions (explicitly marked).
 
-## Anti-Patterns (What to Avoid)
-
-*   **The "Bootstrap Look"**: Generic 12-column grids with default border radii.
-*   **Card Overload**: Not everything needs to be in a card with a shadow. Use whitespace and dividers.
-*   **Inconsistent Spacing**: Stick to a rigid spacing scale (e.g., 4px, 8px, 16px, 24px).
-
-## Verification Checklist
-
-When reviewing a UI change:
-- [ ] Does it look distinct from a standard library template?
-- [ ] Are the interaction states (hover, focus, active) defined?
-- [ ] Is the spacing consistent with the system?
-- [ ] Is the typography hierarchy clear (size AND weight differences)?
-- [ ] Are accessible names provided for icon-only buttons?
+## Quality gate / halt conditions
+- Halt with `needs changes` for accessibility blockers or broken keyboard/focus behavior.
+- Do not propose unrelated redesigns unless explicitly requested.

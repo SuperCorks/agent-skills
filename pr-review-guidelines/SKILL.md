@@ -1,50 +1,51 @@
 ---
 name: pr-review-guidelines
-description: Rubrics and standards for conducting high-quality code reviews, including scoring and classification.
+description: Code review rubric focused on correctness, maintainability, consistency, and evidence-backed approval gates.
 ---
 
 # PR Review Guidelines
 
-Use this skill to assess code quality objectively and provide actionable feedback.
+Use this skill to run a strict, evidence-based code quality review.
 
-## Classification: Blocker vs. Nit
+## When to use
+- Reviewing a PR or local diff for merge readiness.
+- Evaluating maintainability and consistency against repo conventions.
+- Producing blocker-vs-suggestion findings with confidence levels.
 
-Distinguish clearly between critical issues and optional suggestions.
+## Inputs expected
+- Diff or changed files.
+- Relevant architecture/convention context.
+- Validation evidence (commands run and results).
 
-### 🔴 BLOCKER (Must Fix)
-*   **Bugs**: Code that will definitely fail or produce incorrect results.
-*   **Security Risks**: Any vulnerability from the `security-guidance` list.
-*   **Spec Violation**: Code that does not do what the user asked.
-*   **Performance**: O(n²) or worse operations on potentially large datasets.
-*   **Typing**: Code that breaks the build (TS errors).
+## Workflow
+1. Validate evidence first:
+- Confirm lint/build/test commands were run.
+- If missing, request or run relevant checks before final approval.
 
-### 🟡 WARNING (Should Fix)
-*   **Code Style**: Inconsistent naming or formatting (if not auto-fixable).
-*   **Complexity**: Logic that is hard to read but correct.
-*   **Test Coverage**: specific logic paths missing tests.
+2. Review by severity:
+- Blockers: correctness defects, security issues, spec violations, build-breaking typing, major perf regressions.
+- Warnings: maintainability, complexity, consistency, missing targeted coverage.
+- Nits: stylistic or minor readability preferences.
 
-### 🟢 NIT (Optional)
-*   **Preference**: "I prefer `map` over `loops` here."
-*   **Comments**: Typos in comments or variable names.
-*   **Optimization**: Micro-optimizations that don't materially affect performance.
+3. Apply maintainability gate:
+- Check naming clarity, abstraction boundaries, duplication, and cognitive load.
+- Flag risky patterns and foot-guns that increase future change cost.
 
-## Confidence Scoring (0-100)
+4. Produce actionable feedback:
+- Include exact file/symbol references and concrete fix direction.
+- Avoid vague guidance.
 
-When reporting an issue, assess your confidence:
+## Output format (evidence required)
+- Review verdict: `approved` or `changes requested`.
+- Commands executed (exact) and results summary.
+- Findings:
+  - Severity: `blocker|warning|nit`
+  - Confidence: `0-100`
+  - Why it matters
+  - Suggested remediation
+- Maintainability summary.
 
-*   **90-100 (Certainty)**: syntax errors, obvious crashes, known security sinks. Report immediately.
-*   **70-89 (Likely)**: logic that looks wrong but might depend on external context not visible. Report with "This seems to..."
-*   **0-69 (Uncertain)**: Avoid reporting unless asking a clarifying question. False positives waste user time.
-
-## Review Quality Standards
-
-1.  **Be specific**: Don't say "Fix this." Say "This variable is undefined on line 42 because..."
-2.  **Provide samples**: When suggesting a fix, provide the code snippet.
-3.  **Check the "Why"**: Don't just check syntax; check if the business logic makes sense.
-
-## Review Checklist
-
-- [ ] Does the code work? (Correctness)
-- [ ] Is it safe? (Security)
-- [ ] Is it readable? (Maintenance)
-- [ ] Does it fit the architecture? (Design)
+## Quality gate / halt conditions
+- Halt approval if required validation evidence is missing.
+- Halt approval for any blocker finding.
+- Do not approve by weakening lint/test policy unless explicitly requested.
