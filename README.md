@@ -36,7 +36,7 @@ npx --package=@supercorks/skills-installer skills-installer install
 ```
 
 This will:
-1. Let you choose the installation path (`.github/skills/`, `.agents/skills/`, `/etc/codex/skills/`, `.claude/skills/`, or custom)
+1. Let you choose the installation path (`.github/skills/` (Copilot), `~/.codex/skills/` (Codex), `.claude/skills/` (Claude), or custom)
 2. Optionally add the path to `.gitignore`
 3. Let you select which skills to install via checkboxes
 4. Sparse-clone only the selected skills
