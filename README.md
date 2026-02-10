@@ -25,6 +25,8 @@ A collection of AI agent skills for GitHub Copilot and other AI assistants.
 
 Use the `@supercorks/skills-installer` CLI to interactively select and install skills:
 
+Installer repository: [supercorks/agent-skills-installer](https://github.com/supercorks/agent-skills-installer)
+
 ```bash
 npx @supercorks/skills-installer
 ```
