@@ -7,8 +7,6 @@ description: Address PR review comments from automated and human reviewers. Use 
 
 This skill guides you through addressing PR review comments systematically.
 
-**Scripts location:** `.github/skills/address-pr-comments/`
-
 ## ⚠️ Critical: Only Address the LATEST Review from EACH Reviewer
 
 **Address only the MOST RECENT review from each reviewer.** If there are 3 reviewers (e.g., an automated reviewer, human reviewer A, human reviewer B), you address 3 reviews — the latest one from each.
