@@ -13,7 +13,15 @@ Use this skill when you need to understand the content of an image file in the p
 
 - Node.js installed
 - `@google/genai` and `dotenv` npm packages
+
+For `--google`:
+
 - `GOOGLE_AI_API_KEY` environment variable set
+
+For `--llava`:
+
+- `ollama` installed and available in PATH
+- Vision model pulled locally (default: `llava`)
 
 ## Supported Formats
 
@@ -27,14 +35,28 @@ Use this skill when you need to understand the content of an image file in the p
 To describe an image, run the following command:
 
 ```bash
-node .github/skills/describe-image/index.js <image_path>
+node .github/skills/describe-image/index.js [options] <image_path>
 ```
+
+### Options
+
+- `--google` Use Google Gemini (default provider)
+- `--llava` Use local Ollama model
+- `--prompt "..."` Custom prompt text
+- `--model <name>` Override model (`gemini-3-flash-preview` for Google, `llava` for Ollama)
+- `-h`, `--help` Show usage
 
 **Example:**
 
 ```bash
 node .github/skills/describe-image/index.js ./public/properties/shared/image_01.jpg
+node .github/skills/describe-image/index.js --llava ./public/properties/shared/image_01.jpg
+node .github/skills/describe-image/index.js --google --prompt "List visible buttons" ./public/properties/shared/image_01.jpg
 ```
+
+### Ollama install behavior
+
+If `--llava` is used and `ollama` is not installed, the script prints installation steps (including Homebrew commands) and exits.
 
 **Output:**
 
