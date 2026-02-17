@@ -65,7 +65,43 @@ Parse the review summary JSON and categorize the **actionable comments** only:
 - "Duplicate comments" — these are old issues, not new feedback
 - Unresolved threads from previous reviews
 
-### Step 3: Make Changes
+### Step 3: Confirm Plan with User (MANDATORY)
+
+Before making any code changes, present a confirmation summary to the user with two sections:
+
+- **Will Address**: each item you plan to fix
+- **Will Skip**: each item you will not address, with a short reason
+
+Use this format:
+
+```md
+## PR Review Plan
+
+### ✅ Will Address
+- [comment summary 1]
+- [comment summary 2]
+
+### 🔁 Will Skip
+- [comment summary 3] — [reason]
+- [comment summary 4] — [reason]
+
+Please confirm: proceed with these changes?
+```
+
+Then **wait for explicit user approval** before continuing.
+
+Valid approval examples:
+
+- "yes"
+- "approved"
+- "proceed"
+- "go ahead"
+
+### Auto-approval exception
+
+You may skip the wait step only if the user explicitly requests auto approval in the prompt (for example: "auto-approve", "no confirmation needed", or "proceed without asking").
+
+### Step 4: Make Changes
 
 For each item to address:
 
@@ -73,7 +109,7 @@ For each item to address:
 2. Apply the fix
 3. Note the change made
 
-### Step 4: Commit and Push
+### Step 5: Commit and Push
 
 ```bash
 git add -A
@@ -85,7 +121,7 @@ git commit -m "fix: address PR review comments
 git push
 ```
 
-### Step 5: Reply to Thread Comments (Optional)
+### Step 6: Reply to Thread Comments (Optional)
 
 If the review summary JSON includes `unresolvedThreads` from the latest review, reply to those threads:
 
@@ -119,7 +155,7 @@ node .github/skills/address-pr-comments/pr-reply.js --batch /tmp/replies.json
 
 **Note:** Only reply to threads listed in `unresolvedThreads` from the review summary output. Do NOT use `pr-comments.js` separately — it may return threads from older reviews.
 
-### Step 6: Post Summary Comment
+### Step 7: Post Summary Comment
 
 Post a summary comment covering only the **latest review's** actionable comments and nitpicks:
 
@@ -144,3 +180,4 @@ node .github/skills/address-pr-comments/pr-reply.js --pr-comment --message "## P
 3. **Review Summaries**: These don't have thread IDs, so they can only be addressed in the final summary comment
 4. **Keep replies brief**: One line for addressed items, one line + reason for skipped
 5. **Batch operations**: Always use `--dry-run` first to verify before posting
+6. **Approval gate**: Do not start implementing fixes until the user confirms the Step 3 plan, unless explicit auto-approval was requested
