@@ -17,6 +17,7 @@ Use this skill when you need to understand the content of an image file in the p
 For `--google`:
 
 - `GOOGLE_AI_API_KEY` environment variable set
+- If missing in current process env, the script attempts to read it from your zsh login/interactive environment (`zsh -ilc`)
 
 For `--llava`:
 

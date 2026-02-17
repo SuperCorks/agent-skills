@@ -1,31 +1,57 @@
-import { GoogleGenAI } from '@google/genai';
-import { spawnSync } from 'child_process';
-import fs from 'fs';
-import path from 'path';
-import dotenv from 'dotenv';
+import { GoogleGenAI } from "@google/genai";
+import { spawnSync } from "child_process";
+import fs from "fs";
+import path from "path";
+import dotenv from "dotenv";
 
 // Load environment variables
 dotenv.config();
 
 const DEFAULT_PROMPT =
-  'Describe this image in 10-20 words. Focus on the main subject and key features. Be concise.';
+  "Describe this image in 10-20 words. Focus on the main subject and key features. Be concise.";
+
+function resolveGoogleApiKey() {
+  const fromProcess = process.env.GOOGLE_AI_API_KEY?.trim();
+  if (fromProcess) {
+    return fromProcess;
+  }
+
+  const zshResult = spawnSync(
+    "zsh",
+    ["-ilc", "printenv GOOGLE_AI_API_KEY"],
+    {
+      encoding: "utf-8",
+      stdio: ["ignore", "pipe", "ignore"],
+    },
+  );
+
+  if (zshResult.status === 0) {
+    const fromZsh = zshResult.stdout?.trim();
+    if (fromZsh) {
+      process.env.GOOGLE_AI_API_KEY = fromZsh;
+      return fromZsh;
+    }
+  }
+
+  return "";
+}
 
 function getMimeType(filename) {
   const ext = path.extname(filename).toLowerCase();
   switch (ext) {
-    case '.jpg':
-    case '.jpeg':
-      return 'image/jpeg';
-    case '.png':
-      return 'image/png';
-    case '.webp':
-      return 'image/webp';
-    case '.heic':
-      return 'image/heic';
-    case '.heif':
-      return 'image/heif';
+    case ".jpg":
+    case ".jpeg":
+      return "image/jpeg";
+    case ".png":
+      return "image/png";
+    case ".webp":
+      return "image/webp";
+    case ".heic":
+      return "image/heic";
+    case ".heif":
+      return "image/heif";
     default:
-      return 'image/jpeg';
+      return "image/jpeg";
   }
 }
 
@@ -48,17 +74,17 @@ Examples:
 }
 
 function printOllamaInstallInstructions() {
-  console.error('\nOllama is not installed or not available in PATH.');
-  console.error('Install instructions (macOS):');
-  console.error('  brew install ollama');
-  console.error('  ollama --version');
-  console.error('  ollama pull llava');
-  console.error('\nDocs: https://ollama.com/download');
+  console.error("\nOllama is not installed or not available in PATH.");
+  console.error("Install instructions (macOS):");
+  console.error("  brew install ollama");
+  console.error("  ollama --version");
+  console.error("  ollama pull llava");
+  console.error("\nDocs: https://ollama.com/download");
 }
 
 function parseArgs(argv) {
   const args = argv.slice(2);
-  let provider = 'google';
+  let provider = "google";
   let prompt = DEFAULT_PROMPT;
   let model;
   let imagePath;
@@ -67,32 +93,32 @@ function parseArgs(argv) {
     const arg = args[index];
     const nextArg = args[index + 1];
 
-    if (arg === '-h' || arg === '--help') {
+    if (arg === "-h" || arg === "--help") {
       printUsage();
       process.exit(0);
     }
 
-    if (arg === '--google') {
-      if (provider === 'llava') {
-        console.error('Error: --google and --llava are mutually exclusive');
+    if (arg === "--google") {
+      if (provider === "llava") {
+        console.error("Error: --google and --llava are mutually exclusive");
         process.exit(1);
       }
-      provider = 'google';
+      provider = "google";
       continue;
     }
 
-    if (arg === '--llava') {
-      if (provider === 'google' && args.includes('--google')) {
-        console.error('Error: --google and --llava are mutually exclusive');
+    if (arg === "--llava") {
+      if (provider === "google" && args.includes("--google")) {
+        console.error("Error: --google and --llava are mutually exclusive");
         process.exit(1);
       }
-      provider = 'llava';
+      provider = "llava";
       continue;
     }
 
-    if (arg === '--prompt') {
+    if (arg === "--prompt") {
       if (!nextArg) {
-        console.error('Error: --prompt requires a value');
+        console.error("Error: --prompt requires a value");
         process.exit(1);
       }
       prompt = nextArg;
@@ -100,14 +126,14 @@ function parseArgs(argv) {
       continue;
     }
 
-    if (arg.startsWith('--prompt=')) {
-      prompt = arg.slice('--prompt='.length);
+    if (arg.startsWith("--prompt=")) {
+      prompt = arg.slice("--prompt=".length);
       continue;
     }
 
-    if (arg === '--model') {
+    if (arg === "--model") {
       if (!nextArg) {
-        console.error('Error: --model requires a value');
+        console.error("Error: --model requires a value");
         process.exit(1);
       }
       model = nextArg;
@@ -115,12 +141,12 @@ function parseArgs(argv) {
       continue;
     }
 
-    if (arg.startsWith('--model=')) {
-      model = arg.slice('--model='.length);
+    if (arg.startsWith("--model=")) {
+      model = arg.slice("--model=".length);
       continue;
     }
 
-    if (arg.startsWith('--')) {
+    if (arg.startsWith("--")) {
       console.error(`Error: Unknown option ${arg}`);
       printUsage();
       process.exit(1);
@@ -137,7 +163,7 @@ function parseArgs(argv) {
   }
 
   if (!imagePath) {
-    console.error('Error: image_path is required');
+    console.error("Error: image_path is required");
     printUsage();
     process.exit(1);
   }
@@ -157,16 +183,22 @@ function assertImageExists(imagePath) {
   }
 }
 
-async function describeWithGoogle(imagePath, prompt, model = 'gemini-3-flash-preview') {
-  const GOOGLE_AI_API_KEY = process.env.GOOGLE_AI_API_KEY;
+async function describeWithGoogle(
+  imagePath,
+  prompt,
+  model = "gemini-3-flash-preview",
+) {
+  const GOOGLE_AI_API_KEY = resolveGoogleApiKey();
   if (!GOOGLE_AI_API_KEY) {
-    console.error('Error: GOOGLE_AI_API_KEY environment variable is required for --google');
+    console.error(
+      "Error: GOOGLE_AI_API_KEY environment variable is required for --google",
+    );
     process.exit(1);
   }
 
   const ai = new GoogleGenAI({ apiKey: GOOGLE_AI_API_KEY });
   const imageBuffer = fs.readFileSync(imagePath);
-  const base64Image = imageBuffer.toString('base64');
+  const base64Image = imageBuffer.toString("base64");
   const mimeType = getMimeType(imagePath);
 
   try {
@@ -174,7 +206,7 @@ async function describeWithGoogle(imagePath, prompt, model = 'gemini-3-flash-pre
       model,
       contents: [
         {
-          role: 'user',
+          role: "user",
           parts: [
             { inlineData: { mimeType, data: base64Image } },
             { text: prompt },
@@ -183,17 +215,17 @@ async function describeWithGoogle(imagePath, prompt, model = 'gemini-3-flash-pre
       ],
     });
 
-    return response.text?.trim() || 'Unable to describe image';
+    return response.text?.trim() || "Unable to describe image";
   } catch (error) {
     console.error(`Error describing ${imagePath}:`, error);
-    return 'Error describing image';
+    return "Error describing image";
   }
 }
 
-function describeWithLlava(imagePath, prompt, model = 'llava') {
-  const versionResult = spawnSync('ollama', ['--version'], {
-    encoding: 'utf-8',
-    stdio: ['ignore', 'pipe', 'pipe'],
+function describeWithLlava(imagePath, prompt, model = "llava") {
+  const versionResult = spawnSync("ollama", ["--version"], {
+    encoding: "utf-8",
+    stdio: ["ignore", "pipe", "pipe"],
   });
 
   if (versionResult.error || versionResult.status !== 0) {
@@ -201,9 +233,9 @@ function describeWithLlava(imagePath, prompt, model = 'llava') {
     process.exit(1);
   }
 
-  const modelCheck = spawnSync('ollama', ['show', model], {
-    encoding: 'utf-8',
-    stdio: ['ignore', 'pipe', 'pipe'],
+  const modelCheck = spawnSync("ollama", ["show", model], {
+    encoding: "utf-8",
+    stdio: ["ignore", "pipe", "pipe"],
   });
 
   if (modelCheck.status !== 0) {
@@ -213,28 +245,31 @@ function describeWithLlava(imagePath, prompt, model = 'llava') {
   }
 
   const ollamaPrompt = `${prompt}\n\nImage: ${imagePath}`;
-  const result = spawnSync('ollama', ['run', model, ollamaPrompt], {
-    encoding: 'utf-8',
-    stdio: ['ignore', 'pipe', 'pipe'],
+  const result = spawnSync("ollama", ["run", model, ollamaPrompt], {
+    encoding: "utf-8",
+    stdio: ["ignore", "pipe", "pipe"],
   });
 
   if (result.error) {
-    console.error('Error running Ollama:', result.error.message);
+    console.error("Error running Ollama:", result.error.message);
     process.exit(1);
   }
 
   if (result.status !== 0) {
-    console.error(result.stderr?.trim() || `Ollama command failed with exit code ${result.status}`);
+    console.error(
+      result.stderr?.trim() ||
+        `Ollama command failed with exit code ${result.status}`,
+    );
     process.exit(1);
   }
 
-  const output = (result.stdout || '')
-    .split('\n')
-    .filter((line) => !line.startsWith('Added image '))
-    .join('\n')
+  const output = (result.stdout || "")
+    .split("\n")
+    .filter((line) => !line.startsWith("Added image "))
+    .join("\n")
     .trim();
 
-  return output || 'Unable to describe image';
+  return output || "Unable to describe image";
 }
 
 async function main() {
@@ -242,7 +277,7 @@ async function main() {
   assertImageExists(imagePath);
 
   const description =
-    provider === 'llava'
+    provider === "llava"
       ? describeWithLlava(imagePath, prompt, model)
       : await describeWithGoogle(imagePath, prompt, model);
 
