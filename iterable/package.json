@@ -1,0 +1,15 @@
+{
+  "name": "iterable-reader-skill",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Read-only Iterable API helpers for agent workflows",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "read:user": "node scripts/read-user.js",
+    "read:fields": "node scripts/list-user-fields.js",
+    "read:events": "node scripts/read-user-events.js",
+    "read:list-users": "node scripts/list-users-in-list.js"
+  }
+}
