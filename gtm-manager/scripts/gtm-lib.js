@@ -5,6 +5,8 @@ const http = require('http');
 
 const SCOPES = [
   'https://www.googleapis.com/auth/tagmanager.edit.containers',
+  'https://www.googleapis.com/auth/tagmanager.edit.containerversions',
+  'https://www.googleapis.com/auth/tagmanager.publish',
   'https://www.googleapis.com/auth/userinfo.email',
 ];
 
@@ -75,7 +77,11 @@ function getServiceAuth(keyPath) {
 async function authenticateOAuth(credentialsPath, tokenPath) {
   const credentials = resolveCredentials(credentialsPath);
   const { client_id, client_secret } = credentials.installed || credentials.web;
-  const oauth2Client = new google.auth.OAuth2(client_id, client_secret, 'http://localhost:3000/callback');
+  const oauth2Client = new google.auth.OAuth2(
+    client_id,
+    client_secret,
+    'http://localhost:3000/callback'
+  );
 
   // Check for existing token
   if (fs.existsSync(tokenPath)) {
@@ -89,7 +95,7 @@ async function authenticateOAuth(credentialsPath, tokenPath) {
     scope: SCOPES,
   });
 
-  const open = await import('open').then(m => m.default);
+  const open = await import('open').then((m) => m.default);
 
   const code = await new Promise((resolve) => {
     const sockets = new Set();
@@ -112,18 +118,20 @@ async function authenticateOAuth(credentialsPath, tokenPath) {
       res.end('Waiting for OAuth callback...');
     });
 
-    server.on('connection', (socket) => {
-      sockets.add(socket);
-      socket.on('close', () => sockets.delete(socket));
-    }).listen(3000, () => {
-      console.error('Opening browser for authentication...');
-      open(authUrl, { wait: false }).catch(() => {
-        console.error('Could not auto-open browser. Open this URL manually:');
-        console.error(authUrl);
+    server
+      .on('connection', (socket) => {
+        sockets.add(socket);
+        socket.on('close', () => sockets.delete(socket));
+      })
+      .listen(3000, () => {
+        console.error('Opening browser for authentication...');
+        open(authUrl, { wait: false }).catch(() => {
+          console.error('Could not auto-open browser. Open this URL manually:');
+          console.error(authUrl);
+        });
       });
-    });
 
-    server.unref();
+    // Keep the server referenced so the process waits for OAuth callback.
   });
 
   const { tokens } = await oauth2Client.getToken(code);
@@ -148,7 +156,7 @@ function getTagManager(auth) {
 async function getWorkspace(tagmanager, accountId, containerId) {
   const containerPath = `accounts/${accountId}/containers/${containerId}`;
   const res = await tagmanager.accounts.containers.workspaces.list({
-    parent: containerPath
+    parent: containerPath,
   });
   return res.data.workspace[0];
 }
@@ -161,7 +169,8 @@ function parseArgs(args = process.argv.slice(2)) {
     _: [],
     account: process.env.GTM_ACCOUNT_ID,
     container: process.env.GTM_CONTAINER_ID,
-    credentials: process.env.GTM_CREDENTIALS_PATH || GTM_MANAGER_SKILL_CREDS_JSON,
+    credentials:
+      process.env.GTM_CREDENTIALS_PATH || GTM_MANAGER_SKILL_CREDS_JSON,
     token: process.env.GTM_TOKEN_PATH || getProjectTokenPath(),
     serviceKey: process.env.GTM_SERVICE_KEY_PATH,
     help: false,
