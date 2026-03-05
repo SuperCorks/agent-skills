@@ -1,1 +1,4 @@
 **/node_modules/
+
+# Local GTM OAuth tokens (project-specific)
+gtm-manager/tokens/
