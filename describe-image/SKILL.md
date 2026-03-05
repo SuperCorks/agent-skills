@@ -3,8 +3,6 @@ name: describe-image
 description: Generates a short text description of an image file using AI.
 ---
 
-# Describe Image
-
 Use this skill when you need to understand the content of an image file in the project, or when you need to generate a description for an image (e.g. for alt text or filename generation).
 
 **Script location:** `.github/skills/describe-image/`

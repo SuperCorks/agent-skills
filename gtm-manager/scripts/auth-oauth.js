@@ -11,19 +11,21 @@ const HELP = `
 Authenticate with GTM API using OAuth (browser flow).
 
 Usage:
-  node auth-oauth.js --credentials <path> --token <path>
+  node auth-oauth.js [--credentials <path|json>] [--token <path>]
 
 Options:
-  --credentials <path>  Path to OAuth client secrets JSON
-  --token <path>        Path to save/load token
+  --credentials <path|json>  Path to OAuth client secrets JSON or inline JSON
+  --token <path>             Path to save/load token
   -h, --help            Show this help
 
 Environment variables:
-  GTM_CREDENTIALS_PATH  Default credentials path
-  GTM_TOKEN_PATH        Default token path
+  GTM_MANAGER_SKILL_CREDS_JSON  OAuth client credentials JSON string
+  GTM_CREDENTIALS_PATH          Default credentials path (fallback)
+  GTM_TOKEN_PATH                Default token path (fallback)
 
 Example:
   node auth-oauth.js --credentials ./client_secrets.json --token ./token.json
+  node auth-oauth.js  # uses GTM_MANAGER_SKILL_CREDS_JSON and project token default
 `;
 
 const TESTER_AUDIENCE_URL =
@@ -48,8 +50,10 @@ async function main() {
     process.exit(0);
   }
 
-  if (!args.credentials || !args.token) {
-    error('Must provide --credentials and --token paths');
+  if (!args.credentials) {
+    error(
+      'No credentials available. Provide --credentials or set GTM_MANAGER_SKILL_CREDS_JSON.'
+    );
   }
 
   printTesterReminder();

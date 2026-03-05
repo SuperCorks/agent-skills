@@ -2,18 +2,55 @@ const { google } = require('googleapis');
 const fs = require('fs');
 const path = require('path');
 const http = require('http');
-const url = require('url');
 
 const SCOPES = [
   'https://www.googleapis.com/auth/tagmanager.edit.containers',
   'https://www.googleapis.com/auth/userinfo.email',
 ];
 
+const GTM_MANAGER_SKILL_CREDS_JSON = process.env.GTM_MANAGER_SKILL_CREDS_JSON;
+
+function sanitizeProjectName(projectName) {
+  return (projectName || 'default').replace(/[^a-zA-Z0-9._-]/g, '-');
+}
+
+function getProjectTokenPath() {
+  const projectName = sanitizeProjectName(path.basename(process.cwd()));
+  return path.join(__dirname, '..', 'tokens', `${projectName}.token.json`);
+}
+
+function parseCredentialsInput(credentialsInput) {
+  if (!credentialsInput) {
+    return null;
+  }
+
+  const trimmed = credentialsInput.trim();
+  if (trimmed.startsWith('{')) {
+    return JSON.parse(trimmed);
+  }
+
+  return JSON.parse(fs.readFileSync(trimmed, 'utf8'));
+}
+
+function resolveCredentials(credentialsInput) {
+  const parsed =
+    parseCredentialsInput(credentialsInput) ||
+    parseCredentialsInput(GTM_MANAGER_SKILL_CREDS_JSON);
+
+  if (!parsed) {
+    throw new Error(
+      'No credentials found. Set GTM_MANAGER_SKILL_CREDS_JSON or provide --credentials/--credentials path.'
+    );
+  }
+
+  return parsed;
+}
+
 /**
  * Get OAuth2 client from saved token
  */
 function getAuth(credentialsPath, tokenPath) {
-  const credentials = JSON.parse(fs.readFileSync(credentialsPath, 'utf8'));
+  const credentials = resolveCredentials(credentialsPath);
   const { client_id, client_secret } = credentials.installed || credentials.web;
   const oauth2Client = new google.auth.OAuth2(client_id, client_secret);
   const token = JSON.parse(fs.readFileSync(tokenPath, 'utf8'));
@@ -36,7 +73,7 @@ function getServiceAuth(keyPath) {
  * Authenticate via OAuth browser flow (interactive)
  */
 async function authenticateOAuth(credentialsPath, tokenPath) {
-  const credentials = JSON.parse(fs.readFileSync(credentialsPath, 'utf8'));
+  const credentials = resolveCredentials(credentialsPath);
   const { client_id, client_secret } = credentials.installed || credentials.web;
   const oauth2Client = new google.auth.OAuth2(client_id, client_secret, 'http://localhost:3000/callback');
 
@@ -53,23 +90,45 @@ async function authenticateOAuth(credentialsPath, tokenPath) {
   });
 
   const open = await import('open').then(m => m.default);
-  
+
   const code = await new Promise((resolve) => {
+    const sockets = new Set();
     const server = http.createServer((req, res) => {
-      const query = url.parse(req.url, true).query;
-      if (query.code) {
+      const reqUrl = new URL(req.url || '/', 'http://localhost:3000');
+      const authCode = reqUrl.searchParams.get('code');
+      if (authCode) {
         res.end('Authentication successful! You can close this tab.');
-        server.close();
-        resolve(query.code);
+        server.close(() => {
+          sockets.forEach((socket) => socket.destroy());
+        });
+        if (typeof server.closeAllConnections === 'function') {
+          server.closeAllConnections();
+        }
+        resolve(authCode);
+        return;
       }
+
+      res.statusCode = 404;
+      res.end('Waiting for OAuth callback...');
+    });
+
+    server.on('connection', (socket) => {
+      sockets.add(socket);
+      socket.on('close', () => sockets.delete(socket));
     }).listen(3000, () => {
       console.error('Opening browser for authentication...');
-      open(authUrl);
+      open(authUrl, { wait: false }).catch(() => {
+        console.error('Could not auto-open browser. Open this URL manually:');
+        console.error(authUrl);
+      });
     });
+
+    server.unref();
   });
 
   const { tokens } = await oauth2Client.getToken(code);
   oauth2Client.setCredentials(tokens);
+  fs.mkdirSync(path.dirname(tokenPath), { recursive: true });
   fs.writeFileSync(tokenPath, JSON.stringify(tokens, null, 2));
   console.error('Token saved to', tokenPath);
 
@@ -102,8 +161,8 @@ function parseArgs(args = process.argv.slice(2)) {
     _: [],
     account: process.env.GTM_ACCOUNT_ID,
     container: process.env.GTM_CONTAINER_ID,
-    credentials: process.env.GTM_CREDENTIALS_PATH,
-    token: process.env.GTM_TOKEN_PATH,
+    credentials: process.env.GTM_CREDENTIALS_PATH || GTM_MANAGER_SKILL_CREDS_JSON,
+    token: process.env.GTM_TOKEN_PATH || getProjectTokenPath(),
     serviceKey: process.env.GTM_SERVICE_KEY_PATH,
     help: false,
   };
