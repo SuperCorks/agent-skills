@@ -1,0 +1,21 @@
+{
+  "name": "vimeo-ott-skill",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Read-only Vimeo OTT API helpers for agent workflows",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "accounts:list": "node scripts/list-accounts.js",
+    "auth:verify": "node scripts/verify-access.js",
+    "products:list": "node scripts/list-products.js",
+    "customers:list": "node scripts/list-customers.js",
+    "customers:read": "node scripts/read-customer.js",
+    "videos:list": "node scripts/list-videos.js",
+    "videos:read": "node scripts/read-video.js",
+    "live-events:list": "node scripts/list-live-events.js",
+    "analytics:read": "node scripts/read-analytics.js",
+    "get": "node scripts/get-resource.js"
+  }
+}
