@@ -10,13 +10,14 @@
  *     --query='{ business { id name } }'
  */
 
-const { parseArgs, validateRequired, printClientHelp } = require('../lib/cli');
+const { parseArgs, validateRequired, printClientHelp } = require("../lib/cli");
+const { getBooleanArg, resolveSingleEnvArgs } = require("../lib/config");
 const { getClientUrl } = require('../lib/endpoints');
 const { generateGuestClientToken } = require('../lib/auth');
 const { executeGraphQL, hasErrors, formatErrors } = require('../lib/graphql');
 
 async function main() {
-  const args = parseArgs();
+  const args = resolveSingleEnvArgs(parseArgs());
   
   if (args.help) {
     printClientHelp('scripts/query-client-public.js', { isKnown: false });
@@ -35,7 +36,7 @@ async function main() {
   const businessId = args['business-id'];
   const apiKey = args['api-key'];
   const query = args.query;
-  const verbose = args.verbose === true || args.verbose === 'true';
+  const verbose = getBooleanArg(args, "verbose");
   
   let variables = {};
   if (args.variables) {

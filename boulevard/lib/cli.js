@@ -75,6 +75,7 @@ Required:
   --query         GraphQL query or mutation
 
 Optional:
+  --env-file      Load BLVD_* and NEXT_PUBLIC_BLVD_ENV defaults from an env file
   --variables     JSON-encoded query variables
   --verbose       Show rate limit and debug info
   --help          Show this help message
@@ -115,7 +116,8 @@ Required:
 ${clientIdNote}
 
 Optional:
-${isKnown ? '' : '  --api-secret    API secret - ' + secretRequired + '\n'}  --variables     JSON-encoded query variables
+${isKnown ? '' : '  --api-secret    API secret - ' + secretRequired + '\n'}  --env-file      Load BLVD_* and NEXT_PUBLIC_BLVD_ENV defaults from an env file
+  --variables     JSON-encoded query variables
   --verbose       Show rate limit and debug info
   --help          Show this help message
 ${extraFlags.map(f => `  ${f}`).join('\n')}

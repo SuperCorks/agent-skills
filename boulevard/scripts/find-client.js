@@ -11,7 +11,8 @@
  *     --email=client@example.com
  */
 
-const { parseArgs, validateRequired } = require('../lib/cli');
+const { parseArgs, validateRequired } = require("../lib/cli");
+const { getBooleanArg, resolveSingleEnvArgs } = require("../lib/config");
 const { getAdminUrl } = require('../lib/endpoints');
 const { generateAdminToken } = require('../lib/auth');
 const { executeGraphQL, hasErrors, formatErrors } = require('../lib/graphql');
@@ -35,7 +36,7 @@ const FIND_CLIENT_QUERY = `
 `;
 
 async function main() {
-  const args = parseArgs();
+  const args = resolveSingleEnvArgs(parseArgs(), { requireApiSecret: true });
   
   if (args.help) {
     console.log(`
@@ -51,6 +52,7 @@ Required:
   --email         Client email address to search for
 
 Optional:
+  --env-file      Load BLVD_* and NEXT_PUBLIC_BLVD_ENV defaults from an env file
   --verbose       Show debug info
   --help          Show this help message
 
@@ -78,7 +80,7 @@ Example:
   const apiKey = args['api-key'];
   const apiSecret = args['api-secret'];
   const email = args.email;
-  const verbose = args.verbose === true || args.verbose === 'true';
+  const verbose = getBooleanArg(args, "verbose");
   
   const url = getAdminUrl(env);
   const token = generateAdminToken(businessId, apiKey, apiSecret);

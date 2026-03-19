@@ -17,6 +17,7 @@
 const fs = require("fs");
 const path = require("path");
 const { parseArgs, validateRequired } = require("../lib/cli");
+const { resolveSingleEnvArgs } = require("../lib/config");
 const { getAdminUrl, getClientUrl } = require("../lib/endpoints");
 const {
   generateAdminToken,
@@ -248,14 +249,14 @@ async function downloadSchema(label, url, token) {
 }
 
 async function main() {
-  const args = parseArgs();
+  const args = resolveSingleEnvArgs(parseArgs(), { requireApiSecret: true });
 
   try {
     validateRequired(args, ["env", "business-id", "api-key", "api-secret"]);
   } catch (err) {
     console.error(`Error: ${err.message}`);
     console.error(
-      "\nUsage: node scripts/download-schemas.js --env=prod --business-id=X --api-key=Y --api-secret=Z"
+      "\nUsage: node scripts/download-schemas.js --env=prod --business-id=X --api-key=Y --api-secret=Z [--env-file=.env.local]"
     );
     process.exit(1);
   }

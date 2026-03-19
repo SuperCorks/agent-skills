@@ -12,13 +12,17 @@
  *     --query='{ client { id firstName memberships { edges { node { id } } } } }'
  */
 
-const { parseArgs, validateRequired, printClientHelp } = require('../lib/cli');
+const { parseArgs, validateRequired, printClientHelp } = require("../lib/cli");
+const { getBooleanArg, resolveSingleEnvArgs } = require("../lib/config");
 const { getClientUrl } = require('../lib/endpoints');
 const { generateKnownClientToken } = require('../lib/auth');
 const { executeGraphQL, hasErrors, formatErrors } = require('../lib/graphql');
 
 async function main() {
-  const args = parseArgs();
+  const args = resolveSingleEnvArgs(parseArgs(), {
+    requireApiSecret: true,
+    includeClientId: true,
+  });
   
   if (args.help) {
     printClientHelp('scripts/query-client-known.js', { isKnown: true });
@@ -39,7 +43,7 @@ async function main() {
   const apiSecret = args['api-secret'];
   const clientId = args['client-id'];
   const query = args.query;
-  const verbose = args.verbose === true || args.verbose === 'true';
+  const verbose = getBooleanArg(args, "verbose");
   
   let variables = {};
   if (args.variables) {

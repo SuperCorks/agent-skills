@@ -11,13 +11,14 @@
  *     --query='{ locations(first: 10) { edges { node { id name } } } }'
  */
 
-const { parseArgs, validateRequired, printAdminHelp } = require('../lib/cli');
+const { parseArgs, validateRequired, printAdminHelp } = require("../lib/cli");
+const { getBooleanArg, resolveSingleEnvArgs } = require("../lib/config");
 const { getAdminUrl } = require('../lib/endpoints');
 const { generateAdminToken } = require('../lib/auth');
 const { executeGraphQL, hasErrors, formatErrors } = require('../lib/graphql');
 
 async function main() {
-  const args = parseArgs();
+  const args = resolveSingleEnvArgs(parseArgs(), { requireApiSecret: true });
   
   if (args.help) {
     printAdminHelp('scripts/query-admin.js');
@@ -37,7 +38,7 @@ async function main() {
   const apiKey = args['api-key'];
   const apiSecret = args['api-secret'];
   const query = args.query;
-  const verbose = args.verbose === true || args.verbose === 'true';
+  const verbose = getBooleanArg(args, "verbose");
   
   let variables = {};
   if (args.variables) {

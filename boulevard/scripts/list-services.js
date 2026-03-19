@@ -10,7 +10,8 @@
  *     --api-secret=YOUR_API_SECRET
  */
 
-const { parseArgs, validateRequired } = require('../lib/cli');
+const { parseArgs, validateRequired } = require("../lib/cli");
+const { getBooleanArg, resolveSingleEnvArgs } = require("../lib/config");
 const { getAdminUrl } = require('../lib/endpoints');
 const { generateAdminToken } = require('../lib/auth');
 const { fetchAllPages } = require('../lib/pagination');
@@ -46,7 +47,7 @@ const LIST_SERVICES_QUERY = `
 `;
 
 async function main() {
-  const args = parseArgs();
+  const args = resolveSingleEnvArgs(parseArgs(), { requireApiSecret: true });
   
   if (args.help) {
     console.log(`
@@ -61,6 +62,7 @@ Required:
   --api-secret    API application secret (base64-encoded)
 
 Optional:
+  --env-file      Load BLVD_* and NEXT_PUBLIC_BLVD_ENV defaults from an env file
   --verbose       Show pagination progress
   --help          Show this help message
 
@@ -86,7 +88,7 @@ Output:
   const businessId = args['business-id'];
   const apiKey = args['api-key'];
   const apiSecret = args['api-secret'];
-  const verbose = args.verbose === true || args.verbose === 'true';
+  const verbose = getBooleanArg(args, "verbose");
   
   const url = getAdminUrl(env);
   const token = generateAdminToken(businessId, apiKey, apiSecret);
