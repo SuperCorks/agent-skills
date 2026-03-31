@@ -1,0 +1,18 @@
+{
+  "name": "godaddy-skill",
+  "version": "1.0.0",
+  "private": true,
+  "description": "GoDaddy domain and DNS helpers for agent workflows",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "accounts:list": "node scripts/list-accounts.js",
+    "auth:verify": "node scripts/verify-access.js",
+    "domains:list": "node scripts/list-domains.js",
+    "records:list": "node scripts/list-records.js",
+    "records:check": "node scripts/check-record.js",
+    "records:create": "node scripts/create-record.js",
+    "records:replace": "node scripts/replace-record-set.js"
+  }
+}
