@@ -109,7 +109,7 @@ For each item to address:
 2. Apply the fix
 3. Note the change made
 
-### Step 5: Commit and Push
+### Step 5: Commit, Push, and Verify
 
 ```bash
 git add -A
@@ -121,7 +121,16 @@ git commit -m "fix: address PR review comments
 git push
 ```
 
+This is a hard gate before any PR replies are posted.
+
+- Do not reply to review threads before the fix commit is pushed to the PR branch.
+- Do not post the final PR summary comment before the push completes.
+- If you mention a fix in a reply, make sure the reviewer can fetch it from the remote branch immediately.
+- If you made changes, verify the push succeeded before continuing.
+
 ### Step 6: Reply to Thread Comments (Optional)
+
+Only do this after Step 5 is complete and the branch is up to date on the remote.
 
 If the review summary JSON includes `unresolvedThreads` from the latest review, reply to those threads:
 
@@ -157,6 +166,8 @@ node .github/skills/address-pr-comments/pr-reply.js --batch /tmp/replies.json
 
 ### Step 7: Post Summary Comment
 
+Only do this after Step 5 is complete and any referenced fixes are already pushed.
+
 Post a summary comment covering only the **latest review's** actionable comments and nitpicks:
 
 ```bash
@@ -181,3 +192,4 @@ node .github/skills/address-pr-comments/pr-reply.js --pr-comment --message "## P
 4. **Keep replies brief**: One line for addressed items, one line + reason for skipped
 5. **Batch operations**: Always use `--dry-run` first to verify before posting
 6. **Approval gate**: Do not start implementing fixes until the user confirms the Step 3 plan, unless explicit auto-approval was requested
+7. **Push before replying**: After making changes, commit and push first; only then reply to review threads or post the PR summary comment
