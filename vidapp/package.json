@@ -1,0 +1,17 @@
+{
+  "name": "vidapp-skill",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Read-only VidApp API helpers for agent workflows",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "auth:verify": "node scripts/verify-access.js",
+    "analytics:read": "node scripts/read-analytics.js",
+    "watch-history:read": "node scripts/read-watch-history.js",
+    "user-tags:read": "node scripts/read-user-tags.js",
+    "collection:read": "node scripts/read-collection.js",
+    "get": "node scripts/get-resource.js"
+  }
+}
