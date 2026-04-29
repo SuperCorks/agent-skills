@@ -55,17 +55,16 @@ npx --package=@supercorks/skills-installer skills-installer install
 ```
 
 This will:
-1. Let you choose local or global installation paths for Copilot, Codex, and Claude
+1. Let you choose global or local installation paths for Copilot, Codex, and Claude
 2. Optionally add the path to `.gitignore`
-3. Let you select which skills to install via checkboxes
-4. Sparse-clone only the selected skills
+3. Let you select which skills to install via checkboxes, once for all selected install paths
+4. Sparse-clone only the selected skills into each selected path
 
 Common skill targets include:
 
 | Harness | Local | Global |
 |---------|-------|--------|
-| Copilot | `.github/skills/` | `~/.copilot/skills/` |
-| Codex | `.agents/skills/` | `~/.agents/skills/` |
+| Copilot/Codex | `.agents/skills/` | `~/.agents/skills/` |
 | Claude | `.claude/skills/` | `~/.claude/skills/` |
 
 ### Option 2: Clone specific skills manually
@@ -74,8 +73,8 @@ Use Git sparse-checkout to clone only the skills you need:
 
 ```bash
 # Clone the repo without checking out files
-git clone --filter=blob:none --sparse https://github.com/supercorks/agent-skills.git .github/skills
-cd .github/skills
+git clone --filter=blob:none --sparse https://github.com/supercorks/agent-skills.git .agents/skills
+cd .agents/skills
 
 # Checkout only the skills you need
 git sparse-checkout set address-pr-comments boulevard browserbase describe-image gtm-manager skills-browser
@@ -83,11 +82,11 @@ git sparse-checkout set address-pr-comments boulevard browserbase describe-image
 
 ### Option 3: Copy skills to your project
 
-Copy the skill folder to your project's `.github/skills/` directory:
+Copy the skill folder to your project's `.agents/skills/` directory:
 
 ```bash
 # From a cloned agent-skills repo
-cp -r address-pr-comments /path/to/your/project/.github/skills/
+cp -r address-pr-comments /path/to/your/project/.agents/skills/
 ```
 
 ## Updating Skills
@@ -95,7 +94,7 @@ cp -r address-pr-comments /path/to/your/project/.github/skills/
 If you installed using sparse-checkout (Option 1 or 2):
 
 ```bash
-cd .github/skills  # or wherever you installed
+cd .agents/skills  # or wherever you installed
 git pull
 ```
 
