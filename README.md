@@ -106,8 +106,10 @@ Each skill follows this structure:
 ```
 skill-name/
 ├── SKILL.md          # Main skill documentation (read by AI)
+├── package.json      # Optional helper script manifest
+├── sources.json      # Optional data/config used by helper scripts
+├── lib/              # Optional shared utilities
 └── scripts/          # Supporting scripts and tools
-    ├── lib.js        # Shared utilities
     └── *.js          # Individual command scripts
 ```
 
