@@ -12,6 +12,7 @@ A collection of AI agent skills for GitHub Copilot and other AI assistants.
 |-------|-------------|
 | [address-pr-comments](address-pr-comments) | Address PR review comments from automated and human reviewers |
 | [boulevard](boulevard) | Query Boulevard Admin, Public Client, and Known Client APIs. Compare and sync services between Boulevard instances |
+| [browserbase](browserbase) | Browserbase browser automation, Fetch/Search, remote auth contexts, UI QA, debugging, tracing, and platform workflows |
 | [describe-image](describe-image) | Generates a short text description of an image file using AI |
 | [feature-dev](feature-dev) | A 7-phase standard workflow for robust feature development, from discovery to shipping |
 | [frontend-design](frontend-design) | Guidelines for creating distinctive, non-generic user interfaces |
@@ -53,7 +54,7 @@ git clone --filter=blob:none --sparse https://github.com/supercorks/agent-skills
 cd .github/skills
 
 # Checkout only the skills you need
-git sparse-checkout set address-pr-comments boulevard describe-image gtm-manager
+git sparse-checkout set address-pr-comments boulevard browserbase describe-image gtm-manager
 ```
 
 ### Option 3: Copy skills to your project

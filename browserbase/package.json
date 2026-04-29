@@ -1,0 +1,15 @@
+{
+  "name": "browserbase-skill",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Browserbase multi-account helpers for agent workflows",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "accounts:list": "node scripts/list-accounts.js",
+    "auth:verify": "node scripts/verify-access.js",
+    "bb": "node scripts/run-bb.js",
+    "browse": "node scripts/run-browse.js"
+  }
+}
