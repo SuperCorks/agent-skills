@@ -1,0 +1,82 @@
+[
+  {
+    "repo": "github/awesome-copilot",
+    "trust": "high",
+    "sourceType": "community-curated",
+    "notes": "Large Copilot community catalog with skills, agents, prompts, instructions, and plugins.",
+    "bestFor": ["copilot", "github", "broad discovery", "community skills"],
+    "maxContentScan": 140
+  },
+  {
+    "repo": "openai/skills",
+    "trust": "high",
+    "sourceType": "official",
+    "notes": "Official Codex skills catalog with curated and system skills.",
+    "bestFor": ["codex", "playwright", "figma", "deployment", "security", "openai"],
+    "maxContentScan": 120
+  },
+  {
+    "repo": "anthropics/skills",
+    "trust": "high",
+    "sourceType": "official",
+    "notes": "Anthropic public Agent Skills reference repository.",
+    "bestFor": ["claude", "documents", "artifacts", "frontend", "mcp"],
+    "maxContentScan": 120
+  },
+  {
+    "repo": "microsoft/skills",
+    "trust": "high",
+    "sourceType": "official",
+    "notes": "Microsoft SDK and Azure-focused skills, custom agents, MCP servers, and AGENTS.md files.",
+    "bestFor": ["azure", "microsoft", "dotnet", "sdk", "cloud"],
+    "maxContentScan": 120
+  },
+  {
+    "repo": "addyosmani/agent-skills",
+    "trust": "high",
+    "sourceType": "independent-curated",
+    "notes": "Production-grade engineering skills for AI coding agents.",
+    "bestFor": ["engineering", "debugging", "testing", "frontend", "performance", "code review"],
+    "maxContentScan": 120
+  },
+  {
+    "repo": "Gentleman-Programming/Gentleman-Skills",
+    "trust": "medium-high",
+    "sourceType": "community-curated",
+    "notes": "Framework-oriented skills for Claude Code, OpenCode, and other assistants.",
+    "bestFor": ["react native", "mobile", "nextjs", "angular", "django", "typescript", "playwright"],
+    "maxContentScan": 120
+  },
+  {
+    "repo": "AgentWorkforce/relay",
+    "trust": "medium",
+    "sourceType": "project-local",
+    "notes": "Agent orchestration and relay workflow skills under .agents and .claude paths.",
+    "bestFor": ["agent orchestration", "swarm", "relay", "browser testing"],
+    "maxContentScan": 100
+  },
+  {
+    "repo": "dbmcco/claude-agent-toolkit",
+    "trust": "medium",
+    "sourceType": "community",
+    "notes": "Integration-heavy Claude skills, especially Google Workspace and orchestration workflows.",
+    "bestFor": ["google workspace", "gmail", "sheets", "docs", "orchestration", "obsidian"],
+    "maxContentScan": 100
+  },
+  {
+    "repo": "sickn33/antigravity-awesome-skills",
+    "trust": "low-filtered",
+    "sourceType": "large-aggregator",
+    "notes": "Very large aggregator; useful for broad discovery but requires careful filtering for quality and duplicates.",
+    "bestFor": ["ios", "swift", "expo", "mobile", "broad discovery"],
+    "maxContentScan": 40
+  },
+  {
+    "repo": "alirezarezvani/claude-skills",
+    "trust": "low-filtered",
+    "sourceType": "large-community",
+    "notes": "Broad cross-agent skills collection surfaced from social search; validate individual hits before recommending.",
+    "bestFor": ["broad discovery", "business", "marketing", "product", "compliance"],
+    "maxContentScan": 50
+  }
+]

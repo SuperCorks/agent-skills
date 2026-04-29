@@ -1,0 +1,12 @@
+{
+  "name": "skills-browser-skill",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Search curated public Agent Skills repositories for skills matching a query",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "search": "node scripts/search-skills.js"
+  }
+}
