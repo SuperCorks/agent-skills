@@ -10,6 +10,30 @@ function ensureExecutable(binary, installHint) {
   return result.stdout.trim();
 }
 
+function resolveExecutable(binary, installHint, npxPackage) {
+  const installedBinary = spawnSync('which', [binary], { encoding: 'utf8' });
+  if (installedBinary.status === 0) {
+    return {
+      command: binary,
+      prefixArgs: [],
+      source: 'installed',
+    };
+  }
+
+  if (npxPackage) {
+    const npxBinary = spawnSync('which', ['npx'], { encoding: 'utf8' });
+    if (npxBinary.status === 0) {
+      return {
+        command: 'npx',
+        prefixArgs: ['--yes', npxPackage],
+        source: 'npx',
+      };
+    }
+  }
+
+  throw new SkillError('BROWSERBASE_CLI_MISSING', `${binary} not found. ${installHint}`);
+}
+
 function runCommand(binary, args, options = {}) {
   const result = spawnSync(binary, args, {
     stdio: options.stdio || 'inherit',
@@ -31,5 +55,6 @@ function runCommand(binary, args, options = {}) {
 
 module.exports = {
   ensureExecutable,
+  resolveExecutable,
   runCommand,
 };

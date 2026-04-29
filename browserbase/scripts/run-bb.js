@@ -2,7 +2,7 @@
 
 const { parseArgs, printHelp, outputError, requirePassthroughCommand } = require('../lib/cli');
 const { parseAccounts, resolveAccount, buildAccountEnv } = require('../lib/accounts');
-const { ensureExecutable, runCommand } = require('../lib/command');
+const { resolveExecutable, runCommand } = require('../lib/command');
 
 const HELP = `
 Run the Browserbase bb CLI with a selected account.
@@ -23,13 +23,17 @@ function main() {
   }
 
   const commandArgs = requirePassthroughCommand(passthrough, 'bb');
-  ensureExecutable('bb', 'Run: npm install -g @browserbasehq/cli');
+  const executable = resolveExecutable(
+    'bb',
+    'Run: npm install -g @browserbasehq/cli or rely on npx fallback',
+    '@browserbasehq/cli'
+  );
 
   const accounts = parseAccounts(process.env.BROWSERBASE_ACCOUNTS);
   const account = resolveAccount(accounts, args.account);
   const env = buildAccountEnv(account);
 
-  runCommand('bb', commandArgs, { env });
+  runCommand(executable.command, [...executable.prefixArgs, ...commandArgs], { env });
 }
 
 try {

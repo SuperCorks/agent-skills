@@ -7,6 +7,60 @@ description: 'Use Browserbase and the browse CLI for browser automation, Fetch/S
 
 Use this skill when a task involves Browserbase, the `browse` CLI, browser automation, cloud browser sessions, Browserbase Fetch/Search APIs, authenticated remote browsing, UI QA, browser automation debugging, trace capture, or Browserbase Functions.
 
+## Start Here
+
+Use the lightest tool that will answer the question:
+
+- Need official docs or candidate pages fast: use search.
+- Need page content without interaction: use fetch.
+- Need clicks, typing, snapshots, auth state, or runtime inspection: use browse.
+- Need projects, sessions, contexts, usage, or functions: use `bb` platform commands.
+
+Default research loop:
+
+1. Search for the right official page.
+2. Fetch the one or two best matching URLs.
+3. Only open a browser if the page needs interaction or the static content is insufficient.
+
+## Fast Paths
+
+### Research Official Docs
+
+```bash
+node ${BROWSERBASE_SKILL_DIR:-.}/scripts/run-bb.js --account prod -- search "site:code.visualstudio.com Copilot agent skills"
+node ${BROWSERBASE_SKILL_DIR:-.}/scripts/run-bb.js --account prod -- search "site:developers.openai.com Codex skills"
+node ${BROWSERBASE_SKILL_DIR:-.}/scripts/run-bb.js --account prod -- search "site:code.claude.com Claude Code skills"
+```
+
+### Fetch A Known Docs Page
+
+```bash
+node ${BROWSERBASE_SKILL_DIR:-.}/scripts/run-bb.js --account prod -- fetch https://code.visualstudio.com/docs/copilot/customization/agent-skills --output /tmp/copilot-agent-skills.html
+node ${BROWSERBASE_SKILL_DIR:-.}/scripts/run-bb.js --account prod -- fetch https://developers.openai.com/codex/skills --output /tmp/codex-skills.html
+```
+
+Then inspect the saved output with normal shell tools:
+
+```bash
+rg -i "skills|agents|global|local|~/.copilot|~/.agents|.claude" /tmp/copilot-agent-skills.html /tmp/codex-skills.html
+```
+
+### Open A Page Only When Interaction Matters
+
+```bash
+node ${BROWSERBASE_SKILL_DIR:-.}/scripts/run-browse.js --account prod -- open https://example.com
+node ${BROWSERBASE_SKILL_DIR:-.}/scripts/run-browse.js --account prod -- snapshot
+node ${BROWSERBASE_SKILL_DIR:-.}/scripts/run-browse.js --account prod -- stop
+```
+
+### Platform Inspection
+
+```bash
+node ${BROWSERBASE_SKILL_DIR:-.}/scripts/run-bb.js --account prod -- projects list
+node ${BROWSERBASE_SKILL_DIR:-.}/scripts/run-bb.js --account prod -- sessions get <session_id>
+node ${BROWSERBASE_SKILL_DIR:-.}/scripts/run-bb.js --account prod -- contexts list
+```
+
 ## Overview
 
 This skill merges the reusable Browserbase workflows into one account-aware playbook:
@@ -28,6 +82,8 @@ Use the lightest mode that satisfies the request. Search or fetch before opening
 - Chrome or Chromium for local browsing and cookie sync workflows
 - `browse` CLI: `npm install -g @browserbasehq/browse-cli`
 - `bb` CLI: `npm install -g @browserbasehq/cli`
+
+The wrappers in this skill prefer installed CLIs, but if `bb` or `browse` are not globally installed and `npx` is available, they automatically fall back to `npx --yes @browserbasehq/cli` and `npx --yes @browserbasehq/browse-cli`.
 
 ### Multi-Account Environment Variables
 
@@ -58,6 +114,8 @@ Supported account fields:
 
 When multiple accounts are configured, pass `--account <name>`. If only one account is configured, it is selected automatically.
 
+Treat `BROWSERBASE_ACCOUNTS` as the source of truth. Only use direct `BROWSERBASE_API_KEY` and related fallback variables when you intentionally want a single default account.
+
 ### Single-Account Fallback
 
 For simple setups, the scripts also accept the upstream environment variables directly:
@@ -73,8 +131,8 @@ This fallback resolves as an account named `default`.
 ## Setup Check
 
 ```bash
-which browse || npm install -g @browserbasehq/browse-cli
-which bb || npm install -g @browserbasehq/cli
+command -v browse || command -v npx
+command -v bb || command -v npx
 node ${BROWSERBASE_SKILL_DIR:-.}/scripts/list-accounts.js
 node ${BROWSERBASE_SKILL_DIR:-.}/scripts/verify-access.js --account sandbox
 ```
@@ -153,6 +211,8 @@ node ${BROWSERBASE_SKILL_DIR:-.}/scripts/run-bb.js --account prod -- fetch https
 node ${BROWSERBASE_SKILL_DIR:-.}/scripts/run-bb.js --account prod -- search "browserbase docs"
 ```
 
+This wrapper prefers the installed `bb` binary and falls back to `npx --yes @browserbasehq/cli` when needed.
+
 ### run-browse.js
 
 Run `browse` with the selected account's environment variables.
@@ -163,6 +223,8 @@ node ${BROWSERBASE_SKILL_DIR:-.}/scripts/run-browse.js --account prod -- open ht
 node ${BROWSERBASE_SKILL_DIR:-.}/scripts/run-browse.js --account prod -- snapshot
 node ${BROWSERBASE_SKILL_DIR:-.}/scripts/run-browse.js --account prod -- stop
 ```
+
+This wrapper prefers the installed `browse` binary and falls back to `npx --yes @browserbasehq/browse-cli` when needed.
 
 When the selected account includes `contextId`, `run-browse.js -- open ...` automatically appends `--context-id <id> --persist` unless the command already has `--context-id`. Use `--no-account-context` to skip that behavior for a one-off unauthenticated page load.
 
@@ -178,6 +240,8 @@ Use this decision order:
 6. If the user asks to test a UI, run a QA plan with browser evidence.
 7. If automation fails, switch to debugging: inspect URL, title, snapshot, console/network evidence, timing, auth state, and bot-detection symptoms.
 8. If ordinary evidence is insufficient, capture a trace or use Browserbase session artifacts.
+
+Prefer `search -> fetch -> browse`, in that order, for documentation and research tasks.
 
 ## Browser Workflows
 
@@ -218,6 +282,19 @@ node ${BROWSERBASE_SKILL_DIR:-.}/scripts/run-bb.js --account prod -- sessions ge
 node ${BROWSERBASE_SKILL_DIR:-.}/scripts/run-bb.js --account prod -- contexts create --body '{"region":"us-west-2"}'
 node ${BROWSERBASE_SKILL_DIR:-.}/scripts/run-bb.js --account prod -- extensions upload ./extension.zip
 ```
+
+For documentation research, do not guess CLI flags. Run subgroup help first, then the narrower command.
+
+## Fetch Limits And Fallbacks
+
+Browserbase Fetch is ideal for pulling a page into a file for later grep, but large documentation pages can exceed Browserbase response limits.
+
+When fetch is too large or fails for body-size reasons:
+
+1. Narrow the request to the exact docs page instead of a broader index page.
+2. Use search first and fetch only the best matching result instead of a landing page.
+3. Fall back to another page-extraction method in the host environment when you only need text content.
+4. Open the page in `browse` only if interaction or runtime state is required.
 
 ## Functions Workflows
 

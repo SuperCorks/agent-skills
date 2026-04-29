@@ -2,7 +2,7 @@
 
 const { parseArgs, printHelp, outputJson, outputError } = require('../lib/cli');
 const { parseAccounts, resolveAccount, buildAccountEnv, summarizeAccount } = require('../lib/accounts');
-const { ensureExecutable, runCommand } = require('../lib/command');
+const { resolveExecutable, runCommand } = require('../lib/command');
 
 const HELP = `
 Verify Browserbase API access for a selected account.
@@ -20,14 +20,18 @@ function main() {
     printHelp(HELP);
   }
 
-  ensureExecutable('bb', 'Run: npm install -g @browserbasehq/cli');
+  const executable = resolveExecutable(
+    'bb',
+    'Run: npm install -g @browserbasehq/cli or rely on npx fallback',
+    '@browserbasehq/cli'
+  );
 
   const accounts = parseAccounts(process.env.BROWSERBASE_ACCOUNTS);
   const account = resolveAccount(accounts, args.account);
   const env = buildAccountEnv(account);
   const startedAt = new Date().toISOString();
 
-  const result = runCommand('bb', ['projects', 'list'], {
+  const result = runCommand(executable.command, [...executable.prefixArgs, 'projects', 'list'], {
     env,
     stdio: 'pipe',
     encoding: 'utf8',
@@ -37,7 +41,7 @@ function main() {
     metadata: {
       account: account.name,
       verifiedAt: startedAt,
-      command: 'bb projects list',
+      command: `${executable.command} ${[...executable.prefixArgs, 'projects', 'list'].join(' ')}`,
     },
     account: summarizeAccount(account.name, account),
     verification: {
