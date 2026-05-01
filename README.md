@@ -25,6 +25,7 @@ A collection of AI agent skills for GitHub Copilot and other AI assistants.
 | [git-workflow-gates](git-workflow-gates) | Branch-state checks and post-documentation PR gate workflow for multi-repo workspaces |
 | [github-pr-formatting](github-pr-formatting) | Open clean draft PRs and post correctly formatted comments/bodies |
 | [godaddy](godaddy) | Manage GoDaddy domains and DNS records with multi-account API credentials |
+| [google-workspace](google-workspace) | Operate Drive, Gmail, Calendar, Sheets, Docs, etc. via the `@googleworkspace/cli` (`gws`) npm package |
 | [gtm-manager](gtm-manager) | Manage Google Tag Manager containers, tags, triggers, and variables |
 | [implementation-executor](implementation-executor) | Execute an approved implementation plan with focused changes and validation |
 | [iterable](iterable) | Read Iterable profiles, profile fields, list users, and user events with multi-account support |
