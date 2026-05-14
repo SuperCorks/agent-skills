@@ -43,7 +43,99 @@ The OAuth client's GCP project also needs the relevant APIs enabled (Drive, Gmai
 
 `GOOGLE_WORKSPACE_CLI_CLIENT_ID` + `GOOGLE_WORKSPACE_CLI_CLIENT_SECRET` env vars can replace `~/.config/gws/client_secret.json`.
 
-### 3. Authenticating
+### 3. Multi-Account Setup (Preferred)
+
+Use the bundled helper when more than one Google account may be involved, or whenever repeatable account selection matters. It follows the same alias-map pattern as the Slack and Asana skills, but stores Google OAuth refresh credentials in per-account files instead of putting secrets directly in an environment variable.
+
+Helper path:
+
+```bash
+node /Users/simon/.agents/skills/google-workspace/scripts/gws-account.mjs --help
+```
+
+The helper reads account aliases from `~/.config/gws/accounts.json` by default. `enroll` creates or updates that file automatically. You can also override configuration with `GOOGLE_WORKSPACE_ACCOUNTS`:
+
+```bash
+export GOOGLE_WORKSPACE_ACCOUNTS='{
+  "sim": {
+    "email": "simoncorcos.ing@gmail.com",
+    "credentialsFile": "~/.config/gws/accounts/sim.json"
+  },
+  "work": {
+    "email": "you@example.com",
+    "credentialsFile": "~/.config/gws/accounts/work.json"
+  }
+}'
+```
+
+Optionally set a shell/session default:
+
+```bash
+export GOOGLE_WORKSPACE_ACCOUNT=sim
+```
+
+Account resolution order:
+
+1. `--account <alias>` if supplied.
+2. `GOOGLE_WORKSPACE_ACCOUNT` if set.
+3. The only configured account, if exactly one exists.
+4. Otherwise fail with `GOOGLE_WORKSPACE_ACCOUNT_AMBIGUOUS` and list aliases.
+
+Enroll an account once:
+
+```bash
+node /Users/simon/.agents/skills/google-workspace/scripts/gws-account.mjs enroll \
+  --account sim \
+  --email simoncorcos.ing@gmail.com
+```
+
+This writes:
+
+- Per-account OAuth credentials: `~/.config/gws/accounts/sim.json`
+- Non-secret alias metadata: `~/.config/gws/accounts.json`
+
+By default, `enroll` requests identity, Drive, Sheets, and Gmail readonly scopes:
+
+```text
+openid,email,profile,https://www.googleapis.com/auth/userinfo.email,https://www.googleapis.com/auth/userinfo.profile,https://www.googleapis.com/auth/drive,https://www.googleapis.com/auth/spreadsheets,https://www.googleapis.com/auth/gmail.readonly
+```
+
+Override scopes only when a task needs less or more access:
+
+```bash
+node /Users/simon/.agents/skills/google-workspace/scripts/gws-account.mjs enroll \
+  --account sim \
+  --scopes openid,email,profile,https://www.googleapis.com/auth/userinfo.email,https://www.googleapis.com/auth/drive.readonly
+```
+
+Validate an account:
+
+```bash
+node /Users/simon/.agents/skills/google-workspace/scripts/gws-account.mjs whoami --account sim
+node /Users/simon/.agents/skills/google-workspace/scripts/gws-account.mjs status --account sim
+```
+
+Run arbitrary `gws` commands with a selected account:
+
+```bash
+node /Users/simon/.agents/skills/google-workspace/scripts/gws-account.mjs run --account sim -- \
+  drive files list --params '{"pageSize":10,"fields":"files(id,name,mimeType)"}'
+```
+
+Print shell exports for a resolved account when a longer manual session is easier:
+
+```bash
+node /Users/simon/.agents/skills/google-workspace/scripts/gws-account.mjs env --account sim
+```
+
+Security notes:
+
+- `enroll` writes credentials to `~/.config/gws/accounts/<alias>.json` with `0600` file permissions.
+- `enroll` writes alias metadata to `~/.config/gws/accounts.json`; this file stores credential paths and optional emails, not OAuth refresh tokens.
+- Do not print or paste unmasked exported credential JSON into chat, logs, commits, or docs.
+- If scopes are missing, re-run `enroll` for the same alias with the required scopes; this refreshes the per-account file.
+
+### 4. Authenticating Directly (Fallback)
 
 #### Path A — gws OAuth login (best for repeated use, refresh token is cached)
 
@@ -55,7 +147,7 @@ npx --yes @googleworkspace/cli auth login --services drive   # narrow to needed 
 npx --yes @googleworkspace/cli auth status
 ```
 
-`--services` accepts comma-separated names (e.g. `drive,gmail,sheets`). Without it, the consent screen shows the full scope list. Use `--readonly` for read-only scopes.
+`--services` accepts comma-separated names (e.g. `drive,gmail,sheets`). Without it, the consent screen shows the full scope list. Use `--readonly` for read-only scopes. This path uses the single global `gws` credential slot; prefer the multi-account helper above for repeat work.
 
 #### Path B — Reuse gcloud ADC (no second browser flow)
 
@@ -153,8 +245,8 @@ gws drive files list --params '{
 ```bash
 # gws sandboxes uploads to cwd — cd to the file's directory first
 cd /Users/me/Downloads
-export GOOGLE_WORKSPACE_CLI_TOKEN="$(gcloud auth application-default print-access-token)"
-gws drive files create \
+node /Users/simon/.agents/skills/google-workspace/scripts/gws-account.mjs run --account sim -- \
+  drive files create \
   --params '{"supportsAllDrives":true,"fields":"id,name,parents,driveId,webViewLink,size"}' \
   --json '{"name":"poster.pdf","parents":["<FOLDER_ID>"],"mimeType":"application/pdf"}' \
   --upload "poster.pdf" \
@@ -166,7 +258,8 @@ Returns `{id, name, parents, driveId, webViewLink, size}`.
 ### Download a file
 
 ```bash
-gws drive files get --params '{"fileId":"<FILE_ID>","alt":"media","supportsAllDrives":true}' \
+node /Users/simon/.agents/skills/google-workspace/scripts/gws-account.mjs run --account sim -- \
+  drive files get --params '{"fileId":"<FILE_ID>","alt":"media","supportsAllDrives":true}' \
   --output ./out.pdf
 ```
 
@@ -174,9 +267,11 @@ gws drive files get --params '{"fileId":"<FILE_ID>","alt":"media","supportsAllDr
 
 ```bash
 # Rename
-gws drive files update --params '{"fileId":"<ID>","supportsAllDrives":true}' --json '{"name":"new-name.pdf"}'
+node /Users/simon/.agents/skills/google-workspace/scripts/gws-account.mjs run --account sim -- \
+  drive files update --params '{"fileId":"<ID>","supportsAllDrives":true}' --json '{"name":"new-name.pdf"}'
 # Move (replace parent)
-gws drive files update --params '{"fileId":"<ID>","addParents":"<NEW_PARENT>","removeParents":"<OLD_PARENT>","supportsAllDrives":true}' --json '{}'
+node /Users/simon/.agents/skills/google-workspace/scripts/gws-account.mjs run --account sim -- \
+  drive files update --params '{"fileId":"<ID>","addParents":"<NEW_PARENT>","removeParents":"<OLD_PARENT>","supportsAllDrives":true}' --json '{}'
 ```
 
 ## Gmail recipes
@@ -184,13 +279,15 @@ gws drive files update --params '{"fileId":"<ID>","addParents":"<NEW_PARENT>","r
 ### List recent messages
 
 ```bash
-gws gmail users messages list --params '{"userId":"me","q":"in:inbox newer_than:7d","maxResults":20}'
+node /Users/simon/.agents/skills/google-workspace/scripts/gws-account.mjs run --account sim -- \
+  gmail users messages list --params '{"userId":"me","q":"in:inbox newer_than:7d","maxResults":20}'
 ```
 
 ### Get a message body
 
 ```bash
-gws gmail users messages get --params '{"userId":"me","id":"<MESSAGE_ID>","format":"full"}'
+node /Users/simon/.agents/skills/google-workspace/scripts/gws-account.mjs run --account sim -- \
+  gmail users messages get --params '{"userId":"me","id":"<MESSAGE_ID>","format":"full"}'
 ```
 
 ### Send a message
@@ -198,7 +295,8 @@ gws gmail users messages get --params '{"userId":"me","id":"<MESSAGE_ID>","forma
 ```bash
 # Build a base64url-encoded RFC 822 message
 RAW=$(printf 'To: a@b.com\r\nSubject: hi\r\n\r\nbody' | base64 | tr -d '=' | tr '/+' '_-' | tr -d '\n')
-gws gmail users messages send --params '{"userId":"me"}' --json "{\"raw\":\"$RAW\"}"
+node /Users/simon/.agents/skills/google-workspace/scripts/gws-account.mjs run --account sim -- \
+  gmail users messages send --params '{"userId":"me"}' --json "{\"raw\":\"$RAW\"}"
 ```
 
 ⚠️ Sending mail on behalf of the user requires explicit user permission per request.
@@ -208,7 +306,8 @@ gws gmail users messages send --params '{"userId":"me"}' --json "{\"raw\":\"$RAW
 ### List upcoming events
 
 ```bash
-gws calendar events list --params "{
+node /Users/simon/.agents/skills/google-workspace/scripts/gws-account.mjs run --account sim -- \
+  calendar events list --params "{
   \"calendarId\":\"primary\",
   \"timeMin\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",
   \"singleEvents\":true,
@@ -220,7 +319,8 @@ gws calendar events list --params "{
 ### Create an event
 
 ```bash
-gws calendar events insert --params '{"calendarId":"primary"}' --json '{
+node /Users/simon/.agents/skills/google-workspace/scripts/gws-account.mjs run --account sim -- \
+  calendar events insert --params '{"calendarId":"primary"}' --json '{
   "summary":"Sync",
   "start":{"dateTime":"2026-05-02T10:00:00-04:00"},
   "end":{"dateTime":"2026-05-02T10:30:00-04:00"}
@@ -231,10 +331,12 @@ gws calendar events insert --params '{"calendarId":"primary"}' --json '{
 
 ```bash
 # Read a range
-gws sheets spreadsheets values get --params '{"spreadsheetId":"<SHEET_ID>","range":"Sheet1!A1:D"}'
+node /Users/simon/.agents/skills/google-workspace/scripts/gws-account.mjs run --account sim -- \
+  sheets spreadsheets values get --params '{"spreadsheetId":"<SHEET_ID>","range":"Sheet1!A1:D"}'
 
 # Write/append
-gws sheets spreadsheets values append \
+node /Users/simon/.agents/skills/google-workspace/scripts/gws-account.mjs run --account sim -- \
+  sheets spreadsheets values append \
   --params '{"spreadsheetId":"<SHEET_ID>","range":"Sheet1!A:D","valueInputOption":"USER_ENTERED"}' \
   --json '{"values":[["Alice",30,"a@x.com","2026-05-01"]]}'
 ```
@@ -253,8 +355,9 @@ gws sheets spreadsheets values append \
 - **`--upload` path sandbox**: paths outside cwd are rejected with `outside the current directory`. Fix: `cd` to the parent dir, pass a relative or basename path.
 - **Argument naming**: prefer `--params '{…}'` for query/path params; named flags like `--pageSize`, `--q`, `--corpora` are not exposed.
 - **Shared drives**: always set `supportsAllDrives:true` (and `includeItemsFromAllDrives:true` on list-style methods). Without these you'll silently see only My Drive items.
-- **Token expiry**: `GOOGLE_WORKSPACE_CLI_TOKEN` is a 1-hour access token. Re-export from `gcloud auth application-default print-access-token` when calls start failing with 401.
+- **Token expiry**: `GOOGLE_WORKSPACE_CLI_TOKEN` is a 1-hour access token. Prefer per-account credential files through `scripts/gws-account.mjs`; use ADC tokens only for one-off fallback work.
 - **Default OAuth client cannot access Workspace data**: the gcloud built-in client is restricted to `cloud-platform`. Always pass `--client-id-file=` to `application-default login` for Drive/Gmail/etc. scopes, or use `gws auth login` with your own client.
+- **Multi-account ambiguity**: if `GOOGLE_WORKSPACE_ACCOUNTS` has multiple aliases, pass `--account <alias>` or set `GOOGLE_WORKSPACE_ACCOUNT` before running the helper.
 - **Output is JSON**: pipe through `jq` for transformation. `--page-all` emits NDJSON (one page object per line) — use `jq -s '[.[].files[]]'` to flatten.
 
 ## Discovering capabilities
@@ -273,6 +376,6 @@ The CLI also bundles "skills" / workflows (cross-service shortcuts) under `gws w
 
 Before running any write op (upload, send, modify, delete), confirm with the user:
 
-1. Which **account** is authenticated (`gws auth status` → `account` field).
+1. Which **account alias** is selected (`scripts/gws-account.mjs resolve --account <alias>`) and which Google user it maps to (`scripts/gws-account.mjs whoami --account <alias>`).
 2. Which **destination** (drive ID + folder path, or recipient email).
 3. The **action** — uploads, sends, deletes are not reversible without effort.
