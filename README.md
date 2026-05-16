@@ -12,6 +12,7 @@ A collection of AI agent skills for GitHub Copilot and other AI assistants.
 | Skill | Description |
 |-------|-------------|
 | [address-pr-comments](address-pr-comments) | Address PR review comments from automated and human reviewers |
+| [agent-thread-reader](agent-thread-reader) | Read local Codex, Copilot, and Claude Code agent thread/session history |
 | [architect-planning](architect-planning) | Problem framing and decision-complete implementation planning before code changes |
 | [asana-reader](asana-reader) | Read Asana tasks by URL, ID, or name search with multi-account support |
 | [boulevard](boulevard) | Query Boulevard APIs, discover availability, book sandbox appointments, and compare or sync services/packages |
