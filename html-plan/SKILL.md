@@ -66,11 +66,12 @@ Every HTML plan should include:
 For frontend, design, or product plans, include:
 
 - Figma/design references, node IDs, screenshots, or current/target comparisons when available.
+- Embedded HTML mockups or prototypes by default for any plan with a meaningful frontend, dashboard, or product UI surface. Use low-fidelity wireframes when final visuals are unknown. Skip only when the user explicitly declines visuals or the plan is purely non-UI.
 - UX behavior, states, responsive behavior, empty/error/loading cases, and URL parameter behavior.
 - Content and data-model requirements per feature.
 - UI acceptance criteria precise enough for visual QA.
-- Ask if screenshots are needed
-- Ask if the plan should include prototypes or html mockups.
+- Ask if screenshots are needed.
+- Ask whether the mockups should be high fidelity when that choice materially changes the work.
 
 For data, QA, analytics, or dashboard plans, include:
 
@@ -111,6 +112,7 @@ Before finalizing the plan, check that it does not repeat common failure modes:
 - Data/content model implications are included where relevant.
 - Compliance assumptions are explicit.
 - Environment, deploy, preview, rollback, and config details are covered.
+- Frontend, dashboard, or product plans include embedded mockups/prototypes or clearly explain why visuals were intentionally skipped.
 - UI details are testable rather than vague.
 - Source-of-truth comparisons go beyond warehouse data when platform reports matter.
 - Plan-only requests did not result in implementation changes.
