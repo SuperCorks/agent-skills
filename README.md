@@ -28,6 +28,7 @@ A collection of AI agent skills for GitHub Copilot and other AI assistants.
 | [godaddy](godaddy) | Manage GoDaddy domains and DNS records with multi-account API credentials |
 | [google-workspace](google-workspace) | Operate Drive, Gmail, Calendar, Sheets, Docs, etc. via the `@googleworkspace/cli` (`gws`) npm package |
 | [gtm-manager](gtm-manager) | Manage Google Tag Manager containers, tags, triggers, and variables |
+| [html-plan](html-plan) | Create reviewable HTML planning artifacts for implementation, QA, rollout, design, data, compliance, architecture, and handoff work |
 | [implementation-executor](implementation-executor) | Execute an approved implementation plan with focused changes and validation |
 | [iterable](iterable) | Read Iterable profiles, profile fields, list users, and user events with multi-account support |
 | [pr-review-guidelines](pr-review-guidelines) | Code review rubric focused on correctness, maintainability, consistency, and evidence-backed gates |

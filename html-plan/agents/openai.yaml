@@ -1,0 +1,4 @@
+interface:
+  display_name: "HTML Plan"
+  short_description: "Build reviewable HTML planning artifacts"
+  default_prompt: "Use $html-plan to create a self-contained HTML implementation plan for this project."
