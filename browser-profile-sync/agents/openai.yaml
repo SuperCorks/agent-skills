@@ -1,0 +1,4 @@
+interface:
+  display_name: "Browser Profile Sync"
+  short_description: "Merge bookmarks and mirror Chromium cookies"
+  default_prompt: "Use $browser-profile-sync to merge Chromium bookmarks or mirror cookies between Chrome, Brave, and Comet locally."
