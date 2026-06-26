@@ -42,6 +42,7 @@ ROOT_DISPLAY_NAMES = {
     "other": "Other Bookmarks",
     "synced": "Mobile Bookmarks",
 }
+BOOKMARK_STORE_ORDER = ("AccountBookmarks", "Bookmarks")
 
 
 def now_stamp() -> str:
@@ -80,12 +81,33 @@ def require_not_running(browsers: list[str], allow_running: bool) -> None:
         )
 
 
+def load_bookmark_file(path: Path) -> dict:
+    if not path.exists():
+        raise SystemExit(f"No bookmark file at {path}")
+    with path.open("r", encoding="utf-8") as fh:
+        return json.load(fh)
+
+
 def load_bookmarks(browser: str) -> dict:
     path = browser_path(browser, "Bookmarks")
     if not path.exists():
         raise SystemExit(f"{browser} has no Bookmarks file at {path}")
-    with path.open("r", encoding="utf-8") as fh:
-        return json.load(fh)
+    return load_bookmark_file(path)
+
+
+def existing_bookmark_stores(browser: str) -> list[tuple[str, Path, dict]]:
+    stores = []
+    for filename in BOOKMARK_STORE_ORDER:
+        path = browser_path(browser, filename)
+        if path.exists():
+            stores.append((f"{browser}:{filename}", path, load_bookmark_file(path)))
+    if not stores:
+        raise SystemExit(f"{browser} has no bookmark stores in {BROWSERS[browser]['profile']}")
+    return stores
+
+
+def preferred_bookmark_store(browser: str) -> tuple[str, Path, dict]:
+    return existing_bookmark_stores(browser)[0]
 
 
 def iter_url_nodes(node: dict, root_key: str, folder_path: tuple[str, ...] = (), *, is_root: bool = False):
@@ -175,6 +197,17 @@ def choose_destination(base_data: dict, source_item: dict) -> tuple[str, tuple[s
     if root != "bookmark_bar" and folders and folder_exists(base_data, "bookmark_bar", folders):
         return "bookmark_bar", folders
     return root, folders
+
+
+def normalize_source_item(item: dict) -> dict:
+    item = dict(item)
+    folders = item["folders"]
+    # Comet/Brave imports can end up as Bookmarks Bar > Other Bookmarks > ...
+    # For a Chrome-account base, flatten that wrapper so the imported folders are visible.
+    if item["root"] == "bookmark_bar" and folders[:1] == ("Other Bookmarks",):
+        item["folders"] = folders[1:]
+        item["path"] = "/".join(("bookmark_bar", *item["folders"]))
+    return item
 
 
 def clone_url_node(node: dict) -> dict:
@@ -284,12 +317,22 @@ def analyze_bookmarks(source_data: dict[str, dict], merged: dict, added: list[di
 
 
 def merge_bookmarks(base: str, sources: list[str]) -> tuple[dict, dict]:
-    source_data = {source: load_bookmarks(source) for source in sources}
-    if base not in source_data:
-        source_data[base] = load_bookmarks(base)
+    source_data = {}
+    source_paths = {}
+    for source in sources:
+        for label, path, data in existing_bookmark_stores(source):
+            source_data[label] = data
+            source_paths[label] = str(path)
 
-    merged = copy.deepcopy(source_data[base])
-    merged.pop("sync_metadata", None)
+    base_label, base_path, base_data = preferred_bookmark_store(base)
+    if base_label not in source_data:
+        source_data[base_label] = base_data
+        source_paths[base_label] = str(base_path)
+
+    merged = copy.deepcopy(base_data)
+    keep_account_sync_metadata = base_label.endswith(":AccountBookmarks")
+    if not keep_account_sync_metadata:
+        merged.pop("sync_metadata", None)
     merged.pop("checksum_sha256", None)
     for root_key in ROOT_ORDER:
         if root_key not in merged.get("roots", {}):
@@ -297,10 +340,11 @@ def merge_bookmarks(base: str, sources: list[str]) -> tuple[dict, dict]:
 
     existing_urls = {item["url"] for item in iter_all_urls(merged, "merged")}
     added = []
-    for source in sources:
-        if source == base:
+    for source, data in source_data.items():
+        if source == base_label:
             continue
-        for item in iter_all_urls(source_data[source], source):
+        for item in iter_all_urls(data, source):
+            item = normalize_source_item(item)
             if item["url"] in existing_urls:
                 continue
             dest_root, dest_folders = choose_destination(merged, item)
@@ -322,6 +366,8 @@ def merge_bookmarks(base: str, sources: list[str]) -> tuple[dict, dict]:
     merged["version"] = 1
     merged["checksum"] = bookmark_checksum(merged)
     report = analyze_bookmarks(source_data, merged, added)
+    report["base_source"] = base_label
+    report["source_paths"] = source_paths
     return merged, report
 
 
@@ -333,17 +379,35 @@ def backup_file(path: Path, backup_dir: Path, label: str) -> None:
     shutil.copy2(path, destination)
 
 
+def target_bookmark_store_names(target: str) -> list[str]:
+    names = ["Bookmarks"]
+    account_path = browser_path(target, "AccountBookmarks")
+    if target == "chrome" or account_path.exists():
+        names.insert(0, "AccountBookmarks")
+    return names
+
+
+def bookmark_store_content(merged: dict, filename: str) -> str:
+    output = copy.deepcopy(merged)
+    if filename != "AccountBookmarks":
+        output.pop("sync_metadata", None)
+    output.pop("checksum_sha256", None)
+    output["checksum"] = bookmark_checksum(output)
+    return json.dumps(output, ensure_ascii=False, indent=3) + "\n"
+
+
 def write_bookmarks(targets: list[str], merged: dict, backup_dir: Path) -> None:
     backup_dir.mkdir(parents=True, exist_ok=True)
-    content = json.dumps(merged, ensure_ascii=False, indent=3)
     for target in targets:
         profile = BROWSERS[target]["profile"]
         profile.mkdir(parents=True, exist_ok=True)
-        bookmarks = profile / "Bookmarks"
-        backup_file(bookmarks, backup_dir, f"{target}/Bookmarks")
+        for filename in target_bookmark_store_names(target):
+            content = bookmark_store_content(merged, filename)
+            bookmarks = profile / filename
+            backup_file(bookmarks, backup_dir, f"{target}/{filename}")
+            bookmarks.write_text(content, encoding="utf-8")
         backup_file(profile / "Bookmarks.bak", backup_dir, f"{target}/Bookmarks.bak")
-        bookmarks.write_text(content + "\n", encoding="utf-8")
-        (profile / "Bookmarks.bak").write_text(content + "\n", encoding="utf-8")
+        (profile / "Bookmarks.bak").write_text(bookmark_store_content(merged, "Bookmarks"), encoding="utf-8")
 
 
 def cookie_count(path: Path) -> int | None:
@@ -445,8 +509,8 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     sub = parser.add_subparsers(dest="command", required=True)
 
     bookmark = sub.add_parser("bookmarks", help="merge Chromium bookmark files")
-    bookmark.add_argument("--base", choices=BROWSERS, default="comet")
-    bookmark.add_argument("--sources", choices=BROWSERS, nargs="+", default=["brave", "comet"])
+    bookmark.add_argument("--base", choices=BROWSERS, default="chrome")
+    bookmark.add_argument("--sources", choices=BROWSERS, nargs="+", default=["chrome", "brave", "comet"])
     bookmark.add_argument("--targets", choices=BROWSERS, nargs="+", default=["chrome", "brave"])
     bookmark.add_argument("--report")
     bookmark.add_argument("--backup-dir")

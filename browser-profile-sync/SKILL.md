@@ -13,11 +13,11 @@ Use `scripts/browser_profile_sync.py` for deterministic local operations. It kno
 - Brave: `~/Library/Application Support/BraveSoftware/Brave-Browser/Default`
 - Comet: `~/Library/Application Support/Comet/Default`
 
-The script defaults to dry-run. Use `--apply` only after reviewing the summary. It writes backups under `~/Library/Application Support/browser-profile-sync-backups/<timestamp>` unless `--backup-dir` is supplied.
+The script defaults to dry-run. Use `--apply` only after reviewing the summary. It writes backups under `~/Library/Application Support/browser-profile-sync-backups/<timestamp>` unless `--backup-dir` is supplied. For signed-in Chrome, it reads and writes `AccountBookmarks` as well as `Bookmarks`; after Chrome launches, it may split bookmarks between those stores, so verify Chrome by combining both files rather than inspecting either file alone.
 
 ## Bookmark Merge
 
-Use this when merging divergent Chromium bookmark files. Default behavior uses Comet as the base layout, adds Brave-only URLs, de-duplicates by exact URL against the base, regenerates Chromium's bookmark checksum, removes copied sync metadata, and targets Chrome plus Brave.
+Use this when merging divergent Chromium bookmark files. Default behavior uses Chrome account bookmarks as the base when present, includes Chrome local bookmarks, Brave, and Comet as sources, de-duplicates by exact URL, regenerates Chromium's bookmark checksum, removes copied sync metadata, and targets Chrome plus Brave.
 
 Dry-run:
 
