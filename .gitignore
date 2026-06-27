@@ -1,4 +1,5 @@
 **/node_modules/
+.agent-orchestrator/
 
 # Local GTM OAuth tokens (project-specific)
 gtm-manager/tokens/

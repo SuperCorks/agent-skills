@@ -1,0 +1,875 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Agent Orchestrator Skill Research</title>
+  <style>
+    :root {
+      --bg: #f7f7f2;
+      --ink: #1f2933;
+      --muted: #5d6875;
+      --line: #d6d9d2;
+      --panel: #ffffff;
+      --panel-2: #f0f5f3;
+      --accent: #146c75;
+      --accent-2: #7f4b2a;
+      --risk: #9f2f2f;
+      --ok: #236a43;
+      --warn: #8a5a00;
+      --code-bg: #172026;
+      --code-fg: #ecf4f1;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      background: var(--bg);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.55;
+    }
+
+    body {
+      margin: 0;
+    }
+
+    a {
+      color: var(--accent);
+      text-decoration-thickness: 1px;
+      text-underline-offset: 2px;
+    }
+
+    header {
+      background: #10272e;
+      color: #f8fbf8;
+      padding: 48px 24px 40px;
+      border-bottom: 6px solid #d8b16a;
+    }
+
+    .wrap {
+      width: min(1180px, calc(100vw - 40px));
+      margin: 0 auto;
+    }
+
+    .eyebrow {
+      color: #b8d6d2;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: .08em;
+      margin: 0 0 12px;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      font-size: clamp(32px, 5vw, 56px);
+      line-height: 1.04;
+      margin: 0 0 18px;
+      letter-spacing: 0;
+      max-width: 920px;
+    }
+
+    .subtitle {
+      color: #dce8e6;
+      font-size: 18px;
+      max-width: 920px;
+      margin: 0;
+    }
+
+    main {
+      padding: 28px 0 64px;
+    }
+
+    section {
+      margin: 26px 0;
+      padding: 24px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+
+    section.flush {
+      background: transparent;
+      border: 0;
+      padding: 0;
+    }
+
+    h2 {
+      font-size: 24px;
+      line-height: 1.2;
+      margin: 0 0 14px;
+      letter-spacing: 0;
+    }
+
+    h3 {
+      font-size: 18px;
+      line-height: 1.25;
+      margin: 22px 0 8px;
+      letter-spacing: 0;
+    }
+
+    p {
+      margin: 10px 0;
+    }
+
+    ul, ol {
+      margin: 10px 0 0 22px;
+      padding: 0;
+    }
+
+    li {
+      margin: 6px 0;
+    }
+
+    code {
+      background: #eef1ef;
+      color: #172026;
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-size: .92em;
+    }
+
+    pre {
+      background: var(--code-bg);
+      color: var(--code-fg);
+      padding: 14px;
+      border-radius: 8px;
+      overflow: auto;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    pre code {
+      background: transparent;
+      color: inherit;
+      padding: 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 14px 0;
+      font-size: 14px;
+    }
+
+    th, td {
+      border: 1px solid var(--line);
+      padding: 10px 12px;
+      vertical-align: top;
+      text-align: left;
+    }
+
+    th {
+      background: #e7eeee;
+      color: #172026;
+      font-weight: 700;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 16px;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 18px;
+    }
+
+    .span-4 { grid-column: span 4; }
+    .span-6 { grid-column: span 6; }
+    .span-8 { grid-column: span 8; }
+    .span-12 { grid-column: span 12; }
+
+    .tag {
+      display: inline-block;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 2px 8px;
+      margin: 0 5px 5px 0;
+      font-size: 12px;
+      font-weight: 700;
+      background: #f5f8f7;
+      color: var(--muted);
+    }
+
+    .status {
+      font-weight: 700;
+    }
+
+    .high { color: var(--ok); }
+    .medium { color: var(--warn); }
+    .low { color: var(--risk); }
+
+    .callout {
+      border-left: 4px solid var(--accent);
+      background: var(--panel-2);
+      padding: 14px 16px;
+      border-radius: 6px;
+      margin: 16px 0;
+    }
+
+    .warning {
+      border-left-color: var(--warn);
+      background: #fff7e5;
+    }
+
+    .risk {
+      border-left-color: var(--risk);
+      background: #fff1f1;
+    }
+
+    .source-list li {
+      margin: 8px 0;
+    }
+
+    .small {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .diagram {
+      background: #f6faf8;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+      overflow: auto;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 13px;
+      white-space: pre;
+    }
+
+    @media (max-width: 860px) {
+      .wrap {
+        width: min(100vw - 28px, 1180px);
+      }
+
+      section {
+        padding: 18px;
+      }
+
+      .span-4,
+      .span-6,
+      .span-8,
+      .span-12 {
+        grid-column: span 12;
+      }
+
+      table {
+        display: block;
+        overflow-x: auto;
+      }
+    }
+
+    @media print {
+      header {
+        padding: 28px 0 24px;
+      }
+
+      main {
+        padding: 0;
+      }
+
+      section, .card {
+        break-inside: avoid;
+      }
+
+      a {
+        color: inherit;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <p class="eyebrow">Research report - June 27, 2026</p>
+      <h1>Agent Orchestrator Skill Research</h1>
+      <p class="subtitle">A research and design report for a proposed <code>agent-orchestrator</code> skill that lets the current agent coordinate fresh Codex CLI or Claude Code CLI worker sessions without turning the main thread into a noisy, unbounded control loop.</p>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section>
+      <h2>North Star</h2>
+      <p>Create a reusable skill that helps the current agent decompose complex work, launch bounded worker sessions through Codex CLI or Claude Code CLI, monitor their progress, collect structured handoff packets, and synthesize results back in the current thread. The skill should default to conservative, inspectable orchestration: small fan-out, explicit stop conditions, least privilege, persistent logs, and clear user approval points.</p>
+      <div class="callout">
+        <strong>Recommendation:</strong> build this as a skill first, not a plugin or daemon. Add a helper script only if you want repeatable process spawning, JSONL capture, timeout handling, and manifest creation. Do not make recursive agent spawning implicit.
+      </div>
+    </section>
+
+    <section>
+      <h2>Scope And Non-Goals</h2>
+      <div class="grid">
+        <div class="card span-6">
+          <h3>In scope</h3>
+          <ul>
+            <li>Research current orchestration, agent loop, handoff, context isolation, and parallel worker patterns.</li>
+            <li>Compare Codex CLI and Claude Code CLI mechanisms for creating, resuming, backgrounding, and monitoring sessions.</li>
+            <li>Recommend a skill architecture, default policies, resources, CLI recipes, and validation plan.</li>
+            <li>List decisions needed before creating the skill folder and scripts.</li>
+          </ul>
+        </div>
+        <div class="card span-6">
+          <h3>Out of scope for this report</h3>
+          <ul>
+            <li>Actually creating the <code>agent-orchestrator</code> skill folder.</li>
+            <li>Installing, repairing, or upgrading local Codex or Claude binaries.</li>
+            <li>Running live worker sessions against user repositories.</li>
+            <li>Building a persistent server, queue, database, or web UI.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Sources Reviewed</h2>
+      <p>Modern agent orchestration advice changes quickly, so the report weights official product documentation and first-party engineering posts highest. Community patterns are useful for vocabulary but should not override common sense or local constraints.</p>
+      <ul class="source-list">
+        <li><a href="https://developers.openai.com/codex/cli/reference.md">OpenAI Codex CLI command reference</a> - current documented Codex CLI commands and flags.</li>
+        <li><a href="https://developers.openai.com/codex/noninteractive.md">OpenAI Codex non-interactive mode</a> - <code>codex exec</code>, JSONL output, sandboxing, structured output, resume, and automation guidance.</li>
+        <li><a href="https://developers.openai.com/codex/app-server.md">OpenAI Codex app-server</a> - JSON-RPC thread/turn APIs including <code>thread/start</code>, <code>thread/resume</code>, <code>thread/fork</code>, <code>turn/start</code>, and event streaming.</li>
+        <li><a href="https://developers.openai.com/api/docs/guides/agents/orchestration.md">OpenAI Agents orchestration and handoffs</a> - ownership distinction between handoffs and agents-as-tools.</li>
+        <li><a href="https://developers.openai.com/api/docs/guides/agents/running-agents.md">OpenAI Agents running agents</a> - loop semantics, state strategies, streaming, approvals, and failures.</li>
+        <li><a href="https://code.claude.com/docs/en/cli-reference.md">Claude Code CLI reference</a> - <code>claude -p</code>, background sessions, agents view, permission modes, worktrees, model and effort flags.</li>
+        <li><a href="https://code.claude.com/docs/en/headless.md">Claude Code non-interactive/headless mode</a> - structured output, streaming, <code>--bare</code>, session IDs, tool approvals, and continuation.</li>
+        <li><a href="https://code.claude.com/docs/en/agent-view.md">Claude Code agent view</a> - background sessions, monitoring, attach/log/respawn/remove commands, and dispatch patterns.</li>
+        <li><a href="https://code.claude.com/docs/en/worktrees.md">Claude Code worktrees</a> - isolated parallel sessions and cleanup behavior.</li>
+        <li><a href="https://code.claude.com/docs/en/sessions.md">Claude Code sessions</a> - naming, resuming, branching, exporting, and transcript locations.</li>
+        <li><a href="https://code.claude.com/docs/en/agent-sdk/agent-loop.md">Claude Agent SDK agent loop</a> - receive/evaluate/tool/repeat/result lifecycle, turns, budget caps, context growth, and compaction.</li>
+        <li><a href="https://code.claude.com/docs/en/agent-sdk/subagents.md">Claude Agent SDK subagents</a> - context isolation, parallelization, inherited context, tool restrictions, and nested limits.</li>
+        <li><a href="https://www.anthropic.com/research/building-effective-agents">Anthropic, Building effective agents</a> - simple composable patterns, workflows vs agents, and when complexity is justified.</li>
+        <li><a href="https://code.claude.com/docs/en/best-practices.md">Claude Code best practices</a> - verification loops, plan first, context management, and parallel-session guidance.</li>
+        <li>Local environment checks: <code>command -v codex</code>, <code>codex --version</code>, <code>command -v claude</code>, global npm package inventory.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Confidence Levels</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Claim Area</th>
+            <th>Confidence</th>
+            <th>Why</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Codex CLI documented flags and app-server methods</td>
+            <td class="status high">High</td>
+            <td>Confirmed from current official OpenAI markdown docs and the fetched Codex manual.</td>
+          </tr>
+          <tr>
+            <td>Claude Code CLI flags, agent view, sessions, worktrees</td>
+            <td class="status high">High</td>
+            <td>Confirmed from current Claude Code markdown docs.</td>
+          </tr>
+          <tr>
+            <td>Best-practice orchestration patterns</td>
+            <td class="status medium">Medium-high</td>
+            <td>OpenAI and Anthropic align on simple composable patterns, bounded loops, context isolation, and explicit handoff ownership. Implementation details remain product-specific.</td>
+          </tr>
+          <tr>
+            <td>Future stability of Codex app-server and Claude agent view behavior</td>
+            <td class="status medium">Medium</td>
+            <td>Both include experimental or research-preview surfaces. Prefer stable CLI flows by default and isolate experimental flows behind explicit user opt-in.</td>
+          </tr>
+          <tr>
+            <td>Local runtime readiness</td>
+            <td class="status low">Low for execution today</td>
+            <td>The local <code>codex</code> wrapper exists but its vendored binary is missing. <code>claude</code> is not on <code>PATH</code> in this shell. Syntax is researched; live spawning was not validated.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Core Concepts</h2>
+
+      <h3>Agent Loop</h3>
+      <p>The shared loop across current agent systems is: receive task, evaluate state, call tools or delegate, feed results back, repeat, and stop only when there are no more tool calls or a limit/approval/failure interrupts the run. This matters because orchestration is not "fire prompts at agents"; it is management of state, tool permissions, loop budgets, outputs, and failure handling.</p>
+      <div class="diagram">Manager thread
+  |
+  |-- create bounded worker prompt
+  |-- launch worker session
+  |-- capture events, session id, logs, artifacts
+  |-- wait, steer, resume, or cancel
+  |-- require worker handoff packet
+  |
+  +-- synthesize final answer or next action in the main thread</div>
+
+      <h3>Handoff Vs Manager-Style Delegation</h3>
+      <p>OpenAI's orchestration guide draws a useful distinction: handoffs move conversation ownership to a specialist; agents-as-tools keep a manager in control while specialists perform bounded tasks. For this skill, the current thread should usually stay the manager. CLI-created sessions should behave like bounded workers unless the user explicitly wants a true handoff.</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Pattern</th>
+            <th>Use It When</th>
+            <th>Skill Behavior</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Manager with workers</td>
+            <td>The current agent should synthesize the final result.</td>
+            <td>Launch workers with explicit output contracts; collect summaries and evidence; decide centrally.</td>
+          </tr>
+          <tr>
+            <td>Handoff</td>
+            <td>A specialist should own the next branch of work.</td>
+            <td>Spawn or resume one target session with a full handoff packet and clear ownership boundary.</td>
+          </tr>
+          <tr>
+            <td>Native subagents</td>
+            <td>The host environment already supports subagents with approval and UI integration.</td>
+            <td>Prefer native Codex/Claude subagents for simple in-session fan-out; use CLI orchestration for cross-vendor, background, detached, or persistent-session needs.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Context Isolation</h3>
+      <p>Codex and Claude both emphasize that long noisy tool traces degrade main-thread reliability. Worker sessions help when they keep noisy exploration, logs, failed attempts, and long file reads out of the manager context. The manager should receive only a compact final handoff packet, plus links to raw logs for audit.</p>
+
+      <h3>Parallelism</h3>
+      <p>Parallel agents work best for independent, read-heavy subtasks: codebase mapping, log analysis, review passes, documentation research, test investigation, and alternative plan generation. Write-heavy work needs stricter isolation, normally one branch or worktree per worker. Unbounded parallelism is a cost and coordination trap.</p>
+    </section>
+
+    <section>
+      <h2>CLI Research Findings</h2>
+
+      <h3>Local Runtime Check</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Check</th>
+            <th>Observed Result</th>
+            <th>Implication</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>command -v codex</code></td>
+            <td><code>/Users/simon/.local/state/fnm_multishells/.../bin/codex</code></td>
+            <td>The wrapper exists.</td>
+          </tr>
+          <tr>
+            <td><code>codex --version</code></td>
+            <td>Failed with <code>ENOENT</code> for the vendored <code>codex</code> binary under global <code>@openai/codex@0.116.0</code>.</td>
+            <td>The skill should preflight <code>codex doctor</code> or <code>codex --version</code> and fail gracefully. Repairing the install should require user approval.</td>
+          </tr>
+          <tr>
+            <td><code>command -v claude</code></td>
+            <td>No executable found on <code>PATH</code>.</td>
+            <td>Claude orchestration cannot run locally until Claude Code is installed or a path is provided.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Codex CLI Surfaces</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Surface</th>
+            <th>Use In Skill</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>codex exec</code></td>
+            <td>Default Codex worker mode.</td>
+            <td>Stable non-interactive mode. Good for one prompt, JSONL progress, final message capture, output schema, and automation. Defaults to read-only sandbox.</td>
+          </tr>
+          <tr>
+            <td><code>codex exec --json</code></td>
+            <td>Preferred capture format.</td>
+            <td>Emits JSONL events such as <code>thread.started</code>, <code>turn.started</code>, <code>turn.completed</code>, <code>item.*</code>, and <code>error</code>. Capture to per-worker log files.</td>
+          </tr>
+          <tr>
+            <td><code>codex exec resume</code></td>
+            <td>Continue staged workers.</td>
+            <td>Use <code>codex exec resume --last</code> or <code>codex exec resume &lt;SESSION_ID&gt;</code> for two-stage pipelines.</td>
+          </tr>
+          <tr>
+            <td><code>codex fork</code></td>
+            <td>Interactive session branch only.</td>
+            <td>Useful when forking an existing interactive thread while preserving transcript. Less useful for simple scriptable workers.</td>
+          </tr>
+          <tr>
+            <td><code>codex app-server</code></td>
+            <td>Advanced opt-in control plane.</td>
+            <td>JSON-RPC API supports <code>thread/start</code>, <code>thread/resume</code>, <code>thread/fork</code>, <code>turn/start</code>, <code>turn/steer</code>, and streaming events. It is powerful but experimental/unsupported over WebSocket.</td>
+          </tr>
+          <tr>
+            <td>Native Codex subagents</td>
+            <td>Prefer when current Codex host supports them.</td>
+            <td>Good for parallel exploration and review within Codex, with inherited sandbox and UI visibility. Not the same as cross-CLI session orchestration.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Codex Command Patterns</h3>
+      <pre><code># Read-only research worker, JSONL capture
+codex exec --json --sandbox read-only --ask-for-approval never \
+  --cd /path/to/repo \
+  "Research the auth module. Return a handoff packet with findings, files read, risks, and confidence."
+
+# Write-capable worker in a controlled workspace
+codex exec --json --sandbox workspace-write --ask-for-approval never \
+  --cd /path/to/worktree \
+  "Implement the approved change. Run targeted tests. Return files changed and evidence."
+
+# Structured final response
+codex exec "Summarize this repo" \
+  --output-schema ./handoff.schema.json \
+  --output-last-message ./worker-final.json
+
+# Resume a prior non-interactive worker
+codex exec resume &lt;SESSION_ID&gt; "Apply the reviewer feedback and rerun tests."</code></pre>
+
+      <h3>Claude Code CLI Surfaces</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Surface</th>
+            <th>Use In Skill</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>claude -p</code> / <code>--print</code></td>
+            <td>Default Claude worker mode.</td>
+            <td>Runs via Agent SDK and exits. Supports piping, structured output, continuation, tool approvals, and system prompt flags.</td>
+          </tr>
+          <tr>
+            <td><code>--output-format json</code></td>
+            <td>Preferred final capture.</td>
+            <td>Returns result, session ID, usage, and cost metadata. Pair with <code>jq</code> and a run manifest.</td>
+          </tr>
+          <tr>
+            <td><code>--output-format stream-json --verbose</code></td>
+            <td>Preferred event streaming.</td>
+            <td>Use for real-time worker progress and tool-call visibility. Add <code>--include-partial-messages</code> only when token-level streaming is useful.</td>
+          </tr>
+          <tr>
+            <td><code>--bg</code> / <code>--background</code></td>
+            <td>Long-running detached workers.</td>
+            <td>Starts a background session and returns immediately with a short ID and management commands. Good for background investigations and multiple independent sessions.</td>
+          </tr>
+          <tr>
+            <td><code>claude agents --json</code></td>
+            <td>Monitor background workers.</td>
+            <td>Prints active sessions as JSON; <code>--all</code> includes completed background sessions. Interactive <code>claude agents</code> is useful for humans, less so for an automated skill.</td>
+          </tr>
+          <tr>
+            <td><code>claude attach/logs/respawn/rm</code></td>
+            <td>Manage background workers.</td>
+            <td>Attach to a session, print recent output, restart a session with conversation intact, or remove it from agent view while retaining transcript.</td>
+          </tr>
+          <tr>
+            <td><code>--worktree</code></td>
+            <td>Default for write workers.</td>
+            <td>Creates isolated git worktree under <code>.claude/worktrees/&lt;name&gt;</code>. Non-interactive worktrees are not auto-cleaned, so cleanup must be explicit.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Claude Command Patterns</h3>
+      <pre><code># Read-only-ish research worker with structured result
+claude --bare -p \
+  --output-format json \
+  --permission-mode dontAsk \
+  --tools "Read,Glob,Grep" \
+  "Map the auth module. Return a concise handoff packet."
+
+# Streaming worker with logs
+claude -p \
+  --output-format stream-json \
+  --verbose \
+  --allowedTools "Read,Grep,Glob,Bash(npm test *)" \
+  "Run targeted tests and explain failures."
+
+# Background worker
+claude --bg --name "flaky-test-investigation" \
+  "Investigate the flaky SettingsChangeDetector test and report evidence."
+
+# Monitor and inspect background workers
+claude agents --json --all
+claude logs &lt;short-id&gt;
+claude attach &lt;short-id&gt;
+
+# Continue a captured session
+session_id=$(claude -p "Start review" --output-format json | jq -r '.session_id')
+claude -p --resume "$session_id" --output-format json "Now focus on database queries."</code></pre>
+    </section>
+
+    <section>
+      <h2>Recommended Skill Architecture</h2>
+      <p>Normalize the user-facing title "Agent Orchestrator" to the skill name <code>agent-orchestrator</code>. Keep <code>SKILL.md</code> lean and put longer operational details in one or two references.</p>
+      <table>
+        <thead>
+          <tr>
+            <th>File</th>
+            <th>Purpose</th>
+            <th>Recommendation</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>agent-orchestrator/SKILL.md</code></td>
+            <td>Triggering and core workflow.</td>
+            <td>Required. Include when to use, preflight, worker planning, launch, monitor, synthesize, cleanup, and safety defaults.</td>
+          </tr>
+          <tr>
+            <td><code>references/orchestration-policy.md</code></td>
+            <td>Detailed policy and patterns.</td>
+            <td>Recommended. Load when planning non-trivial fan-out, write-capable workers, handoffs, or background sessions.</td>
+          </tr>
+          <tr>
+            <td><code>references/cli-recipes.md</code></td>
+            <td>Codex and Claude CLI command recipes.</td>
+            <td>Recommended if no script is included. Keep command templates current and searchable.</td>
+          </tr>
+          <tr>
+            <td><code>scripts/run-worker.mjs</code></td>
+            <td>Spawn workers safely and capture logs.</td>
+            <td>Recommended if you want repeatability. Use Node <code>spawn</code> with argument arrays, never shell string interpolation. Support dry-run.</td>
+          </tr>
+          <tr>
+            <td><code>schemas/handoff.schema.json</code></td>
+            <td>Stable worker output contract.</td>
+            <td>Optional but useful. Codex supports <code>--output-schema</code>; Claude supports <code>--json-schema</code> with JSON output.</td>
+          </tr>
+          <tr>
+            <td><code>agents/openai.yaml</code></td>
+            <td>Codex UI metadata.</td>
+            <td>Recommended after the skill is drafted. Generate through the existing skill-creator script.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Proposed Trigger Description</h3>
+      <pre><code>---
+name: agent-orchestrator
+description: Orchestrate bounded multi-agent work by launching, monitoring, resuming, and summarizing Codex CLI or Claude Code CLI worker threads/sessions. Use when the user explicitly asks to create or coordinate agent threads, spawn CLI workers, run parallel Codex/Claude investigations, hand off work between agents, monitor background agent sessions, or synthesize results from multiple agent runs. Prefer native host subagents for simple in-session fan-out; use this skill for cross-vendor, detached, background, persistent, or CLI-managed orchestration.
+---</code></pre>
+    </section>
+
+    <section>
+      <h2>Recommended Workflow</h2>
+      <ol>
+        <li><strong>Confirm intent and boundaries.</strong> Identify whether the user wants native subagents, CLI-created sessions, background tasks, or true handoff. Ask before write-capable fan-out or installing/repairing CLIs.</li>
+        <li><strong>Preflight environment.</strong> Check <code>git status</code>, CLI availability, versions, authentication status where safe, working directory, branch/worktree strategy, and whether logs can be written.</li>
+        <li><strong>Create a worker plan.</strong> Define each worker's objective, vendor, cwd/worktree, permissions, max runtime, output format, and stop condition. Cap default concurrency.</li>
+        <li><strong>Launch with structured capture.</strong> Prefer <code>codex exec --json</code> or <code>claude -p --output-format json/stream-json</code>. Capture stdout, stderr, exit code, session ID, command arguments, and artifact paths.</li>
+        <li><strong>Monitor and steer deliberately.</strong> Poll JSONL or <code>claude agents --json</code>. Steer only when the worker asks for input or the user changes direction. Cancel stuck workers after timeout.</li>
+        <li><strong>Require handoff packets.</strong> Workers must return summary, evidence, files read/changed, commands run, risks, unknowns, and recommended next action. The manager decides what enters the main thread.</li>
+        <li><strong>Integrate and verify.</strong> For write workers, inspect diffs, run tests, compare branches/worktrees, and avoid merging competing changes without a deliberate selection step.</li>
+        <li><strong>Clean up or archive.</strong> Record session IDs and log paths. Remove temporary worktrees only after preserving useful changes. Never delete transcripts or branches without explicit user direction.</li>
+      </ol>
+    </section>
+
+    <section>
+      <h2>Worker Handoff Packet</h2>
+      <p>The handoff packet is the key anti-chaos device. Every worker prompt should demand this structure, even when the CLI output format is plain text.</p>
+      <pre><code>{
+  "worker_id": "auth-review-1",
+  "vendor": "codex|claude",
+  "session_id": "optional-session-id",
+  "objective": "What the worker was asked to do",
+  "status": "completed|blocked|failed|timed_out|needs_input",
+  "summary": "Concise result",
+  "evidence": [
+    {
+      "claim": "A concrete finding or result",
+      "support": "File path, command output summary, source URL, or log path"
+    }
+  ],
+  "files_read": [],
+  "files_changed": [],
+  "commands_run": [
+    {
+      "cmd": "npm test -- --runInBand",
+      "result": "pass|fail|not_run",
+      "notes": "short evidence"
+    }
+  ],
+  "risks": [],
+  "open_questions": [],
+  "recommended_next_action": "What the manager should do next"
+}</code></pre>
+    </section>
+
+    <section>
+      <h2>Safety Defaults</h2>
+      <div class="grid">
+        <div class="card span-4">
+          <h3>Permissions</h3>
+          <p>Default to read-only or non-writing tool sets for research. Require explicit user intent for <code>workspace-write</code>, <code>danger-full-access</code>, Claude <code>bypassPermissions</code>, or broad Bash allowlists.</p>
+        </div>
+        <div class="card span-4">
+          <h3>Concurrency</h3>
+          <p>Default maximum should be small, such as 2 or 3 workers. Increase only when tasks are independent and the user accepts cost/latency tradeoffs.</p>
+        </div>
+        <div class="card span-4">
+          <h3>Recursion</h3>
+          <p>No worker may spawn further workers unless the user explicitly authorizes nested orchestration. This prevents runaway loops and unpredictable cost.</p>
+        </div>
+        <div class="card span-4">
+          <h3>Worktrees</h3>
+          <p>Use worktrees for parallel write workers. For Codex, create Git worktrees manually or use host-native worktree support where available. For Claude, prefer <code>--worktree</code>.</p>
+        </div>
+        <div class="card span-4">
+          <h3>Secrets</h3>
+          <p>Do not pass secrets in prompts or environment variables visible to untrusted code. Codex specifically warns against job-level API keys when repository-controlled code runs in the same environment.</p>
+        </div>
+        <div class="card span-4">
+          <h3>Cleanup</h3>
+          <p>Keep logs and manifests. Do not delete branches, transcripts, or worktrees containing changes unless the user asks. Prefer report-and-prompt for cleanup.</p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>When To Use Which Surface</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Need</th>
+            <th>Best Surface</th>
+            <th>Reason</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Quick independent Codex research worker</td>
+            <td><code>codex exec --json --sandbox read-only</code></td>
+            <td>Stable, scriptable, evented, low ceremony.</td>
+          </tr>
+          <tr>
+            <td>Quick independent Claude research worker</td>
+            <td><code>claude --bare -p --output-format json</code></td>
+            <td>Fast startup, structured output, fewer local customizations.</td>
+          </tr>
+          <tr>
+            <td>Long-running Claude worker</td>
+            <td><code>claude --bg</code> plus <code>claude agents --json</code></td>
+            <td>Purpose-built background sessions and monitoring.</td>
+          </tr>
+          <tr>
+            <td>Deep Codex thread control</td>
+            <td><code>codex app-server</code> or Codex SDK</td>
+            <td>Real thread APIs, turn steering, archive/delete/list/read. Use only after opting into complexity.</td>
+          </tr>
+          <tr>
+            <td>Parallel write implementation</td>
+            <td>Git worktrees; Claude <code>--worktree</code>; Codex manual worktree plus <code>--cd</code></td>
+            <td>Prevents file conflicts and makes reviewable diffs easier.</td>
+          </tr>
+          <tr>
+            <td>Simple in-current-host fan-out</td>
+            <td>Native Codex/Claude subagents</td>
+            <td>Better UI integration, inherited approvals, and less external process management.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Risks And Mitigations</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Risk</th>
+            <th>Severity</th>
+            <th>Mitigation</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Runaway fan-out, nested agent loops, or excessive cost.</td>
+            <td class="status high">High</td>
+            <td>Small default concurrency, no recursive spawning by default, runtime and cost budgets, explicit worker manifest.</td>
+          </tr>
+          <tr>
+            <td>Conflicting writes from parallel workers.</td>
+            <td class="status high">High</td>
+            <td>One worktree/branch per write worker, review diffs before merging, do not let multiple workers edit same checkout.</td>
+          </tr>
+          <tr>
+            <td>Prompt injection through logs, web content, issue text, or worker output.</td>
+            <td class="status high">High</td>
+            <td>Treat worker outputs as untrusted evidence. The manager should verify file paths, commands, and claims before acting.</td>
+          </tr>
+          <tr>
+            <td>CLI availability and version drift.</td>
+            <td class="status medium">Medium</td>
+            <td>Preflight versions, parse <code>--help</code> only as advisory, point to official docs, fail gracefully with installation guidance.</td>
+          </tr>
+          <tr>
+            <td>Approval prompts blocking non-interactive runs.</td>
+            <td class="status medium">Medium</td>
+            <td>Use read-only/default modes for research; configure explicit allowlists; record blocked status and ask user instead of bypassing.</td>
+          </tr>
+          <tr>
+            <td>Lost context or poor handoff quality.</td>
+            <td class="status medium">Medium</td>
+            <td>Use a required handoff schema, preserve raw logs, and ask workers for evidence not assertions.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Validation Plan For The Future Skill</h2>
+      <ol>
+        <li>Draft <code>agent-orchestrator/SKILL.md</code> and references.</li>
+        <li>If including scripts, implement <code>--dry-run</code>, vendor selection, log directory creation, timeout, command args array, JSONL capture, and manifest output.</li>
+        <li>Run the skill-creator <code>quick_validate.py</code> check on the skill folder.</li>
+        <li>Test a no-op read-only Codex command once local Codex is repaired.</li>
+        <li>Test a no-op Claude command only after Claude Code is installed on <code>PATH</code>.</li>
+        <li>Forward-test the skill with a small request such as "launch two read-only workers, one to summarize repo structure and one to identify test commands, then synthesize results."</li>
+        <li>Forward-test write-worker behavior in a disposable repo/worktree before enabling by default.</li>
+      </ol>
+    </section>
+
+    <section>
+      <h2>Open Questions For Simon</h2>
+      <p>These decisions materially affect the skill design.</p>
+      <ol>
+        <li><strong>Skill location:</strong> should I create this in the public skill repo at <code>/Users/simon/supercorks/agent-skills/agent-skills/agent-orchestrator</code>, your global <code>~/.agents/skills</code>, or both?</li>
+        <li><strong>Default engine:</strong> should the skill prefer Codex workers and treat Claude as optional, support both equally, or pick per task?</li>
+        <li><strong>Implementation depth:</strong> should the first version be instruction-only, or should it include a Node helper script that spawns workers and writes manifests/logs?</li>
+        <li><strong>Codex control surface:</strong> should the skill start with stable <code>codex exec</code> only, or include an advanced opt-in path for <code>codex app-server</code> thread APIs?</li>
+        <li><strong>Claude control surface:</strong> should the skill use <code>claude -p</code> as the default and <code>--bg</code> for long work, or should background sessions be central?</li>
+        <li><strong>Write policy:</strong> should worker sessions ever modify the current checkout, or should write-capable workers always use separate worktrees?</li>
+        <li><strong>Permissions policy:</strong> should the skill categorically ban <code>danger-full-access</code>, Codex <code>--yolo</code>, and Claude <code>bypassPermissions</code>, or allow them with explicit confirmation in isolated repos?</li>
+        <li><strong>Run artifacts:</strong> where should manifests and logs live: repo-local <code>.agent-orchestrator/runs/</code>, <code>~/.agents/orchestrator/runs/</code>, or a path supplied per run?</li>
+        <li><strong>Integration:</strong> should this skill reuse or reference the existing <code>agent-thread-reader</code> skill for transcript lookup and summaries?</li>
+        <li><strong>Distribution:</strong> should this remain a standalone skill, or is the end goal a plugin that bundles the skill plus a command/script?</li>
+      </ol>
+    </section>
+
+    <section>
+      <h2>Implementation Handoff Summary</h2>
+      <p>If the next step is to create the skill, the smallest strong version is:</p>
+      <ul>
+        <li>Create <code>agent-orchestrator/SKILL.md</code> with the trigger description above and a concise workflow.</li>
+        <li>Add <code>references/orchestration-policy.md</code> with safety defaults, handoff packet, worker modes, and when to choose native subagents instead.</li>
+        <li>Add <code>references/cli-recipes.md</code> with current Codex and Claude command recipes, including local preflight and fallback behavior.</li>
+        <li>Delay a spawning script until the first instruction-only version has been tried, unless you already know you want repeatable background worker management.</li>
+        <li>Fix or reinstall local Codex and install Claude Code before validating live orchestration.</li>
+      </ul>
+      <div class="callout warning">
+        <strong>Current blocker for live validation:</strong> local Codex CLI fails because its vendored binary is missing, and Claude Code is not available on <code>PATH</code>. The report is ready for design decisions, but real worker-spawn testing needs runtime setup first.
+      </div>
+    </section>
+  </main>
+</body>
+</html>
