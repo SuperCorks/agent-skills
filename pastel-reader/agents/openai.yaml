@@ -1,0 +1,4 @@
+interface:
+  display_name: "Pastel Reader"
+  short_description: "Pull Pastel comments from URLs"
+  default_prompt: "Use $pastel-reader to pull comments from a Pastel URL with the right account alias."
