@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run awaited Codex or Claude Code worker sessions with captured handoff output."""
+"""Run awaited Codex, Claude Code, or OpenCode worker sessions with captured handoff output."""
 
 from __future__ import annotations
 
@@ -22,14 +22,19 @@ DEFAULT_CODEX_MODEL = os.environ.get("AGENT_ORCHESTRATOR_CODEX_MODEL", "gpt-5.5"
 DEFAULT_CODEX_REASONING = os.environ.get("AGENT_ORCHESTRATOR_CODEX_REASONING", "xhigh")
 DEFAULT_CLAUDE_MODEL = os.environ.get("AGENT_ORCHESTRATOR_CLAUDE_MODEL", "claude-opus-4-8")
 DEFAULT_CLAUDE_REASONING = os.environ.get("AGENT_ORCHESTRATOR_CLAUDE_REASONING", "xhigh")
+DEFAULT_OPENCODE_MODEL = os.environ.get("AGENT_ORCHESTRATOR_OPENCODE_MODEL", "openrouter/z-ai/glm-5.2")
+DEFAULT_OPENCODE_REASONING = os.environ.get("AGENT_ORCHESTRATOR_OPENCODE_REASONING", "xhigh")
+OPENCODE_AUTH_PROVIDER = os.environ.get("AGENT_ORCHESTRATOR_OPENCODE_AUTH_PROVIDER", "OpenRouter")
 DEFAULT_RUN_TIMEOUT = int(os.environ.get("AGENT_ORCHESTRATOR_RUN_TIMEOUT", "1800"))
 DEFAULT_RUN_ROOT = Path(".agent-orchestrator") / "runs"
 DANGEROUS_EXTRA_ARGS = {
+    "--auto",
     "--dangerously-bypass-approvals-and-sandbox",
     "--dangerously-skip-permissions",
     "--permission-mode",
     "--yolo",
 }
+_OPENCODE_AUTO_SUPPORTED: bool | None = None
 
 HANDOFF_SUFFIX = """\
 
@@ -84,11 +89,59 @@ def run_quiet(command: list[str], timeout: int = 30) -> dict[str, Any]:
 
 
 def selected_engines(value: str) -> list[str]:
-    return ["codex", "claude"] if value == "both" else [value]
+    if value == "both":
+        return ["codex", "claude"]
+    if value == "all":
+        return ["codex", "claude", "opencode"]
+    return [value]
+
+
+def executable_name(engine: str) -> str:
+    if engine == "claude":
+        return "claude"
+    if engine == "opencode":
+        return "opencode"
+    return "codex"
+
+
+def default_model(engine: str) -> str:
+    if engine == "claude":
+        return DEFAULT_CLAUDE_MODEL
+    if engine == "opencode":
+        return DEFAULT_OPENCODE_MODEL
+    return DEFAULT_CODEX_MODEL
+
+
+def default_reasoning(engine: str) -> str:
+    if engine == "claude":
+        return DEFAULT_CLAUDE_REASONING
+    if engine == "opencode":
+        return DEFAULT_OPENCODE_REASONING
+    return DEFAULT_CODEX_REASONING
+
+
+def authenticated(engine: str, auth: dict[str, Any] | None) -> bool:
+    if not auth or auth["exit_code"] != 0:
+        return False
+    if engine != "opencode":
+        return True
+    return bool(re.search(rf"\b{re.escape(OPENCODE_AUTH_PROVIDER)}\b", auth.get("stdout", ""), re.IGNORECASE))
+
+
+def explicit_permission_bypass_enabled(engine: str, no_yolo: bool) -> bool:
+    return engine in {"codex", "claude", "opencode"} and not no_yolo
+
+
+def opencode_auto_supported() -> bool:
+    global _OPENCODE_AUTO_SUPPORTED
+    if _OPENCODE_AUTO_SUPPORTED is None:
+        help_result = run_quiet(["opencode", "run", "--help"])
+        _OPENCODE_AUTO_SUPPORTED = help_result["exit_code"] == 0 and "--auto" in help_result["stdout"]
+    return _OPENCODE_AUTO_SUPPORTED
 
 
 def tool_state(engine: str) -> dict[str, Any]:
-    executable = "codex" if engine == "codex" else "claude"
+    executable = executable_name(engine)
     path = shutil.which(executable)
     version = None
     auth = None
@@ -100,6 +153,8 @@ def tool_state(engine: str) -> dict[str, Any]:
             status = "ok"
             if engine == "codex":
                 auth = run_quiet(["codex", "login", "status"])
+            elif engine == "opencode":
+                auth = run_quiet(["opencode", "auth", "list"])
             else:
                 auth = run_quiet(["claude", "auth", "status", "--text"])
         else:
@@ -112,12 +167,15 @@ def tool_state(engine: str) -> dict[str, Any]:
         "status": status,
         "installed": bool(path) and status == "ok",
         "version": version,
-        "authenticated": bool(auth and auth["exit_code"] == 0),
+        "authenticated": authenticated(engine, auth),
         "auth": auth,
     }
 
 
 def install_command(engine: str, installer: str) -> tuple[str, list[str]] | None:
+    if engine == "opencode":
+        return None
+
     system = platform.system()
     if installer == "auto":
         if system in {"Darwin", "Linux"} and shutil.which("curl"):
@@ -188,6 +246,8 @@ def fallback_install_commands(engine: str, primary_method: str) -> list[tuple[st
 def login_command(engine: str, claude_console: bool = False) -> list[str]:
     if engine == "codex":
         return ["codex", "login"]
+    if engine == "opencode":
+        return ["opencode", "auth", "login", "openrouter"]
     if claude_console:
         return ["claude", "auth", "login", "--console"]
     return ["claude", "auth", "login"]
@@ -349,6 +409,32 @@ def build_command(
         command.append(prompt)
         return command
 
+    if args.engine == "opencode":
+        command = [
+            "opencode",
+            "run",
+        ]
+        if not args.no_yolo and opencode_auto_supported():
+            command.append("--auto")
+        command.extend(
+            [
+                "--format",
+                "json",
+                "--model",
+                model or DEFAULT_OPENCODE_MODEL,
+            ]
+        )
+        variant = reasoning or DEFAULT_OPENCODE_REASONING
+        if variant:
+            command.extend(["--variant", variant])
+        if args.resume:
+            command.extend(["--session", args.resume])
+        if args.name:
+            command.extend(["--title", args.name])
+        command.extend(extra)
+        command.append(prompt)
+        return command
+
     command = [
         "claude",
         "-p",
@@ -388,6 +474,21 @@ def extract_final(engine: str, stdout: str, codex_final_path: Path) -> str:
                     return result if isinstance(result, str) else json.dumps(result, indent=2, sort_keys=True)
         except json.JSONDecodeError:
             pass
+
+    if engine == "opencode":
+        text_chunks: list[str] = []
+        for line in stdout.splitlines():
+            try:
+                payload = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if not isinstance(payload, dict) or payload.get("type") != "text":
+                continue
+            part = payload.get("part")
+            if isinstance(part, dict) and isinstance(part.get("text"), str):
+                text_chunks.append(part["text"])
+        if text_chunks:
+            return "".join(text_chunks).strip()
 
     lines = [line for line in stdout.splitlines() if line.strip()]
     return lines[-1] if lines else ""
@@ -475,7 +576,7 @@ def handle_run(args: argparse.Namespace) -> int:
             "cwd": str(cwd),
             "command": dry_command,
             "command_display": shlex.join(dry_command),
-            "yolo_enabled": not args.no_yolo,
+            "yolo_enabled": explicit_permission_bypass_enabled(args.engine, args.no_yolo),
         }
         print_payload(payload, args.json)
         return 0
@@ -528,10 +629,9 @@ def handle_run(args: argparse.Namespace) -> int:
         "engine": args.engine,
         "cwd": str(cwd),
         "run_dir": str(run_dir),
-        "model": args.model or (DEFAULT_CODEX_MODEL if args.engine == "codex" else DEFAULT_CLAUDE_MODEL),
-        "reasoning": args.reasoning
-        or (DEFAULT_CODEX_REASONING if args.engine == "codex" else DEFAULT_CLAUDE_REASONING),
-        "yolo_enabled": not args.no_yolo,
+        "model": args.model or default_model(args.engine),
+        "reasoning": args.reasoning or default_reasoning(args.engine),
+        "yolo_enabled": explicit_permission_bypass_enabled(args.engine, args.no_yolo),
         "resume": args.resume,
         "started_at": started_at,
         "ended_at": ended_at,
@@ -564,12 +664,12 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     preflight = subparsers.add_parser("preflight", help="Check CLI installation and authentication.")
-    preflight.add_argument("--engine", choices=["both", "codex", "claude"], default="both")
+    preflight.add_argument("--engine", choices=["both", "all", "codex", "claude", "opencode"], default="both")
     preflight.add_argument("--json", action="store_true")
     preflight.set_defaults(func=handle_preflight)
 
     setup = subparsers.add_parser("setup", help="Install missing CLIs and start login handoff when needed.")
-    setup.add_argument("--engine", choices=["both", "codex", "claude"], default="both")
+    setup.add_argument("--engine", choices=["both", "all", "codex", "claude", "opencode"], default="both")
     setup.add_argument("--installer", choices=["auto", "native", "npm", "homebrew"], default="auto")
     setup.add_argument("--skip-install", action="store_true")
     setup.add_argument("--skip-login", action="store_true")
@@ -578,7 +678,7 @@ def build_parser() -> argparse.ArgumentParser:
     setup.set_defaults(func=handle_setup)
 
     run = subparsers.add_parser("run", help="Run one awaited worker session and capture its output.")
-    run.add_argument("--engine", choices=["codex", "claude"], required=True)
+    run.add_argument("--engine", choices=["codex", "claude", "opencode"], required=True)
     run.add_argument("--cwd", default=os.getcwd())
     run.add_argument("--prompt")
     run.add_argument("--prompt-file")

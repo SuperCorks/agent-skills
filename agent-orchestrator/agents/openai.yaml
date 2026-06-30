@@ -1,7 +1,7 @@
 interface:
   display_name: "Agent Orchestrator"
-  short_description: "Launch awaited Codex and Claude worker runs"
-  default_prompt: "Use $agent-orchestrator to run awaited Codex or Claude worker sessions for this task."
+  short_description: "Launch awaited Codex, Claude, and OpenCode worker runs"
+  default_prompt: "Use $agent-orchestrator to run awaited Codex, Claude, or OpenCode worker sessions for this task."
 
 policy:
   allow_implicit_invocation: false

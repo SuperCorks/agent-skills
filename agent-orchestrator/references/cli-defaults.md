@@ -1,6 +1,6 @@
 # CLI Defaults And Commands
 
-Verified against official Codex and Claude Code documentation on 2026-06-27.
+Verified against official Codex and Claude Code documentation on 2026-06-27. OpenCode/OpenRouter GLM 5.2 behavior was verified locally on 2026-06-30.
 
 ## Default Models And Reasoning
 
@@ -10,14 +10,18 @@ User policy for this skill:
 - Codex reasoning: `xhigh` via `-c model_reasoning_effort="xhigh"`
 - Claude model: `claude-opus-4-8`
 - Claude effort: `xhigh`
+- OpenCode model: `openrouter/z-ai/glm-5.2`
+- OpenCode variant: `xhigh`
 - Codex autonomy: `--yolo`
 - Claude autonomy: `--permission-mode bypassPermissions` and `--dangerously-skip-permissions`
+- OpenCode autonomy: `--auto` when supported, plus local config `permission: "allow"` for unattended tool use
 
 Override for a single run:
 
 ```bash
 python3 agent-orchestrator/scripts/agent_orchestrator.py run --engine codex --model gpt-5.5 --reasoning xhigh --prompt "..."
 python3 agent-orchestrator/scripts/agent_orchestrator.py run --engine claude --model claude-opus-4-8 --reasoning xhigh --prompt "..."
+python3 agent-orchestrator/scripts/agent_orchestrator.py run --engine opencode --model openrouter/z-ai/glm-5.2 --reasoning xhigh --prompt "..."
 ```
 
 Override by environment:
@@ -27,10 +31,26 @@ export AGENT_ORCHESTRATOR_CODEX_MODEL=gpt-5.5
 export AGENT_ORCHESTRATOR_CODEX_REASONING=xhigh
 export AGENT_ORCHESTRATOR_CLAUDE_MODEL=claude-opus-4-8
 export AGENT_ORCHESTRATOR_CLAUDE_REASONING=xhigh
+export AGENT_ORCHESTRATOR_OPENCODE_MODEL=openrouter/z-ai/glm-5.2
+export AGENT_ORCHESTRATOR_OPENCODE_REASONING=xhigh
+export AGENT_ORCHESTRATOR_OPENCODE_AUTH_PROVIDER=OpenRouter
 export AGENT_ORCHESTRATOR_RUN_TIMEOUT=1800
 ```
 
 Claude Code accepts aliases such as `opus` and full model names. The skill default pins Opus 4.8 with the full model name `claude-opus-4-8`; if a local CLI reports `model_not_found`, rerun with the current official alias or full model ID using `--model`.
+
+OpenCode expects model IDs in provider/model form. The GLM 5.2 OpenRouter route is `openrouter/z-ai/glm-5.2`; the helper sends `--variant xhigh` by default and stores OpenCode's JSON event stream in the run artifacts. Newer OpenCode builds document `opencode run --auto` for unattended operation; the helper adds `--auto` when the installed CLI exposes it and otherwise relies on OpenCode config `permission: "allow"`.
+
+Recommended local OpenCode config:
+
+```jsonc
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "openrouter/z-ai/glm-5.2",
+  "permission": "allow",
+  "autoupdate": true
+}
+```
 
 ## Install Commands
 
@@ -61,9 +81,12 @@ Use the helper:
 
 ```bash
 python3 agent-orchestrator/scripts/agent_orchestrator.py setup --engine both
+python3 agent-orchestrator/scripts/agent_orchestrator.py setup --engine opencode
 python3 agent-orchestrator/scripts/agent_orchestrator.py setup --engine both --installer npm
 python3 agent-orchestrator/scripts/agent_orchestrator.py setup --engine both --installer homebrew
 ```
+
+The helper checks OpenCode readiness but does not install OpenCode automatically. If `opencode` is missing, install it through the user's chosen OpenCode distribution path and rerun preflight.
 
 ## Authentication Commands
 
@@ -72,6 +95,7 @@ Preflight checks:
 ```bash
 codex login status
 claude auth status --text
+opencode auth list
 ```
 
 Interactive login handoff:
@@ -79,6 +103,7 @@ Interactive login handoff:
 ```bash
 codex login
 claude auth login
+opencode auth login openrouter
 ```
 
 Claude Console login:
@@ -115,11 +140,26 @@ The helper builds:
 claude -p --output-format json --model claude-opus-4-8 --effort xhigh --permission-mode bypassPermissions --dangerously-skip-permissions "Prompt..."
 ```
 
+OpenCode awaited worker using GLM 5.2 through OpenRouter:
+
+```bash
+python3 agent-orchestrator/scripts/agent_orchestrator.py run --engine opencode --timeout 1800 --prompt "Prompt..."
+```
+
+The helper builds:
+
+```bash
+opencode run --auto --format json --model openrouter/z-ai/glm-5.2 --variant xhigh "Prompt..."
+```
+
+If the installed `opencode run --help` does not list `--auto`, the helper omits that flag and expects `permission: "allow"` in config for yolo-equivalent behavior.
+
 Resume examples:
 
 ```bash
 codex exec --json --model gpt-5.5 -c 'model_reasoning_effort="xhigh"' --cd /path/to/repo --yolo resume SESSION_ID "Follow-up prompt..."
 claude -p --output-format json --model claude-opus-4-8 --effort xhigh --permission-mode bypassPermissions --dangerously-skip-permissions --resume SESSION_ID "Follow-up prompt..."
+opencode run --auto --format json --model openrouter/z-ai/glm-5.2 --variant xhigh --session SESSION_ID "Follow-up prompt..."
 ```
 
 ## Output Artifacts

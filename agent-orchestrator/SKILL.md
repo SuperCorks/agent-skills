@@ -1,13 +1,13 @@
 ---
 name: agent-orchestrator
-description: Launch and coordinate awaited Codex CLI or Claude Code CLI worker sessions from the current agent thread, including tool setup, authentication handoff, default high-autonomy flags, structured prompts, run capture, and result integration.
+description: Launch and coordinate awaited Codex CLI, Claude Code CLI, or OpenCode worker sessions from the current agent thread, including tool setup, authentication handoff, default high-autonomy flags, structured prompts, run capture, and result integration.
 ---
 
 # Agent Orchestrator
 
 ## Overview
 
-Use this skill when the current agent needs help from one or more external coding-agent CLI sessions while keeping the current thread as the accountable lead. It provides a disciplined workflow plus a local helper script for Codex CLI and Claude Code CLI runs that are awaited, captured, and easy to integrate.
+Use this skill when the current agent needs help from one or more external coding-agent CLI sessions while keeping the current thread as the accountable lead. It provides a disciplined workflow plus a local helper script for Codex CLI, Claude Code CLI, and OpenCode runs that are awaited, captured, and easy to integrate.
 
 This skill does not make background agents the default. Start commands that can be awaited, do not create worktrees unless the user explicitly instructs otherwise, and keep the current thread responsible for final judgment.
 
@@ -16,16 +16,20 @@ This skill does not make background agents the default. Start commands that can 
 Use the helper script for setup and runs:
 
 ```bash
-python3 agent-orchestrator/scripts/agent_orchestrator.py preflight --json
+python3 agent-orchestrator/scripts/agent_orchestrator.py preflight --engine both --json
+python3 agent-orchestrator/scripts/agent_orchestrator.py preflight --engine opencode --json
 python3 agent-orchestrator/scripts/agent_orchestrator.py setup --engine both
+python3 agent-orchestrator/scripts/agent_orchestrator.py setup --engine opencode
 python3 agent-orchestrator/scripts/agent_orchestrator.py run --engine codex --cwd "$PWD" --timeout 1800 --prompt "Investigate the failing test and return a handoff packet."
 python3 agent-orchestrator/scripts/agent_orchestrator.py run --engine claude --cwd "$PWD" --timeout 1800 --prompt "Review this implementation for correctness risks and return a handoff packet."
+python3 agent-orchestrator/scripts/agent_orchestrator.py run --engine opencode --cwd "$PWD" --timeout 1800 --prompt "Use GLM to review this design and return a handoff packet."
 ```
 
 Default worker settings are:
 
 - Codex: `codex exec --model gpt-5.5 -c model_reasoning_effort="xhigh" --yolo`
 - Claude Code: `claude -p --model claude-opus-4-8 --effort xhigh --permission-mode bypassPermissions --dangerously-skip-permissions`
+- OpenCode: `opencode run --auto --model openrouter/z-ai/glm-5.2 --variant xhigh --format json` when the installed CLI supports `--auto`; otherwise use OpenCode config `permission: "allow"`.
 - Runs are awaited and captured under `.agent-orchestrator/runs/` unless `--out-dir` is provided.
 - Runs default to a 30-minute timeout; pass `--timeout 0` only when the user explicitly wants no ceiling.
 - No worktrees are used unless the user asks for them.
@@ -49,8 +53,10 @@ Avoid orchestration when the task is small, when a normal local command is enoug
 2. Run preflight before the first worker run in a thread:
 
    ```bash
-   python3 agent-orchestrator/scripts/agent_orchestrator.py preflight --json
+   python3 agent-orchestrator/scripts/agent_orchestrator.py preflight --engine opencode --json
    ```
+
+   Use the engine you plan to run. `--engine both` checks Codex+Claude, and `--engine all` checks all three engines.
 
 3. If Codex or Claude is missing, broken, or unauthenticated, run setup:
 
@@ -70,13 +76,15 @@ Avoid orchestration when the task is small, when a normal local command is enoug
 6. Inspect the run manifest plus stdout/stderr. Do not blindly trust the worker. Reconcile the result with local evidence.
 7. Integrate the useful parts into the current thread's answer or implementation. The current agent remains accountable for verification.
 
-## Choosing Codex Or Claude
+## Choosing A Worker
 
 Prefer Codex for implementation inside repositories, OpenAI/Codex-specific behavior, tasks where the current Codex configuration matters, and worker runs that should mirror this environment.
 
 Prefer Claude for an independent implementation plan, code review, UX/product critique, broad synthesis, or when a different model family is valuable.
 
-Use both only when the work benefits from independent perspectives. Keep each worker prompt smaller than the whole user request; split by responsibility rather than asking two agents to do the same vague thing.
+Prefer OpenCode when the user specifically wants GLM via OpenRouter, when OpenCode's local configuration should be used, or when a third model family is useful for a bounded review or implementation pass.
+
+Use multiple engines only when the work benefits from independent perspectives. Keep each worker prompt smaller than the whole user request; split by responsibility rather than asking multiple agents to do the same vague thing.
 
 ## Setup And Authentication
 
@@ -85,6 +93,7 @@ The helper supports:
 ```bash
 python3 agent-orchestrator/scripts/agent_orchestrator.py setup --engine codex
 python3 agent-orchestrator/scripts/agent_orchestrator.py setup --engine claude
+python3 agent-orchestrator/scripts/agent_orchestrator.py setup --engine opencode
 python3 agent-orchestrator/scripts/agent_orchestrator.py setup --engine both --installer npm
 python3 agent-orchestrator/scripts/agent_orchestrator.py setup --engine both --installer native
 ```
@@ -94,8 +103,9 @@ Use `setup` when:
 - `codex` or `claude` is not found on `PATH`.
 - `codex --version` or `claude --version` fails.
 - `codex login status` or `claude auth status` shows missing credentials.
+- `opencode` is not found on `PATH`, `opencode --version` fails, or `opencode auth list` does not show an OpenRouter credential.
 
-If the setup script reports `auth_handoff_required`, give the user the exact command it prints, such as `codex login` or `claude auth login`, and ask them to complete it in their terminal/browser. After they finish, rerun `preflight`.
+If the setup script reports `auth_handoff_required`, give the user the exact command it prints, such as `codex login`, `claude auth login`, or `opencode auth login openrouter`, and ask them to complete it in their terminal/browser. After they finish, rerun `preflight`.
 
 ## Running Workers
 
@@ -119,12 +129,21 @@ python3 agent-orchestrator/scripts/agent_orchestrator.py run \
   --prompt "Review the current git diff for correctness regressions. Do not edit files. Return findings with file and line references."
 ```
 
+```bash
+python3 agent-orchestrator/scripts/agent_orchestrator.py run \
+  --engine opencode \
+  --cwd "$PWD" \
+  --name glm-review \
+  --timeout 1800 \
+  --prompt "Use GLM to review the current design. Do not edit files. Return findings with file and line references."
+```
+
 Useful options:
 
 - `--dry-run`: print the command that would run.
-- `--no-yolo`: disable `--yolo`/`bypassPermissions` for this run when the user asks for safer permissions.
+- `--no-yolo`: disable Codex `--yolo`, Claude permission bypass, or OpenCode `--auto` when the user asks for safer permissions. If OpenCode is globally configured with `permission: "allow"`, change that config for stricter local runs.
 - `--model`: override the default model.
-- `--reasoning`: override Codex `model_reasoning_effort` or Claude `--effort`.
+- `--reasoning`: override Codex `model_reasoning_effort`, Claude `--effort`, or OpenCode `--variant`.
 - `--resume SESSION_ID`: resume an existing CLI session instead of starting a fresh one.
 - `--timeout SECONDS`: kill the worker after a ceiling; defaults to 1800, and `0` waits indefinitely.
 - `--raw-prompt`: skip the skill's appended handoff instructions.
