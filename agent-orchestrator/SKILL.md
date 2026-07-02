@@ -29,6 +29,7 @@ Default worker settings are:
 
 - Codex: `codex exec --model gpt-5.5 -c model_reasoning_effort="xhigh" --yolo`
 - Claude Code: `claude -p --model claude-opus-4-8 --effort xhigh --permission-mode bypassPermissions --dangerously-skip-permissions`
+- Claude Code with Fable 5: pass `--model claude-fable-5` or `--model fable`; default effort becomes `high` unless `--reasoning` is supplied.
 - OpenCode: `opencode run --auto --model openrouter/z-ai/glm-5.2 --variant xhigh --format json` when the installed CLI supports `--auto`; otherwise use OpenCode config `permission: "allow"`.
 - Runs are awaited and captured under `.agent-orchestrator/runs/` unless `--out-dir` is provided.
 - Runs default to a 30-minute timeout; pass `--timeout 0` only when the user explicitly wants no ceiling.
@@ -143,7 +144,7 @@ Useful options:
 - `--dry-run`: print the command that would run.
 - `--no-yolo`: disable Codex `--yolo`, Claude permission bypass, or OpenCode `--auto` when the user asks for safer permissions. If OpenCode is globally configured with `permission: "allow"`, change that config for stricter local runs.
 - `--model`: override the default model.
-- `--reasoning`: override Codex `model_reasoning_effort`, Claude `--effort`, or OpenCode `--variant`.
+- `--reasoning`: override Codex `model_reasoning_effort`, Claude `--effort`, or OpenCode `--variant`. Claude Fable 5 defaults to `high`; other Claude runs default to `xhigh`.
 - `--resume SESSION_ID`: resume an existing CLI session instead of starting a fresh one.
 - `--timeout SECONDS`: kill the worker after a ceiling; defaults to 1800, and `0` waits indefinitely.
 - `--raw-prompt`: skip the skill's appended handoff instructions.

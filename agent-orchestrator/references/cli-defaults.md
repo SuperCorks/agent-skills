@@ -10,6 +10,8 @@ User policy for this skill:
 - Codex reasoning: `xhigh` via `-c model_reasoning_effort="xhigh"`
 - Claude model: `claude-opus-4-8`
 - Claude effort: `xhigh`
+- Claude Fable 5 model: `claude-fable-5` or Claude Code alias `fable`
+- Claude Fable 5 effort: `high` unless overridden with `--reasoning`
 - OpenCode model: `openrouter/z-ai/glm-5.2`
 - OpenCode variant: `xhigh`
 - Codex autonomy: `--yolo`
@@ -21,6 +23,7 @@ Override for a single run:
 ```bash
 python3 agent-orchestrator/scripts/agent_orchestrator.py run --engine codex --model gpt-5.5 --reasoning xhigh --prompt "..."
 python3 agent-orchestrator/scripts/agent_orchestrator.py run --engine claude --model claude-opus-4-8 --reasoning xhigh --prompt "..."
+python3 agent-orchestrator/scripts/agent_orchestrator.py run --engine claude --model claude-fable-5 --prompt "..."
 python3 agent-orchestrator/scripts/agent_orchestrator.py run --engine opencode --model openrouter/z-ai/glm-5.2 --reasoning xhigh --prompt "..."
 ```
 
@@ -31,13 +34,16 @@ export AGENT_ORCHESTRATOR_CODEX_MODEL=gpt-5.5
 export AGENT_ORCHESTRATOR_CODEX_REASONING=xhigh
 export AGENT_ORCHESTRATOR_CLAUDE_MODEL=claude-opus-4-8
 export AGENT_ORCHESTRATOR_CLAUDE_REASONING=xhigh
+export AGENT_ORCHESTRATOR_CLAUDE_FABLE_REASONING=high
 export AGENT_ORCHESTRATOR_OPENCODE_MODEL=openrouter/z-ai/glm-5.2
 export AGENT_ORCHESTRATOR_OPENCODE_REASONING=xhigh
 export AGENT_ORCHESTRATOR_OPENCODE_AUTH_PROVIDER=OpenRouter
 export AGENT_ORCHESTRATOR_RUN_TIMEOUT=1800
 ```
 
-Claude Code accepts aliases such as `opus` and full model names. The skill default pins Opus 4.8 with the full model name `claude-opus-4-8`; if a local CLI reports `model_not_found`, rerun with the current official alias or full model ID using `--model`.
+Claude Code accepts aliases such as `opus`, `fable`, and full model names. The skill default pins Opus 4.8 with the full model name `claude-opus-4-8`; if a local CLI reports `model_not_found`, rerun with the current official alias or full model ID using `--model`.
+
+Claude Fable 5 is available as `claude-fable-5` and Claude Code alias `fable`. It is not the default model. When selected and `--reasoning` is omitted, the helper uses `high` effort by default. Set `--reasoning xhigh` or `--reasoning max` only when the task warrants higher token spend, or change `AGENT_ORCHESTRATOR_CLAUDE_FABLE_REASONING` for a different local default.
 
 OpenCode expects model IDs in provider/model form. The GLM 5.2 OpenRouter route is `openrouter/z-ai/glm-5.2`; the helper sends `--variant xhigh` by default and stores OpenCode's JSON event stream in the run artifacts. Newer OpenCode builds document `opencode run --auto` for unattended operation; the helper adds `--auto` when the installed CLI exposes it and otherwise relies on OpenCode config `permission: "allow"`.
 
@@ -138,6 +144,18 @@ The helper builds:
 
 ```bash
 claude -p --output-format json --model claude-opus-4-8 --effort xhigh --permission-mode bypassPermissions --dangerously-skip-permissions "Prompt..."
+```
+
+Claude Fable 5 awaited worker:
+
+```bash
+python3 agent-orchestrator/scripts/agent_orchestrator.py run --engine claude --model claude-fable-5 --timeout 1800 --prompt "Prompt..."
+```
+
+The helper builds:
+
+```bash
+claude -p --output-format json --model claude-fable-5 --effort high --permission-mode bypassPermissions --dangerously-skip-permissions "Prompt..."
 ```
 
 OpenCode awaited worker using GLM 5.2 through OpenRouter:

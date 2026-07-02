@@ -22,9 +22,11 @@ DEFAULT_CODEX_MODEL = os.environ.get("AGENT_ORCHESTRATOR_CODEX_MODEL", "gpt-5.5"
 DEFAULT_CODEX_REASONING = os.environ.get("AGENT_ORCHESTRATOR_CODEX_REASONING", "xhigh")
 DEFAULT_CLAUDE_MODEL = os.environ.get("AGENT_ORCHESTRATOR_CLAUDE_MODEL", "claude-opus-4-8")
 DEFAULT_CLAUDE_REASONING = os.environ.get("AGENT_ORCHESTRATOR_CLAUDE_REASONING", "xhigh")
+DEFAULT_CLAUDE_FABLE_REASONING = os.environ.get("AGENT_ORCHESTRATOR_CLAUDE_FABLE_REASONING", "high")
 DEFAULT_OPENCODE_MODEL = os.environ.get("AGENT_ORCHESTRATOR_OPENCODE_MODEL", "openrouter/z-ai/glm-5.2")
 DEFAULT_OPENCODE_REASONING = os.environ.get("AGENT_ORCHESTRATOR_OPENCODE_REASONING", "xhigh")
 OPENCODE_AUTH_PROVIDER = os.environ.get("AGENT_ORCHESTRATOR_OPENCODE_AUTH_PROVIDER", "OpenRouter")
+CLAUDE_FABLE_MODELS = {"fable", "claude-fable-5"}
 DEFAULT_RUN_TIMEOUT = int(os.environ.get("AGENT_ORCHESTRATOR_RUN_TIMEOUT", "1800"))
 DEFAULT_RUN_ROOT = Path(".agent-orchestrator") / "runs"
 DANGEROUS_EXTRA_ARGS = {
@@ -112,8 +114,10 @@ def default_model(engine: str) -> str:
     return DEFAULT_CODEX_MODEL
 
 
-def default_reasoning(engine: str) -> str:
+def default_reasoning(engine: str, model: str | None = None) -> str:
     if engine == "claude":
+        if (model or DEFAULT_CLAUDE_MODEL).lower() in CLAUDE_FABLE_MODELS:
+            return DEFAULT_CLAUDE_FABLE_REASONING
         return DEFAULT_CLAUDE_REASONING
     if engine == "opencode":
         return DEFAULT_OPENCODE_REASONING
@@ -443,7 +447,7 @@ def build_command(
         "--model",
         model or DEFAULT_CLAUDE_MODEL,
         "--effort",
-        reasoning or DEFAULT_CLAUDE_REASONING,
+        reasoning or default_reasoning("claude", model or DEFAULT_CLAUDE_MODEL),
     ]
     if not args.no_yolo:
         command.extend(["--permission-mode", "bypassPermissions", "--dangerously-skip-permissions"])
@@ -630,7 +634,7 @@ def handle_run(args: argparse.Namespace) -> int:
         "cwd": str(cwd),
         "run_dir": str(run_dir),
         "model": args.model or default_model(args.engine),
-        "reasoning": args.reasoning or default_reasoning(args.engine),
+        "reasoning": args.reasoning or default_reasoning(args.engine, args.model or default_model(args.engine)),
         "yolo_enabled": explicit_permission_bypass_enabled(args.engine, args.no_yolo),
         "resume": args.resume,
         "started_at": started_at,
