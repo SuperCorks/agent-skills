@@ -63,7 +63,7 @@ Use Codex when the desired worker should behave similarly to the current coding 
 
 Use Claude when an independent model family is helpful, especially for second-opinion review, prose/UX critique, broad synthesis, or comparing interpretations of ambiguous code.
 
-Use OpenCode when the user specifically wants GLM through OpenRouter, when OpenCode's local configuration matters, or when a third model family is useful for a bounded review or implementation pass.
+Use OpenCode when the user specifically wants an OpenRouter model, when OpenCode's local configuration matters, or when a third model family is useful for a bounded review or implementation pass.
 
 Use multiple engines only when their results will be compared. Do not launch several workers merely because several CLIs exist.
 

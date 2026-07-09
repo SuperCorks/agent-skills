@@ -22,7 +22,7 @@ python3 agent-orchestrator/scripts/agent_orchestrator.py setup --engine both
 python3 agent-orchestrator/scripts/agent_orchestrator.py setup --engine opencode
 python3 agent-orchestrator/scripts/agent_orchestrator.py run --engine codex --cwd "$PWD" --timeout 1800 --prompt "Investigate the failing test and return a handoff packet."
 python3 agent-orchestrator/scripts/agent_orchestrator.py run --engine claude --cwd "$PWD" --timeout 1800 --prompt "Review this implementation for correctness risks and return a handoff packet."
-python3 agent-orchestrator/scripts/agent_orchestrator.py run --engine opencode --cwd "$PWD" --timeout 1800 --prompt "Use GLM to review this design and return a handoff packet."
+python3 agent-orchestrator/scripts/agent_orchestrator.py run --engine opencode --cwd "$PWD" --timeout 1800 --prompt "Use Grok 4.5 to review this design and return a handoff packet."
 ```
 
 Default worker settings are:
@@ -30,7 +30,7 @@ Default worker settings are:
 - Codex: `codex exec --model gpt-5.5 -c model_reasoning_effort="xhigh" --yolo`
 - Claude Code: `claude -p --model claude-opus-4-8 --effort xhigh --permission-mode bypassPermissions --dangerously-skip-permissions`
 - Claude Code with Fable 5: pass `--model claude-fable-5` or `--model fable`; default effort becomes `high` unless `--reasoning` is supplied.
-- OpenCode: `opencode run --auto --model openrouter/z-ai/glm-5.2 --variant xhigh --format json` when the installed CLI supports `--auto`; otherwise use OpenCode config `permission: "allow"`.
+- OpenCode: `opencode run --auto --model openrouter/x-ai/grok-4.5 --variant high --format json` when the installed CLI supports `--auto`; otherwise use OpenCode config `permission: "allow"`.
 - Runs are awaited and captured under `.agent-orchestrator/runs/` unless `--out-dir` is provided.
 - Runs default to a 30-minute timeout; pass `--timeout 0` only when the user explicitly wants no ceiling.
 - No worktrees are used unless the user asks for them.
@@ -83,7 +83,9 @@ Prefer Codex for implementation inside repositories, OpenAI/Codex-specific behav
 
 Prefer Claude for an independent implementation plan, code review, UX/product critique, broad synthesis, or when a different model family is valuable.
 
-Prefer OpenCode when the user specifically wants GLM via OpenRouter, when OpenCode's local configuration should be used, or when a third model family is useful for a bounded review or implementation pass.
+Prefer OpenCode when the user specifically wants an OpenRouter model, when OpenCode's local configuration should be used, or when a third model family is useful for a bounded review or implementation pass.
+
+Use OpenCode for other OpenRouter models by passing the provider/model form. See `references/openrouter-models.md` before selecting a model whose catalog metadata or reasoning controls may have changed.
 
 Use multiple engines only when the work benefits from independent perspectives. Keep each worker prompt smaller than the whole user request; split by responsibility rather than asking multiple agents to do the same vague thing.
 
@@ -134,9 +136,9 @@ python3 agent-orchestrator/scripts/agent_orchestrator.py run \
 python3 agent-orchestrator/scripts/agent_orchestrator.py run \
   --engine opencode \
   --cwd "$PWD" \
-  --name glm-review \
+  --name grok-review \
   --timeout 1800 \
-  --prompt "Use GLM to review the current design. Do not edit files. Return findings with file and line references."
+  --prompt "Use Grok 4.5 to review the current design. Do not edit files. Return findings with file and line references."
 ```
 
 Useful options:
@@ -176,4 +178,5 @@ If the worker changed files, the lead must inspect the diff and run appropriate 
 
 - `references/orchestration-policy.md`
 - `references/cli-defaults.md`
+- `references/openrouter-models.md`
 - Helper: `scripts/agent_orchestrator.py`

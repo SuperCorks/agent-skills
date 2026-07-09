@@ -23,8 +23,8 @@ DEFAULT_CODEX_REASONING = os.environ.get("AGENT_ORCHESTRATOR_CODEX_REASONING", "
 DEFAULT_CLAUDE_MODEL = os.environ.get("AGENT_ORCHESTRATOR_CLAUDE_MODEL", "claude-opus-4-8")
 DEFAULT_CLAUDE_REASONING = os.environ.get("AGENT_ORCHESTRATOR_CLAUDE_REASONING", "xhigh")
 DEFAULT_CLAUDE_FABLE_REASONING = os.environ.get("AGENT_ORCHESTRATOR_CLAUDE_FABLE_REASONING", "high")
-DEFAULT_OPENCODE_MODEL = os.environ.get("AGENT_ORCHESTRATOR_OPENCODE_MODEL", "openrouter/z-ai/glm-5.2")
-DEFAULT_OPENCODE_REASONING = os.environ.get("AGENT_ORCHESTRATOR_OPENCODE_REASONING", "xhigh")
+DEFAULT_OPENCODE_MODEL = os.environ.get("AGENT_ORCHESTRATOR_OPENCODE_MODEL", "openrouter/x-ai/grok-4.5")
+DEFAULT_OPENCODE_REASONING = os.environ.get("AGENT_ORCHESTRATOR_OPENCODE_REASONING", "high")
 OPENCODE_AUTH_PROVIDER = os.environ.get("AGENT_ORCHESTRATOR_OPENCODE_AUTH_PROVIDER", "OpenRouter")
 CLAUDE_FABLE_MODELS = {"fable", "claude-fable-5"}
 DEFAULT_RUN_TIMEOUT = int(os.environ.get("AGENT_ORCHESTRATOR_RUN_TIMEOUT", "1800"))
@@ -428,7 +428,7 @@ def build_command(
                 model or DEFAULT_OPENCODE_MODEL,
             ]
         )
-        variant = reasoning or DEFAULT_OPENCODE_REASONING
+        variant = reasoning or default_reasoning("opencode", model or DEFAULT_OPENCODE_MODEL)
         if variant:
             command.extend(["--variant", variant])
         if args.resume:
