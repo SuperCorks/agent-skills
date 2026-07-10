@@ -50,8 +50,23 @@ const ERROR_CODES = {
   },
   SLACK_PERMISSION_DENIED: {
     code: 'SLACK_PERMISSION_DENIED',
-    message: 'Bot lacks required permissions to access this resource',
-    remediation: 'Add the required OAuth scopes to your Slack app: channels:read, channels:history, groups:read, groups:history, users:read',
+    message: 'Slack token lacks permission to access this resource',
+    remediation: 'Add the required read scopes to the Slack app, reinstall it, and verify the token can access the conversation',
+  },
+  SLACK_ARGUMENT_INVALID: {
+    code: 'SLACK_ARGUMENT_INVALID',
+    message: 'Invalid command-line argument',
+    remediation: 'Run the script with --help and correct the supplied option',
+  },
+  SLACK_USER_TOKEN_REQUIRED: {
+    code: 'SLACK_USER_TOKEN_REQUIRED',
+    message: 'This Slack operation requires a user OAuth token',
+    remediation: 'Configure an xoxp- token with search:read for this workspace',
+  },
+  SLACK_FILE_DOWNLOAD_FAILED: {
+    code: 'SLACK_FILE_DOWNLOAD_FAILED',
+    message: 'Failed to download a Slack file',
+    remediation: 'Verify the token has files:read and can access the message and file',
   },
   SLACK_RATE_LIMITED: {
     code: 'SLACK_RATE_LIMITED',

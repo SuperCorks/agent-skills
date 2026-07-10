@@ -15,6 +15,7 @@ describe('parseSlackUrl', () => {
         workspace: 'companyname',
         channelId: 'C0123456789',
         messageTs: '1699485123.456789',
+        threadTs: null,
       });
     });
 
@@ -25,6 +26,7 @@ describe('parseSlackUrl', () => {
         workspace: 'workspace',
         channelId: 'D0123456789',
         messageTs: '1234567890.000000',
+        threadTs: null,
       });
     });
 
@@ -35,6 +37,7 @@ describe('parseSlackUrl', () => {
         workspace: 'test',
         channelId: 'G0123456789',
         messageTs: '1111111111.111111',
+        threadTs: null,
       });
     });
 
@@ -45,6 +48,18 @@ describe('parseSlackUrl', () => {
         workspace: 'example',
         channelId: 'C12345',
         messageTs: '1699485123.456789',
+        threadTs: '1699485000.000000',
+      });
+    });
+
+    it('parses the threaded image example URL', () => {
+      const result = parseSlackUrl('https://gdmg.slack.com/archives/D0AFZAHACUE/p1783361713810459?thread_ts=1783359970.387659&cid=D0AFZAHACUE');
+
+      assert.deepStrictEqual(result, {
+        workspace: 'gdmg',
+        channelId: 'D0AFZAHACUE',
+        messageTs: '1783361713.810459',
+        threadTs: '1783359970.387659',
       });
     });
   });
@@ -102,6 +117,13 @@ describe('parseSlackUrl', () => {
     it('throws for timestamp with wrong digit count', () => {
       assert.throws(
         () => parseSlackUrl('https://workspace.slack.com/archives/C123/p12345'),
+        { code: 'SLACK_URL_INVALID' }
+      );
+    });
+
+    it('throws for malformed thread_ts', () => {
+      assert.throws(
+        () => parseSlackUrl('https://workspace.slack.com/archives/C123/p1234567890123456?thread_ts=nope'),
         { code: 'SLACK_URL_INVALID' }
       );
     });

@@ -5,13 +5,12 @@
  * Fetches message content, thread replies (if applicable), and channel context.
  */
 
-const { parseArgs, printHelp, outputJson, outputError } = require('../lib/cli');
+const { parseArgs, parseInteger, printHelp, outputJson, outputError } = require('../lib/cli');
 const { SkillError } = require('../lib/errors');
-const { requireSlackSDK } = require('../lib/deps');
 const { parseSlackUrl } = require('../lib/url-parser');
-const { createClient, getMessage, getThreadReplies, getChannelContext, getChannelInfo, resolveUsers } = require('../lib/client');
+const { getMessage, getThreadReplies, getChannelContext, getChannelInfo, resolveUsers } = require('../lib/client');
 const { normalizeOutput, collectUserIds } = require('../lib/normalizer');
-const { getConfiguredWorkspaces, resolveWorkspace } = require('../lib/workspaces');
+const { createSession } = require('../lib/session');
 
 const HELP = `
 Read a Slack message by permalink URL.
@@ -65,33 +64,33 @@ async function main() {
     throw new SkillError('SLACK_URL_INVALID', 'Missing --url argument');
   }
 
-  // Check SDK dependency
-  const WebClient = requireSlackSDK();
-
   // Parse URL first to get workspace domain for auto-detection
-  const { workspace: urlWorkspace, channelId, messageTs } = parseSlackUrl(args.url);
+  const { workspace: urlWorkspace, channelId, messageTs, threadTs } = parseSlackUrl(args.url);
 
-  // Get configured workspaces and resolve which one to use
-  const workspaces = getConfiguredWorkspaces();
-  const { name: workspaceName, token } = resolveWorkspace(workspaces, args.workspace, urlWorkspace);
-
-  // Create client
-  const client = createClient(WebClient, token);
+  const { client, workspaceName } = createSession({ workspace: args.workspace, urlWorkspace });
 
   // Parse context size
-  const contextSize = parseInt(args.contextSize, 10) || 5;
+  const contextSize = parseInteger(args.contextSize, {
+    name: '--context-size',
+    defaultValue: 5,
+    min: 0,
+    max: 100,
+  });
 
   // Fetch target message
-  const targetMessage = await getMessage(client, channelId, messageTs);
+  const targetMessage = await getMessage(client, channelId, messageTs, threadTs);
 
-  // Fetch thread replies if this is a thread parent
+  // Fetch the complete thread when the URL points into one or the target has replies.
   let threadReplies = [];
-  if (targetMessage.thread_ts && targetMessage.thread_ts === targetMessage.ts) {
-    threadReplies = await getThreadReplies(client, channelId, targetMessage.ts);
+  const resolvedThreadTs = threadTs || targetMessage.thread_ts || (targetMessage.reply_count ? targetMessage.ts : null);
+  if (resolvedThreadTs) {
+    threadReplies = await getThreadReplies(client, channelId, resolvedThreadTs);
   }
 
-  // Fetch channel context
-  const { before, after } = await getChannelContext(client, channelId, messageTs, contextSize);
+  // Thread replies are not in channel history, so anchor context to the parent.
+  const { before, after } = contextSize === 0
+    ? { before: [], after: [] }
+    : await getChannelContext(client, channelId, resolvedThreadTs || messageTs, contextSize);
 
   // Get channel info
   const channelInfo = await getChannelInfo(client, channelId);

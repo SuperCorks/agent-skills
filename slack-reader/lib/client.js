@@ -38,8 +38,16 @@ function handleSlackError(err) {
       throw new SkillError('SLACK_MESSAGE_NOT_FOUND');
     
     case 'missing_scope':
+      throw new SkillError(
+        'SLACK_PERMISSION_DENIED',
+        err.data?.needed ? `missing required scope: ${err.data.needed}` : errorCode
+      );
+
     case 'not_in_channel':
       throw new SkillError('SLACK_PERMISSION_DENIED', errorCode);
+
+    case 'not_allowed_token_type':
+      throw new SkillError('SLACK_USER_TOKEN_REQUIRED', errorCode);
     
     case 'ratelimited':
       throw new SkillError('SLACK_RATE_LIMITED');
@@ -58,20 +66,33 @@ function handleSlackError(err) {
  * @returns {Promise<Object>} The message object
  * @throws {SkillError}
  */
-async function getMessage(client, channel, ts) {
+async function getMessage(client, channel, ts, threadTs = null) {
   try {
+    if (threadTs) {
+      const messages = await getThreadReplies(client, channel, threadTs);
+      const message = messages.find(candidate => candidate.ts === ts);
+
+      if (!message) {
+        throw new SkillError('SLACK_MESSAGE_NOT_FOUND');
+      }
+
+      return message;
+    }
+
     const result = await client.conversations.history({
       channel,
       oldest: ts,
+      latest: ts,
       inclusive: true,
       limit: 1,
     });
 
-    if (!result.messages || result.messages.length === 0) {
+    const message = result.messages?.find(candidate => candidate.ts === ts);
+    if (!message) {
       throw new SkillError('SLACK_MESSAGE_NOT_FOUND');
     }
 
-    return result.messages[0];
+    return message;
   } catch (err) {
     if (err instanceof SkillError) throw err;
     handleSlackError(err);
@@ -89,13 +110,21 @@ async function getMessage(client, channel, ts) {
  */
 async function getThreadReplies(client, channel, threadTs) {
   try {
-    const result = await client.conversations.replies({
-      channel,
-      ts: threadTs,
-    });
+    const messages = [];
+    let cursor;
 
-    // First message is the parent, rest are replies
-    return result.messages || [];
+    do {
+      const result = await client.conversations.replies({
+        channel,
+        ts: threadTs,
+        limit: 200,
+        cursor,
+      });
+      messages.push(...(result.messages || []));
+      cursor = result.response_metadata?.next_cursor || '';
+    } while (cursor);
+
+    return messages;
   } catch (err) {
     if (err instanceof SkillError) throw err;
     handleSlackError(err);
@@ -162,6 +191,99 @@ async function getChannelInfo(client, channel) {
 }
 
 /**
+ * List channel-like conversations visible to the token.
+ */
+async function listConversations(client, { types, excludeArchived = true, limit = 100, cursor } = {}) {
+  try {
+    const conversations = [];
+    let nextCursor = cursor || undefined;
+
+    do {
+      const remaining = limit - conversations.length;
+      const result = await client.conversations.list({
+        types,
+        exclude_archived: excludeArchived,
+        limit: Math.min(200, remaining),
+        cursor: nextCursor,
+      });
+      conversations.push(...(result.channels || []));
+      nextCursor = result.response_metadata?.next_cursor || '';
+    } while (nextCursor && conversations.length < limit);
+
+    return {
+      conversations: conversations.slice(0, limit),
+      nextCursor: nextCursor || null,
+    };
+  } catch (err) {
+    if (err instanceof SkillError) throw err;
+    handleSlackError(err);
+  }
+}
+
+/**
+ * Fetch message history from a conversation.
+ */
+async function getConversationHistory(client, channel, { limit = 100, oldest, latest, inclusive = false } = {}) {
+  try {
+    const messages = [];
+    let cursor;
+
+    do {
+      const remaining = limit - messages.length;
+      const result = await client.conversations.history({
+        channel,
+        limit: Math.min(200, remaining),
+        oldest,
+        latest,
+        inclusive,
+        cursor,
+      });
+      messages.push(...(result.messages || []));
+      cursor = result.response_metadata?.next_cursor || '';
+    } while (cursor && messages.length < limit);
+
+    return {
+      messages: messages.slice(0, limit),
+      nextCursor: cursor || null,
+    };
+  } catch (err) {
+    if (err instanceof SkillError) throw err;
+    handleSlackError(err);
+  }
+}
+
+/**
+ * Search messages visible to a user token.
+ */
+async function searchMessages(client, query, { count = 20, page = 1, sort = 'score', sortDir = 'desc' } = {}) {
+  try {
+    return await client.search.messages({
+      query,
+      count,
+      page,
+      sort,
+      sort_dir: sortDir,
+    });
+  } catch (err) {
+    if (err instanceof SkillError) throw err;
+    handleSlackError(err);
+  }
+}
+
+/**
+ * Fetch complete metadata for a Slack file and verify files:read access.
+ */
+async function getFileInfo(client, fileId) {
+  try {
+    const result = await client.files.info({ file: fileId });
+    return result.file;
+  } catch (err) {
+    if (err instanceof SkillError) throw err;
+    handleSlackError(err);
+  }
+}
+
+/**
  * Resolve user IDs to user info
  * 
  * @param {import('@slack/web-api').WebClient} client
@@ -216,5 +338,9 @@ module.exports = {
   getThreadReplies,
   getChannelContext,
   getChannelInfo,
+  listConversations,
+  getConversationHistory,
+  searchMessages,
+  getFileInfo,
   resolveUsers,
 };

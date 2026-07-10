@@ -14,7 +14,7 @@ const { SkillError } = require('./errors');
  * Parse a Slack message permalink URL
  * 
  * @param {string} url - Slack message permalink
- * @returns {{ workspace: string, channelId: string, messageTs: string }}
+ * @returns {{ workspace: string, channelId: string, messageTs: string, threadTs: string | null }}
  * @throws {SkillError} If the URL format is invalid
  */
 function parseSlackUrl(url) {
@@ -66,10 +66,20 @@ function parseSlackUrl(url) {
   // Insert decimal after the 10th digit (seconds.microseconds)
   const messageTs = `${tsDigits.slice(0, 10)}.${tsDigits.slice(10)}`;
 
+  const threadTsParam = parsed.searchParams.get('thread_ts');
+  const threadTs = threadTsParam && /^\d{10}\.\d{6}$/.test(threadTsParam)
+    ? threadTsParam
+    : null;
+
+  if (threadTsParam && !threadTs) {
+    throw new SkillError('SLACK_URL_INVALID', `Invalid thread_ts format: ${threadTsParam}`);
+  }
+
   return {
     workspace,
     channelId,
     messageTs,
+    threadTs,
   };
 }
 

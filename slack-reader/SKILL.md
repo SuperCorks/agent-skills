@@ -1,78 +1,63 @@
 ---
 name: slack-reader
-description: 'Read Slack messages by permalink URL. Fetches message content, thread replies, channel context, and resolves user mentions. Read-only access to Slack workspace data.'
+description: 'Read and search Slack message history, list accessible conversations, inspect message permalinks and threads, resolve user mentions, and download images or files uploaded to messages. Use for Slack permalink investigation, conversation history, workspace search, or attachment retrieval with multi-workspace read-only access.'
 ---
 
 # Slack Reader
 
-Read Slack messages and context by permalink URL. This skill provides read-only access to Slack workspace data.
+Use the bundled Node.js scripts for read-only Slack access. Prefer a user OAuth token (`xoxp-`) because it can see the same conversations as the user and is required for search.
 
-## Overview
+## Choose a workflow
 
-Fetches Slack message content given a message permalink, including:
-- The target message with resolved @mentions
-- Thread replies (if the message is a thread parent)
-- Surrounding channel context (messages before/after)
-- Channel metadata (name, topic, purpose)
-- Resolved user profiles
+- Read a permalink, its complete thread, and surrounding context: `scripts/read-message.js`
+- Discover channel, DM, and group-DM IDs: `scripts/list-conversations.js`
+- Read recent or date-bounded messages from one conversation: `scripts/conversation-history.js`
+- Search messages across a workspace: `scripts/search-messages.js`
+- Download uploaded images and files from a message or thread: `scripts/download-files.js`
+
+All commands write structured JSON to stdout and errors to stderr. Keep tokens out of commands and output; configure them only through environment variables.
 
 ## Setup
 
-### Prerequisites
+Requirements:
+
 - Node.js 20+
-- `@slack/web-api` package: `npm install @slack/web-api`
+- Dependencies installed with `npm install` in this skill directory
 
-### Environment Variables
-
-#### Single Workspace (Simple Setup)
+Configure one workspace:
 
 ```bash
-export SLACK_BOT_TOKEN=xoxb-your-bot-token
+export SLACK_BOT_TOKEN='xoxp-your-user-token'
 ```
 
-#### Multiple Workspaces
-
-For accessing multiple Slack workspaces, use `SLACK_WORKSPACES` with a JSON object mapping aliases to tokens:
+Configure multiple workspaces:
 
 ```bash
-export SLACK_WORKSPACES='{"personal": "xoxb-personal-token", "company": "xoxb-company-token"}'
+export SLACK_WORKSPACES='{"personal":"xoxp-personal-token","company":"xoxp-company-token"}'
 ```
 
-Workspace aliases are used for:
-- The `--workspace` flag to explicitly select a workspace
-- Error messages when workspace selection is ambiguous
-- Auto-matching against URL domains (e.g., URL domain "company" matches alias "company")
+Workspace selection order is `--workspace`, permalink hostname matching, then the only configured workspace. Commands without a permalink require `--workspace` when more than one workspace is configured.
 
-### Required Slack Scopes
-
-Your Slack app must have these OAuth scopes:
+## OAuth scopes
 
 | Scope | Purpose |
-|-------|---------|
-| `channels:history` | Read messages from public channels |
-| `channels:read` | View basic channel info |
-| `groups:history` | Read messages from private channels |
-| `groups:read` | View basic private channel info |
-| `im:history` | Read direct messages |
-| `im:read` | View basic DM info |
-| `mpim:history` | Read group direct messages |
-| `mpim:read` | View basic group DM info |
-| `users:read` | View user profiles |
+|---|---|
+| `channels:read`, `groups:read`, `im:read`, `mpim:read` | List and identify conversations |
+| `channels:history`, `groups:history`, `im:history`, `mpim:history` | Read message history and threads |
+| `users:read` | Resolve users and mentions |
+| `search:read` | Search messages; user token only |
+| `files:read` | Fetch file metadata and download private file URLs |
+| `canvases:read` | Read Slack canvas metadata already supported by the app |
 
-### Creating a Slack Token
+After adding scopes, reinstall the app to each workspace and replace the saved token. Previously issued tokens do not gain newly added scopes automatically.
 
-#### Option 1: Create from Manifest (Recommended)
-
-1. Go to [api.slack.com/apps](https://api.slack.com/apps)
-2. Click **Create New App** → **From a manifest**
-3. Select your workspace
-4. Choose **JSON** and paste:
+Create or update the app from this manifest:
 
 ```json
 {
   "display_information": {
     "name": "Slack Reader",
-    "description": "Read-only access for agent skills",
+    "description": "Read-only Slack access for agent skills",
     "background_color": "#0040ff"
   },
   "features": {
@@ -87,18 +72,21 @@ Your Slack app must have these OAuth scopes:
         "canvases:read",
         "channels:history",
         "channels:read",
+        "files:read",
         "groups:history",
         "groups:read",
         "im:history",
         "im:read",
         "mpim:history",
         "mpim:read",
+        "search:read",
         "users:read"
       ],
       "bot": [
         "canvases:read",
         "channels:history",
         "channels:read",
+        "files:read",
         "groups:history",
         "groups:read",
         "im:history",
@@ -117,150 +105,103 @@ Your Slack app must have these OAuth scopes:
 }
 ```
 
-5. Click **Create** → **Install to Workspace**
-6. Copy the **User OAuth Token** (starts with `xoxp-`)
-
-> **User tokens** (`xoxp-`) can access all channels you have access to.
-> **Bot tokens** (`xoxb-`) require the bot to be invited to each channel.
-
-#### Option 2: Manual Setup
-
-1. Go to [api.slack.com/apps](https://api.slack.com/apps)
-2. Create or select your app
-3. Navigate to **OAuth & Permissions**
-4. Add the required scopes under **User Token Scopes** (or Bot Token Scopes)
-5. Install the app to your workspace
-6. Copy the token (`xoxp-` for user, `xoxb-` for bot)
-
-## Available Scripts
-
-### read-message.js
-
-Read a Slack message by permalink URL.
+## Read a permalink
 
 ```bash
-node scripts/read-message.js --url <permalink> [options]
+node scripts/read-message.js --url 'https://workspace.slack.com/archives/C123/p1706554800123456'
 ```
 
-**Options:**
+Options:
 
-| Option | Description |
-|--------|-------------|
-| `--url <url>` | Slack message permalink (required) |
-| `--workspace <name>` | Workspace alias when using multiple workspaces |
-| `--context-size <n>` | Number of messages before/after for context (default: 5) |
-| `--help` | Show help message |
+| Option | Meaning |
+|---|---|
+| `--url <url>` | Message permalink; required |
+| `--workspace <name>` | Explicit workspace alias |
+| `--context-size <n>` | Messages before and after; default `5`, maximum `100`, use `0` for none |
 
-**Workspace Resolution:**
+The script matches the exact message timestamp. When a permalink points to a thread reply using `thread_ts`, it reads that reply and returns the complete thread rather than substituting a nearby channel message.
 
-When multiple workspaces are configured, the script resolves which token to use:
-1. If `--workspace` is specified, uses that workspace's token
-2. If the URL domain matches a workspace alias, uses that token
-3. If ambiguous, returns a `SLACK_WORKSPACE_AMBIGUOUS` error listing available workspaces
-
-Example with workspace flag:
-```bash
-node scripts/read-message.js \
-  --url "https://myworkspace.slack.com/archives/C0123456789/p1706554800123456" \
-  --workspace company
-```
-
-**Output:**
-
-JSON object containing:
-- `metadata`: URL, fetch timestamp, workspace
-- `channel`: Channel info (name, topic, purpose)
-- `targetMessage`: The requested message with resolved mentions
-- `thread`: Thread replies if the message is a thread parent
-- `context`: Messages before and after the target
-
-## Slack URL Format
-
-Message permalinks follow this format:
-```
-https://workspace.slack.com/archives/CHANNEL_ID/pTIMESTAMP
-```
-
-Where:
-- `workspace` - Your Slack workspace subdomain
-- `CHANNEL_ID` - Channel ID (e.g., `C01234567`)
-- `TIMESTAMP` - Message timestamp without decimal (e.g., `p1706554800123456`)
-
-You can get a message permalink by clicking the message menu (⋮) and selecting "Copy link".
-
-## Examples
-
-### Read a message with default context
+## List conversations
 
 ```bash
-node scripts/read-message.js \
-  --url "https://myworkspace.slack.com/archives/C0123456789/p1706554800123456"
+node scripts/list-conversations.js --workspace company --types im,mpim --limit 100
 ```
 
-### Read with more surrounding context
+Options:
+
+| Option | Meaning |
+|---|---|
+| `--workspace <name>` | Workspace alias |
+| `--types <types>` | Any of `public_channel,private_channel,mpim,im`; default all |
+| `--limit <n>` | Maximum results; default `100`, maximum `1000` |
+| `--cursor <cursor>` | Resume from a returned cursor |
+| `--include-archived` | Include archived conversations |
+
+DM entries include the resolved user's display name. Use the returned conversation ID with `conversation-history.js`.
+
+## Read conversation history
 
 ```bash
-node scripts/read-message.js \
-  --url "https://myworkspace.slack.com/archives/C0123456789/p1706554800123456" \
-  --context-size 10
+node scripts/conversation-history.js --channel D0123456789 --workspace company --limit 100
+node scripts/conversation-history.js --url 'https://workspace.slack.com/archives/C123/p1706554800123456' --oldest '2026-07-01T00:00:00Z' --order asc
 ```
 
-### Pipe output to jq for formatting
+Provide either `--channel` or `--url`. `--oldest` and `--latest` accept Slack timestamps or ISO 8601 dates. Use `--inclusive` to include exact bounds and `--order asc` for chronological output; the default is newest first.
+
+## Search messages
 
 ```bash
-node scripts/read-message.js --url "https://..." | jq '.targetMessage'
+node scripts/search-messages.js --workspace company --query 'launch plan after:2026-06-01' --count 50 --sort timestamp
 ```
 
-## Error Codes
+Search requires an `xoxp-` user token with `search:read`. Slack search modifiers such as `in:channel`, `from:<@USERID>`, `before:`, and `after:` can be included in `--query`.
 
-| Code | Description | Remediation |
-|------|-------------|-------------|
-| `SLACK_SDK_MISSING` | @slack/web-api package is not installed | Run: `npm install @slack/web-api` |
-| `SLACK_AUTH_MISSING` | No tokens configured | Set SLACK_BOT_TOKEN or SLACK_WORKSPACES |
-| `SLACK_AUTH_INVALID` | Token is invalid or expired | Verify token and app installation |
-| `SLACK_WORKSPACES_INVALID` | SLACK_WORKSPACES is not valid JSON | Check JSON format |
-| `SLACK_WORKSPACE_NOT_FOUND` | Specified workspace alias not found | Use `--workspace` with valid alias |
-| `SLACK_WORKSPACE_AMBIGUOUS` | Multiple workspaces configured but none specified | Use `--workspace` flag to select |
-| `SLACK_URL_INVALID` | Invalid message URL format | Use a valid permalink |
-| `SLACK_CHANNEL_NOT_FOUND` | Channel not found or bot lacks access | Invite bot to channel |
-| `SLACK_MESSAGE_NOT_FOUND` | Message not found | Verify URL and message exists |
-| `SLACK_PERMISSION_DENIED` | Missing required scopes | Add required OAuth scopes |
-| `SLACK_RATE_LIMITED` | API rate limit exceeded | Wait and retry |
-| `SLACK_API_ERROR` | General API error | Check error details |
+Options:
 
-## Library Files
+| Option | Meaning |
+|---|---|
+| `--query <query>` | Slack search query; required |
+| `--count <n>` | Results per page; default `20`, maximum `100` |
+| `--page <n>` | Page number; default `1`, maximum `100` |
+| `--sort <mode>` | `score` or `timestamp` |
+| `--sort-dir <dir>` | `desc` or `asc` |
 
-### lib/client.js
-Slack API client wrapper with methods for:
-- `createClient(WebClient, token)` - Create authenticated client
-- `getMessage(client, channelId, ts)` - Fetch a single message
-- `getThreadReplies(client, channelId, threadTs)` - Fetch thread replies
-- `getChannelContext(client, channelId, ts, size)` - Fetch surrounding messages
-- `getChannelInfo(client, channelId)` - Fetch channel metadata
-- `resolveUsers(client, userIds)` - Fetch user profiles
+## Download uploaded files
 
-### lib/url-parser.js
-Parse Slack permalinks to extract workspace, channel ID, and message timestamp.
+```bash
+node scripts/download-files.js \
+  --url 'https://workspace.slack.com/archives/D0123456789/p1706554800123456' \
+  --output-dir './downloads'
+```
 
-### lib/normalizer.js
-Format API responses into consistent output structure.
+Add `--include-thread` to download files from the parent and every reply. The command:
 
-### lib/errors.js
-Structured error handling with codes and remediation guidance.
+- Downloads entries in Slack's message `files` collection, including uploaded images and documents
+- Uses `url_private_download` with bearer authentication and requires `files:read`
+- Preserves existing files by suffixing duplicate names (`image-2.png`)
+- Sanitizes filenames and writes through a temporary file
+- Verifies the downloaded byte count and rejects HTML login/access pages
+- Returns each absolute output path and the message timestamp that contained the file
 
-### lib/workspaces.js
-Multi-workspace token management:
-- `parseWorkspaces(envValue)` - Parse SLACK_WORKSPACES JSON
-- `getConfiguredWorkspaces()` - Get all configured workspaces
-- `resolveWorkspace(workspaces, specifiedName, urlDomain)` - Resolve which workspace to use
-- `getAvailableWorkspaces()` - Get comma-separated list of workspace aliases
+It does not download third-party images shown only as link unfurls in message `attachments`; those are remote previews rather than Slack-uploaded files.
 
-## Official Documentation
+## Errors
 
-- [Slack Web API](https://api.slack.com/methods)
-- [conversations.history](https://api.slack.com/methods/conversations.history)
-- [conversations.replies](https://api.slack.com/methods/conversations.replies)
-- [conversations.info](https://api.slack.com/methods/conversations.info)
-- [users.info](https://api.slack.com/methods/users.info)
-- [Bot Tokens](https://api.slack.com/authentication/token-types#bot)
-- [OAuth Scopes](https://api.slack.com/scopes)
+Common error codes:
+
+| Code | Action |
+|---|---|
+| `SLACK_AUTH_MISSING` | Configure `SLACK_WORKSPACES` or `SLACK_BOT_TOKEN` |
+| `SLACK_WORKSPACE_AMBIGUOUS` | Add `--workspace` |
+| `SLACK_MESSAGE_NOT_FOUND` | Verify the exact permalink and token access |
+| `SLACK_PERMISSION_DENIED` | Add the needed scope, reinstall the app, and update the token |
+| `SLACK_USER_TOKEN_REQUIRED` | Use an `xoxp-` token for search |
+| `SLACK_FILE_DOWNLOAD_FAILED` | Verify `files:read`, file access, and the destination |
+| `SLACK_RATE_LIMITED` | Wait and retry |
+
+## References
+
+- [Slack conversations.list](https://docs.slack.dev/reference/methods/conversations.list/)
+- [Slack conversations.history](https://docs.slack.dev/reference/methods/conversations.history/)
+- [Slack search.messages](https://docs.slack.dev/reference/methods/search.messages/)
+- [Slack file object and authenticated downloads](https://docs.slack.dev/reference/objects/file-object/)

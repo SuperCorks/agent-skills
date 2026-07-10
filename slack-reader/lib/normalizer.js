@@ -78,6 +78,9 @@ function normalizeMessage(rawMsg, userMap) {
       mimetype: f.mimetype,
       size: f.size,
       url: f.url_private,
+      urlPrivate: f.url_private,
+      urlPrivateDownload: f.url_private_download || f.url_private,
+      permalink: f.permalink,
     })),
     timestamp: tsToISO(rawMsg.ts),
     isBot: !!rawMsg.bot_id,
@@ -106,7 +109,11 @@ function normalizeOutput(
   userMap,
   metadata
 ) {
-  const isThread = targetMessage.thread_ts && targetMessage.thread_ts === targetMessage.ts;
+  const parentTs = targetMessage.thread_ts || (targetMessage.reply_count ? targetMessage.ts : null);
+  const threadParent = parentTs
+    ? threadReplies.find(message => message.ts === parentTs)
+    : null;
+  const hasThread = Boolean(parentTs && threadReplies.length > 0);
   
   return {
     metadata: {
@@ -124,11 +131,13 @@ function normalizeOutput(
       purpose: channelInfo.purpose?.value || null,
     },
     targetMessage: normalizeMessage(targetMessage, userMap),
-    thread: isThread ? {
-      parentTs: targetMessage.ts,
-      replyCount: targetMessage.reply_count || 0,
+    thread: hasThread ? {
+      parentTs,
+      targetIsReply: targetMessage.ts !== parentTs,
+      parent: threadParent ? normalizeMessage(threadParent, userMap) : null,
+      replyCount: threadParent?.reply_count || Math.max(0, threadReplies.length - 1),
       replies: threadReplies
-        .filter(m => m.ts !== targetMessage.ts) // Exclude parent message
+        .filter(m => m.ts !== parentTs)
         .map(m => normalizeMessage(m, userMap)),
     } : null,
     context: {
@@ -168,10 +177,59 @@ function collectUserIds(messages) {
   return [...userIds];
 }
 
+/**
+ * Normalize a conversation returned by conversations.list.
+ */
+function normalizeConversation(conversation, userMap) {
+  const dmUser = conversation.user ? userMap.get(conversation.user) : null;
+  const type = conversation.is_im
+    ? 'im'
+    : conversation.is_mpim
+      ? 'mpim'
+      : conversation.is_private
+        ? 'private_channel'
+        : 'public_channel';
+
+  return {
+    id: conversation.id,
+    type,
+    name: conversation.name || dmUser?.displayName || conversation.id,
+    userId: conversation.user || null,
+    userDisplayName: dmUser?.displayName || null,
+    isMember: conversation.is_member ?? null,
+    isArchived: conversation.is_archived || false,
+    isShared: conversation.is_shared || conversation.is_ext_shared || false,
+    created: conversation.created ? new Date(conversation.created * 1000).toISOString() : null,
+    topic: conversation.topic?.value || null,
+    purpose: conversation.purpose?.value || null,
+  };
+}
+
+/**
+ * Normalize a search.messages match.
+ */
+function normalizeSearchMatch(match, userMap) {
+  const message = normalizeMessage(match, userMap);
+
+  return {
+    ...message,
+    channel: {
+      id: match.channel?.id || null,
+      name: match.channel?.name || null,
+      isPrivate: match.channel?.is_private || false,
+      isIm: match.type === 'im',
+      isMpim: match.channel?.is_mpim || false,
+    },
+    permalink: match.permalink || null,
+  };
+}
+
 module.exports = {
   normalizeMessage,
   normalizeOutput,
   collectUserIds,
   resolveTextMentions,
   tsToISO,
+  normalizeConversation,
+  normalizeSearchMatch,
 };

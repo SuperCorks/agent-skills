@@ -2,6 +2,8 @@
  * CLI utilities for Slack Reader skill
  */
 
+const { SkillError } = require('./errors');
+
 /**
  * Parse command-line arguments
  * @param {string[]} [argv=process.argv.slice(2)]
@@ -49,6 +51,35 @@ function toCamelCase(str) {
 }
 
 /**
+ * Parse and validate an integer CLI option.
+ */
+function parseInteger(value, { name, defaultValue, min = Number.MIN_SAFE_INTEGER, max = Number.MAX_SAFE_INTEGER }) {
+  if (value === undefined) return defaultValue;
+
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < min || parsed > max) {
+    throw new SkillError('SLACK_ARGUMENT_INVALID', `${name} must be an integer between ${min} and ${max}`);
+  }
+
+  return parsed;
+}
+
+/**
+ * Parse a Slack timestamp or ISO 8601 date into a Slack timestamp.
+ */
+function parseTimestamp(value, name) {
+  if (value === undefined) return undefined;
+  if (/^\d{10}(?:\.\d{1,6})?$/.test(value)) return value;
+
+  const millis = Date.parse(value);
+  if (Number.isNaN(millis)) {
+    throw new SkillError('SLACK_ARGUMENT_INVALID', `${name} must be a Slack timestamp or ISO 8601 date`);
+  }
+
+  return (millis / 1000).toFixed(6);
+}
+
+/**
  * Print help text and exit
  * @param {string} helpText
  */
@@ -84,6 +115,8 @@ function outputError(error) {
 
 module.exports = {
   parseArgs,
+  parseInteger,
+  parseTimestamp,
   printHelp,
   outputJson,
   outputError,
