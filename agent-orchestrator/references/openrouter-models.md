@@ -6,12 +6,13 @@ This is a dated integration snapshot, not a promise that OpenRouter will keep a 
 curl -fsSL https://openrouter.ai/api/v1/model/x-ai/grok-4.5 | jq '.data | {id, canonical_slug, context_length, pricing, supported_parameters, reasoning}'
 ```
 
-Snapshot verified 2026-07-09 against the OpenRouter Models API. OpenCode uses the `openrouter/<model-id>` form; the Models API uses the provider/model ID without the `openrouter/` prefix.
+Snapshot verified 2026-07-15 against the OpenRouter Models API. OpenCode uses the `openrouter/<model-id>` form; the Models API uses the provider/model ID without the `openrouter/` prefix.
 
 | Model | OpenCode model | Context | Current reasoning metadata | Input / output price per million tokens |
 | --- | --- | ---: | --- | ---: |
 | xAI Grok 4.5 | `openrouter/x-ai/grok-4.5` | 500K | Mandatory; `high`, `medium`, `low`; default `high` | $2 / $6 |
-| OpenAI GPT-5.5 | `openrouter/openai/gpt-5.5` | 1.05M | `xhigh`, `high`, `medium`, `low`, `none`; default `medium` | $5 / $30 |
+| OpenAI GPT-5.6 Sol | `openrouter/openai/gpt-5.6-sol` | 1.05M | `max`, `xhigh`, `high`, `medium`, `low`, `none`; default `medium` | $5 / $30 |
+| OpenAI GPT-5.6 Terra | `openrouter/openai/gpt-5.6-terra` | 1.05M | `max`, `xhigh`, `high`, `medium`, `low`, `none`; default `medium` | $2.50 / $15 |
 | Anthropic Claude Opus 4.8 | `openrouter/anthropic/claude-opus-4.8` | 1M | `max`, `xhigh`, `high`, `medium`, `low`; default `medium` | $5 / $25 |
 | xAI Grok Build 0.1 | `openrouter/x-ai/grok-build-0.1` | 256K | Reasoning mandatory; effort list not exposed in the current record | $1 / $2 |
 

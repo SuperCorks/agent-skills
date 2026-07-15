@@ -18,8 +18,17 @@ from pathlib import Path
 from typing import Any
 
 
-DEFAULT_CODEX_MODEL = os.environ.get("AGENT_ORCHESTRATOR_CODEX_MODEL", "gpt-5.5")
-DEFAULT_CODEX_REASONING = os.environ.get("AGENT_ORCHESTRATOR_CODEX_REASONING", "xhigh")
+DEFAULT_CODEX_MODEL = os.environ.get("AGENT_ORCHESTRATOR_CODEX_MODEL", "gpt-5.6-sol")
+CODEX_REASONING_OVERRIDE = os.environ.get("AGENT_ORCHESTRATOR_CODEX_REASONING")
+DEFAULT_CODEX_REASONING = CODEX_REASONING_OVERRIDE or "xhigh"
+DEFAULT_CODEX_SOL_REASONING = os.environ.get(
+    "AGENT_ORCHESTRATOR_CODEX_SOL_REASONING",
+    CODEX_REASONING_OVERRIDE or "xhigh",
+)
+DEFAULT_CODEX_TERRA_REASONING = os.environ.get(
+    "AGENT_ORCHESTRATOR_CODEX_TERRA_REASONING",
+    CODEX_REASONING_OVERRIDE or "high",
+)
 DEFAULT_CLAUDE_MODEL = os.environ.get("AGENT_ORCHESTRATOR_CLAUDE_MODEL", "claude-opus-4-8")
 DEFAULT_CLAUDE_REASONING = os.environ.get("AGENT_ORCHESTRATOR_CLAUDE_REASONING", "xhigh")
 DEFAULT_CLAUDE_FABLE_REASONING = os.environ.get("AGENT_ORCHESTRATOR_CLAUDE_FABLE_REASONING", "high")
@@ -27,6 +36,8 @@ DEFAULT_OPENCODE_MODEL = os.environ.get("AGENT_ORCHESTRATOR_OPENCODE_MODEL", "op
 DEFAULT_OPENCODE_REASONING = os.environ.get("AGENT_ORCHESTRATOR_OPENCODE_REASONING", "high")
 OPENCODE_AUTH_PROVIDER = os.environ.get("AGENT_ORCHESTRATOR_OPENCODE_AUTH_PROVIDER", "OpenRouter")
 CLAUDE_FABLE_MODELS = {"fable", "claude-fable-5"}
+CODEX_SOL_MODELS = {"gpt-5.6-sol"}
+CODEX_TERRA_MODELS = {"gpt-5.6-terra"}
 DEFAULT_RUN_TIMEOUT = int(os.environ.get("AGENT_ORCHESTRATOR_RUN_TIMEOUT", "1800"))
 DEFAULT_RUN_ROOT = Path(".agent-orchestrator") / "runs"
 DANGEROUS_EXTRA_ARGS = {
@@ -121,6 +132,11 @@ def default_reasoning(engine: str, model: str | None = None) -> str:
         return DEFAULT_CLAUDE_REASONING
     if engine == "opencode":
         return DEFAULT_OPENCODE_REASONING
+    selected_model = (model or DEFAULT_CODEX_MODEL).lower()
+    if selected_model in CODEX_SOL_MODELS:
+        return DEFAULT_CODEX_SOL_REASONING
+    if selected_model in CODEX_TERRA_MODELS:
+        return DEFAULT_CODEX_TERRA_REASONING
     return DEFAULT_CODEX_REASONING
 
 
@@ -400,7 +416,7 @@ def build_command(
                 "--model",
                 model or DEFAULT_CODEX_MODEL,
                 "-c",
-                f'model_reasoning_effort="{reasoning or DEFAULT_CODEX_REASONING}"',
+                f'model_reasoning_effort="{reasoning or default_reasoning("codex", model or DEFAULT_CODEX_MODEL)}"',
                 "--cd",
                 str(cwd),
             ]

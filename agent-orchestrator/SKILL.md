@@ -27,7 +27,8 @@ python3 agent-orchestrator/scripts/agent_orchestrator.py run --engine opencode -
 
 Default worker settings are:
 
-- Codex: `codex exec --model gpt-5.5 -c model_reasoning_effort="xhigh" --yolo`
+- Codex defaults to GPT-5.6 Sol: `codex exec --model gpt-5.6-sol -c model_reasoning_effort="xhigh" --yolo`.
+- Codex with GPT-5.6 Terra: pass `--model gpt-5.6-terra`; default reasoning becomes `high` unless `--reasoning` is supplied.
 - Claude Code: `claude -p --model claude-opus-4-8 --effort xhigh --permission-mode bypassPermissions --dangerously-skip-permissions`
 - Claude Code with Fable 5: pass `--model claude-fable-5` or `--model fable`; default effort becomes `high` unless `--reasoning` is supplied.
 - OpenCode: `opencode run --auto --model openrouter/x-ai/grok-4.5 --variant high --format json` when the installed CLI supports `--auto`; otherwise use OpenCode config `permission: "allow"`.
@@ -146,7 +147,7 @@ Useful options:
 - `--dry-run`: print the command that would run.
 - `--no-yolo`: disable Codex `--yolo`, Claude permission bypass, or OpenCode `--auto` when the user asks for safer permissions. If OpenCode is globally configured with `permission: "allow"`, change that config for stricter local runs.
 - `--model`: override the default model.
-- `--reasoning`: override Codex `model_reasoning_effort`, Claude `--effort`, or OpenCode `--variant`. Claude Fable 5 defaults to `high`; other Claude runs default to `xhigh`.
+- `--reasoning`: override Codex `model_reasoning_effort`, Claude `--effort`, or OpenCode `--variant`. Codex Sol defaults to `xhigh`, Codex Terra and Claude Fable 5 default to `high`, and other Claude runs default to `xhigh`.
 - `--resume SESSION_ID`: resume an existing CLI session instead of starting a fresh one.
 - `--timeout SECONDS`: kill the worker after a ceiling; defaults to 1800, and `0` waits indefinitely.
 - `--raw-prompt`: skip the skill's appended handoff instructions.

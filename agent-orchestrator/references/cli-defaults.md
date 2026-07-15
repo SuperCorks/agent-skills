@@ -1,13 +1,15 @@
 # CLI Defaults And Commands
 
-Verified against official Codex and Claude Code documentation on 2026-06-27. OpenCode/OpenRouter Grok 4.5 behavior was verified locally on 2026-07-09.
+Model IDs and reasoning levels were verified against the local Codex model catalog and official OpenAI/OpenRouter model records on 2026-07-15. Claude Code defaults were last verified on 2026-06-27.
 
 ## Default Models And Reasoning
 
 User policy for this skill:
 
-- Codex model: `gpt-5.5`
-- Codex reasoning: `xhigh` via `-c model_reasoning_effort="xhigh"`
+- Codex default model: `gpt-5.6-sol`
+- Codex Sol reasoning: `xhigh` via `-c model_reasoning_effort="xhigh"`
+- Codex Terra model: `gpt-5.6-terra`
+- Codex Terra reasoning: `high` unless overridden with `--reasoning`
 - Claude model: `claude-opus-4-8`
 - Claude effort: `xhigh`
 - Claude Fable 5 model: `claude-fable-5` or Claude Code alias `fable`
@@ -21,7 +23,8 @@ User policy for this skill:
 Override for a single run:
 
 ```bash
-python3 agent-orchestrator/scripts/agent_orchestrator.py run --engine codex --model gpt-5.5 --reasoning xhigh --prompt "..."
+python3 agent-orchestrator/scripts/agent_orchestrator.py run --engine codex --model gpt-5.6-sol --reasoning xhigh --prompt "..."
+python3 agent-orchestrator/scripts/agent_orchestrator.py run --engine codex --model gpt-5.6-terra --reasoning high --prompt "..."
 python3 agent-orchestrator/scripts/agent_orchestrator.py run --engine claude --model claude-opus-4-8 --reasoning xhigh --prompt "..."
 python3 agent-orchestrator/scripts/agent_orchestrator.py run --engine claude --model claude-fable-5 --prompt "..."
 python3 agent-orchestrator/scripts/agent_orchestrator.py run --engine opencode --model openrouter/x-ai/grok-4.5 --reasoning high --prompt "..."
@@ -30,8 +33,9 @@ python3 agent-orchestrator/scripts/agent_orchestrator.py run --engine opencode -
 Override by environment:
 
 ```bash
-export AGENT_ORCHESTRATOR_CODEX_MODEL=gpt-5.5
-export AGENT_ORCHESTRATOR_CODEX_REASONING=xhigh
+export AGENT_ORCHESTRATOR_CODEX_MODEL=gpt-5.6-sol
+export AGENT_ORCHESTRATOR_CODEX_SOL_REASONING=xhigh
+export AGENT_ORCHESTRATOR_CODEX_TERRA_REASONING=high
 export AGENT_ORCHESTRATOR_CLAUDE_MODEL=claude-opus-4-8
 export AGENT_ORCHESTRATOR_CLAUDE_REASONING=xhigh
 export AGENT_ORCHESTRATOR_CLAUDE_FABLE_REASONING=high
@@ -40,6 +44,10 @@ export AGENT_ORCHESTRATOR_OPENCODE_REASONING=high
 export AGENT_ORCHESTRATOR_OPENCODE_AUTH_PROVIDER=OpenRouter
 export AGENT_ORCHESTRATOR_RUN_TIMEOUT=1800
 ```
+
+`AGENT_ORCHESTRATOR_CODEX_REASONING` remains available as a global Codex reasoning override. Precedence is `--reasoning`, the selected model's `AGENT_ORCHESTRATOR_CODEX_*_REASONING` value, the global override, then the built-in model default.
+
+GPT-5.6 Sol is the default Codex model and uses `xhigh` reasoning. Select GPT-5.6 Terra with `--model gpt-5.6-terra`; when `--reasoning` is omitted, the helper uses `high`. Both defaults also apply to resumed Codex sessions.
 
 Claude Code accepts aliases such as `opus`, `fable`, and full model names. The skill default pins Opus 4.8 with the full model name `claude-opus-4-8`; if a local CLI reports `model_not_found`, rerun with the current official alias or full model ID using `--model`.
 
@@ -133,7 +141,7 @@ python3 agent-orchestrator/scripts/agent_orchestrator.py run --engine codex --ti
 The helper builds:
 
 ```bash
-codex exec --json --output-last-message /path/to/final.txt --model gpt-5.5 -c 'model_reasoning_effort="xhigh"' --cd /path/to/repo --yolo "Prompt..."
+codex exec --json --output-last-message /path/to/final.txt --model gpt-5.6-sol -c 'model_reasoning_effort="xhigh"' --cd /path/to/repo --yolo "Prompt..."
 ```
 
 Claude awaited worker:
@@ -179,7 +187,7 @@ If the installed `opencode run --help` does not list `--auto`, the helper omits 
 Resume examples:
 
 ```bash
-codex exec --json --model gpt-5.5 -c 'model_reasoning_effort="xhigh"' --cd /path/to/repo --yolo resume SESSION_ID "Follow-up prompt..."
+codex exec --json --model gpt-5.6-sol -c 'model_reasoning_effort="xhigh"' --cd /path/to/repo --yolo resume SESSION_ID "Follow-up prompt..."
 claude -p --output-format json --model claude-opus-4-8 --effort xhigh --permission-mode bypassPermissions --dangerously-skip-permissions --resume SESSION_ID "Follow-up prompt..."
 opencode run --auto --format json --model openrouter/x-ai/grok-4.5 --variant high --session SESSION_ID "Follow-up prompt..."
 ```
