@@ -27,7 +27,7 @@ python3 agent-orchestrator/scripts/agent_orchestrator.py run \
   --engine opencode \
   --model openrouter/x-ai/grok-4.5 \
   --reasoning high \
-  --timeout 1800 \
+  --timeout 2700 \
   --prompt "Review the current implementation for correctness risks and return a handoff packet."
 ```
 
@@ -42,7 +42,7 @@ python3 agent-orchestrator/scripts/agent_orchestrator.py run \
   --engine opencode \
   --model openrouter/moonshotai/kimi-k3 \
   --reasoning max \
-  --timeout 1800 \
+  --timeout 2700 \
   --prompt "Review the current implementation for correctness risks and return a handoff packet."
 ```
 

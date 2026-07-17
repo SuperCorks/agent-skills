@@ -11,6 +11,37 @@ agent_orchestrator = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(agent_orchestrator)
 
 
+class RuntimeDefaultsTests(unittest.TestCase):
+    def parse_run_args(self, *extra_args: str):
+        parser = agent_orchestrator.build_parser()
+        return parser.parse_args(
+            [
+                "run",
+                "--engine",
+                "opencode",
+                "--prompt",
+                "Test prompt",
+                *extra_args,
+            ]
+        )
+
+    def test_run_timeout_defaults_to_45_minutes(self) -> None:
+        self.assertEqual(agent_orchestrator.BUILTIN_RUN_TIMEOUT_SECONDS, 2700)
+        with mock.patch.object(
+            agent_orchestrator,
+            "DEFAULT_RUN_TIMEOUT",
+            agent_orchestrator.BUILTIN_RUN_TIMEOUT_SECONDS,
+        ):
+            args = self.parse_run_args()
+
+        self.assertEqual(args.timeout, 2700)
+
+    def test_explicit_run_timeout_overrides_default(self) -> None:
+        args = self.parse_run_args("--timeout", "60")
+
+        self.assertEqual(args.timeout, 60)
+
+
 class OpenCodeModelReasoningTests(unittest.TestCase):
     def build_opencode_command(self, *extra_args: str) -> list[str]:
         parser = agent_orchestrator.build_parser()

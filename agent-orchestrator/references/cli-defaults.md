@@ -46,7 +46,7 @@ export AGENT_ORCHESTRATOR_OPENCODE_MODEL=openrouter/x-ai/grok-4.5
 export AGENT_ORCHESTRATOR_OPENCODE_REASONING=high
 export AGENT_ORCHESTRATOR_KIMI_K3_REASONING=max
 export AGENT_ORCHESTRATOR_OPENCODE_AUTH_PROVIDER=OpenRouter
-export AGENT_ORCHESTRATOR_RUN_TIMEOUT=1800
+export AGENT_ORCHESTRATOR_RUN_TIMEOUT=2700
 ```
 
 `AGENT_ORCHESTRATOR_CODEX_REASONING` remains available as a global Codex reasoning override. Precedence is `--reasoning`, the selected model's `AGENT_ORCHESTRATOR_CODEX_*_REASONING` value, the global override, then the built-in model default.
@@ -141,7 +141,7 @@ If auth cannot complete from the current terminal, hand these exact commands to 
 Codex awaited worker:
 
 ```bash
-python3 agent-orchestrator/scripts/agent_orchestrator.py run --engine codex --timeout 1800 --prompt "Prompt..."
+python3 agent-orchestrator/scripts/agent_orchestrator.py run --engine codex --timeout 2700 --prompt "Prompt..."
 ```
 
 The helper builds:
@@ -153,7 +153,7 @@ codex exec --json --output-last-message /path/to/final.txt --model gpt-5.6-sol -
 Claude awaited worker:
 
 ```bash
-python3 agent-orchestrator/scripts/agent_orchestrator.py run --engine claude --timeout 1800 --prompt "Prompt..."
+python3 agent-orchestrator/scripts/agent_orchestrator.py run --engine claude --timeout 2700 --prompt "Prompt..."
 ```
 
 The helper builds:
@@ -165,7 +165,7 @@ claude -p --output-format json --model claude-opus-4-8 --effort xhigh --permissi
 Claude Fable 5 awaited worker:
 
 ```bash
-python3 agent-orchestrator/scripts/agent_orchestrator.py run --engine claude --model claude-fable-5 --timeout 1800 --prompt "Prompt..."
+python3 agent-orchestrator/scripts/agent_orchestrator.py run --engine claude --model claude-fable-5 --timeout 2700 --prompt "Prompt..."
 ```
 
 The helper builds:
@@ -177,9 +177,9 @@ claude -p --output-format json --model claude-fable-5 --effort high --permission
 OpenCode awaited worker using Grok 4.5 through OpenRouter:
 
 ```bash
-python3 agent-orchestrator/scripts/agent_orchestrator.py run --engine opencode --timeout 1800 --prompt "Prompt..."
+python3 agent-orchestrator/scripts/agent_orchestrator.py run --engine opencode --timeout 2700 --prompt "Prompt..."
 
-python3 agent-orchestrator/scripts/agent_orchestrator.py run --engine opencode --model openrouter/x-ai/grok-4.5 --reasoning high --timeout 1800 --prompt "Prompt..."
+python3 agent-orchestrator/scripts/agent_orchestrator.py run --engine opencode --model openrouter/x-ai/grok-4.5 --reasoning high --timeout 2700 --prompt "Prompt..."
 ```
 
 The helper builds:
@@ -191,7 +191,7 @@ opencode run --auto --format json --model openrouter/x-ai/grok-4.5 --variant hig
 OpenCode awaited worker using Kimi K3 through OpenRouter:
 
 ```bash
-python3 agent-orchestrator/scripts/agent_orchestrator.py run --engine opencode --model openrouter/moonshotai/kimi-k3 --timeout 1800 --prompt "Prompt..."
+python3 agent-orchestrator/scripts/agent_orchestrator.py run --engine opencode --model openrouter/moonshotai/kimi-k3 --timeout 2700 --prompt "Prompt..."
 ```
 
 The helper builds:

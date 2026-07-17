@@ -43,7 +43,10 @@ CLAUDE_FABLE_MODELS = {"fable", "claude-fable-5"}
 CODEX_SOL_MODELS = {"gpt-5.6-sol"}
 CODEX_TERRA_MODELS = {"gpt-5.6-terra"}
 OPENCODE_KIMI_K3_MODELS = {"openrouter/moonshotai/kimi-k3"}
-DEFAULT_RUN_TIMEOUT = int(os.environ.get("AGENT_ORCHESTRATOR_RUN_TIMEOUT", "1800"))
+BUILTIN_RUN_TIMEOUT_SECONDS = 45 * 60
+DEFAULT_RUN_TIMEOUT = int(
+    os.environ.get("AGENT_ORCHESTRATOR_RUN_TIMEOUT", str(BUILTIN_RUN_TIMEOUT_SECONDS))
+)
 DEFAULT_RUN_ROOT = Path(".agent-orchestrator") / "runs"
 DANGEROUS_EXTRA_ARGS = {
     "--auto",

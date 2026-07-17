@@ -20,10 +20,10 @@ python3 agent-orchestrator/scripts/agent_orchestrator.py preflight --engine both
 python3 agent-orchestrator/scripts/agent_orchestrator.py preflight --engine opencode --json
 python3 agent-orchestrator/scripts/agent_orchestrator.py setup --engine both
 python3 agent-orchestrator/scripts/agent_orchestrator.py setup --engine opencode
-python3 agent-orchestrator/scripts/agent_orchestrator.py run --engine codex --cwd "$PWD" --timeout 1800 --prompt "Investigate the failing test and return a handoff packet."
-python3 agent-orchestrator/scripts/agent_orchestrator.py run --engine claude --cwd "$PWD" --timeout 1800 --prompt "Review this implementation for correctness risks and return a handoff packet."
-python3 agent-orchestrator/scripts/agent_orchestrator.py run --engine opencode --cwd "$PWD" --timeout 1800 --prompt "Use Grok 4.5 to review this design and return a handoff packet."
-python3 agent-orchestrator/scripts/agent_orchestrator.py run --engine opencode --model openrouter/moonshotai/kimi-k3 --cwd "$PWD" --timeout 1800 --prompt "Use Kimi K3 to review this implementation and return a handoff packet."
+python3 agent-orchestrator/scripts/agent_orchestrator.py run --engine codex --cwd "$PWD" --timeout 2700 --prompt "Investigate the failing test and return a handoff packet."
+python3 agent-orchestrator/scripts/agent_orchestrator.py run --engine claude --cwd "$PWD" --timeout 2700 --prompt "Review this implementation for correctness risks and return a handoff packet."
+python3 agent-orchestrator/scripts/agent_orchestrator.py run --engine opencode --cwd "$PWD" --timeout 2700 --prompt "Use Grok 4.5 to review this design and return a handoff packet."
+python3 agent-orchestrator/scripts/agent_orchestrator.py run --engine opencode --model openrouter/moonshotai/kimi-k3 --cwd "$PWD" --timeout 2700 --prompt "Use Kimi K3 to review this implementation and return a handoff packet."
 ```
 
 Default worker settings are:
@@ -35,7 +35,7 @@ Default worker settings are:
 - OpenCode: `opencode run --auto --model openrouter/x-ai/grok-4.5 --variant high --format json` when the installed CLI supports `--auto`; otherwise use OpenCode config `permission: "allow"`.
 - OpenCode with Kimi K3: pass `--model openrouter/moonshotai/kimi-k3`; the model-specific variant defaults to `max` unless `--reasoning` is supplied.
 - Runs are awaited and captured under `.agent-orchestrator/runs/` unless `--out-dir` is provided.
-- Runs default to a 30-minute timeout; pass `--timeout 0` only when the user explicitly wants no ceiling.
+- Runs default to a 45-minute timeout; pass `--timeout 0` only when the user explicitly wants no ceiling.
 - No worktrees are used unless the user asks for them.
 
 ## When To Use
@@ -138,7 +138,7 @@ python3 agent-orchestrator/scripts/agent_orchestrator.py run \
   --engine codex \
   --cwd "$PWD" \
   --name failing-test-investigation \
-  --timeout 1800 \
+  --timeout 2700 \
   --prompt "Find the root cause of the failing auth test. Do not edit files. Return evidence and a recommended fix."
 ```
 
@@ -147,7 +147,7 @@ python3 agent-orchestrator/scripts/agent_orchestrator.py run \
   --engine claude \
   --cwd "$PWD" \
   --name patch-review \
-  --timeout 1800 \
+  --timeout 2700 \
   --prompt "Review the current git diff for correctness regressions. Do not edit files. Return findings with file and line references."
 ```
 
@@ -156,7 +156,7 @@ python3 agent-orchestrator/scripts/agent_orchestrator.py run \
   --engine opencode \
   --cwd "$PWD" \
   --name grok-review \
-  --timeout 1800 \
+  --timeout 2700 \
   --prompt "Use Grok 4.5 to review the current design. Do not edit files. Return findings with file and line references."
 ```
 
@@ -166,7 +166,7 @@ python3 agent-orchestrator/scripts/agent_orchestrator.py run \
   --model openrouter/moonshotai/kimi-k3 \
   --cwd "$PWD" \
   --name kimi-review \
-  --timeout 1800 \
+  --timeout 2700 \
   --prompt "Use Kimi K3 to review the current implementation. Do not edit files. Return findings with file and line references."
 ```
 
@@ -177,7 +177,7 @@ Useful options:
 - `--model`: override the default model.
 - `--reasoning`: override Codex `model_reasoning_effort`, Claude `--effort`, or OpenCode `--variant`. Codex Sol defaults to `xhigh`; Codex Terra, Claude Fable 5, and Grok 4.5 default to `high`; Kimi K3 defaults to `max`; other Claude runs default to `xhigh`.
 - `--resume SESSION_ID`: resume an existing CLI session instead of starting a fresh one.
-- `--timeout SECONDS`: kill the worker after a ceiling; defaults to 1800, and `0` waits indefinitely.
+- `--timeout SECONDS`: kill the worker after a ceiling; defaults to 2700 (45 minutes), and `0` waits indefinitely.
 - `--raw-prompt`: skip the skill's appended handoff instructions.
 - `--extra-arg ARG`: pass an additional CLI argument. Use only for explicit user-requested CLI flags; with `--no-yolo`, permission-bypass flags are rejected.
 
