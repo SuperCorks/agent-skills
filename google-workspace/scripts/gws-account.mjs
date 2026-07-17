@@ -222,6 +222,15 @@ function parseAccounts(configValue) {
       name: alias,
       credentialsFile: expandPath(credentialsFile),
       email: typeof rawAccount.email === 'string' ? rawAccount.email : undefined,
+      projectId: typeof rawAccount.projectId === 'string'
+        ? rawAccount.projectId
+        : typeof rawAccount.project_id === 'string'
+          ? rawAccount.project_id
+          : typeof rawAccount.quotaProject === 'string'
+            ? rawAccount.quotaProject
+            : typeof rawAccount.quota_project === 'string'
+              ? rawAccount.quota_project
+              : undefined,
       scopes: rawAccount.scopes || rawAccount.defaultScopes || rawAccount.default_scopes,
     });
   }
@@ -282,6 +291,7 @@ function accountEnv(account) {
     ...process.env,
     GOOGLE_WORKSPACE_CLI_CREDENTIALS_FILE: account.credentialsFile,
     GOOGLE_WORKSPACE_CLI_TOKEN: '',
+    ...(account.projectId ? { GOOGLE_WORKSPACE_PROJECT_ID: account.projectId } : {}),
   };
 }
 
@@ -308,6 +318,7 @@ function listAccounts(accounts) {
     account: account.name,
     email: account.email || null,
     credentialsFile: account.credentialsFile,
+    projectId: account.projectId || null,
     exists: existsSync(account.credentialsFile),
   }));
   printJson({ accounts: rows });
@@ -318,6 +329,7 @@ function printResolved(account) {
     account: account.name,
     email: account.email || null,
     credentialsFile: account.credentialsFile,
+    projectId: account.projectId || null,
     exists: existsSync(account.credentialsFile),
   });
 }
@@ -325,6 +337,9 @@ function printResolved(account) {
 function printEnv(account) {
   console.log(`export GOOGLE_WORKSPACE_ACCOUNT=${shellQuote(account.name)}`);
   console.log(`export GOOGLE_WORKSPACE_CLI_CREDENTIALS_FILE=${shellQuote(account.credentialsFile)}`);
+  if (account.projectId) {
+    console.log(`export GOOGLE_WORKSPACE_PROJECT_ID=${shellQuote(account.projectId)}`);
+  }
   console.log('unset GOOGLE_WORKSPACE_CLI_TOKEN');
 }
 
