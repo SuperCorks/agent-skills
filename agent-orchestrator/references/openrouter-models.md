@@ -4,13 +4,15 @@ This is a dated integration snapshot, not a promise that OpenRouter will keep a 
 
 ```bash
 curl -fsSL https://openrouter.ai/api/v1/model/x-ai/grok-4.5 | jq '.data | {id, canonical_slug, context_length, pricing, supported_parameters, reasoning}'
+curl -fsSL https://openrouter.ai/api/v1/model/moonshotai/kimi-k3 | jq '.data | {id, canonical_slug, context_length, pricing, supported_parameters, reasoning}'
 ```
 
-Snapshot verified 2026-07-15 against the OpenRouter Models API. OpenCode uses the `openrouter/<model-id>` form; the Models API uses the provider/model ID without the `openrouter/` prefix.
+Snapshot verified 2026-07-17 against the OpenRouter Models API. OpenCode uses the `openrouter/<model-id>` form; the Models API uses the provider/model ID without the `openrouter/` prefix.
 
 | Model | OpenCode model | Context | Current reasoning metadata | Input / output price per million tokens |
 | --- | --- | ---: | --- | ---: |
 | xAI Grok 4.5 | `openrouter/x-ai/grok-4.5` | 500K | Mandatory; `high`, `medium`, `low`; default `high` | $2 / $6 |
+| MoonshotAI Kimi K3 | `openrouter/moonshotai/kimi-k3` | 1.05M | Mandatory; `max` only; default `max` | $3 / $15 |
 | OpenAI GPT-5.6 Sol | `openrouter/openai/gpt-5.6-sol` | 1.05M | `max`, `xhigh`, `high`, `medium`, `low`, `none`; default `medium` | $5 / $30 |
 | OpenAI GPT-5.6 Terra | `openrouter/openai/gpt-5.6-terra` | 1.05M | `max`, `xhigh`, `high`, `medium`, `low`, `none`; default `medium` | $2.50 / $15 |
 | Anthropic Claude Opus 4.8 | `openrouter/anthropic/claude-opus-4.8` | 1M | `max`, `xhigh`, `high`, `medium`, `low`; default `medium` | $5 / $25 |
@@ -30,5 +32,20 @@ python3 agent-orchestrator/scripts/agent_orchestrator.py run \
 ```
 
 The current catalog record reports text, image, and file input with text output; tool use, structured outputs, and reasoning are supported. The route is available through OpenRouter, but availability and provider uptime can change independently of the model's launch status.
+
+## Kimi K3
+
+Use Kimi K3 for long-context coding, knowledge work, multimodal review, and long-horizon agentic tasks:
+
+```bash
+python3 agent-orchestrator/scripts/agent_orchestrator.py run \
+  --engine opencode \
+  --model openrouter/moonshotai/kimi-k3 \
+  --reasoning max \
+  --timeout 1800 \
+  --prompt "Review the current implementation for correctness risks and return a handoff packet."
+```
+
+The current catalog record reports text and image input with text output, a 1,048,576-token context window, tool use, structured output, and mandatory reasoning. Only the `max` effort is currently supported, so do not select `high`, `medium`, or `low` unless a newer live catalog record explicitly advertises them.
 
 Do not assume that the skill's default `high` setting applies to every OpenRouter model. OpenRouter documents `reasoning.effort` as a normalized parameter, but individual model records still define supported efforts. Use the live record and choose the highest effort that the selected model advertises.

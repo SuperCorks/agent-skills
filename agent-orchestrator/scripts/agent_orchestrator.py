@@ -34,10 +34,15 @@ DEFAULT_CLAUDE_REASONING = os.environ.get("AGENT_ORCHESTRATOR_CLAUDE_REASONING",
 DEFAULT_CLAUDE_FABLE_REASONING = os.environ.get("AGENT_ORCHESTRATOR_CLAUDE_FABLE_REASONING", "high")
 DEFAULT_OPENCODE_MODEL = os.environ.get("AGENT_ORCHESTRATOR_OPENCODE_MODEL", "openrouter/x-ai/grok-4.5")
 DEFAULT_OPENCODE_REASONING = os.environ.get("AGENT_ORCHESTRATOR_OPENCODE_REASONING", "high")
+DEFAULT_KIMI_K3_REASONING = os.environ.get(
+    "AGENT_ORCHESTRATOR_KIMI_K3_REASONING",
+    "max",
+)
 OPENCODE_AUTH_PROVIDER = os.environ.get("AGENT_ORCHESTRATOR_OPENCODE_AUTH_PROVIDER", "OpenRouter")
 CLAUDE_FABLE_MODELS = {"fable", "claude-fable-5"}
 CODEX_SOL_MODELS = {"gpt-5.6-sol"}
 CODEX_TERRA_MODELS = {"gpt-5.6-terra"}
+OPENCODE_KIMI_K3_MODELS = {"openrouter/moonshotai/kimi-k3"}
 DEFAULT_RUN_TIMEOUT = int(os.environ.get("AGENT_ORCHESTRATOR_RUN_TIMEOUT", "1800"))
 DEFAULT_RUN_ROOT = Path(".agent-orchestrator") / "runs"
 DANGEROUS_EXTRA_ARGS = {
@@ -131,6 +136,8 @@ def default_reasoning(engine: str, model: str | None = None) -> str:
             return DEFAULT_CLAUDE_FABLE_REASONING
         return DEFAULT_CLAUDE_REASONING
     if engine == "opencode":
+        if (model or DEFAULT_OPENCODE_MODEL).lower() in OPENCODE_KIMI_K3_MODELS:
+            return DEFAULT_KIMI_K3_REASONING
         return DEFAULT_OPENCODE_REASONING
     selected_model = (model or DEFAULT_CODEX_MODEL).lower()
     if selected_model in CODEX_SOL_MODELS:

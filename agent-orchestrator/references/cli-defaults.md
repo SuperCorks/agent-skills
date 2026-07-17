@@ -1,6 +1,6 @@
 # CLI Defaults And Commands
 
-Model IDs and reasoning levels were verified against the local Codex model catalog and official OpenAI/OpenRouter model records on 2026-07-15. Claude Code defaults were last verified on 2026-06-27.
+Model IDs and reasoning levels were verified against the local Codex model catalog and official OpenAI/OpenRouter model records on 2026-07-17. Claude Code defaults were last verified on 2026-06-27.
 
 ## Default Models And Reasoning
 
@@ -16,6 +16,8 @@ User policy for this skill:
 - Claude Fable 5 effort: `high` unless overridden with `--reasoning`
 - OpenCode model: `openrouter/x-ai/grok-4.5`
 - OpenCode variant: `high`
+- OpenCode Kimi K3 model: `openrouter/moonshotai/kimi-k3`
+- OpenCode Kimi K3 variant: `max` unless overridden with `--reasoning`
 - Codex autonomy: `--yolo`
 - Claude autonomy: `--permission-mode bypassPermissions` and `--dangerously-skip-permissions`
 - OpenCode autonomy: `--auto` when supported, plus local config `permission: "allow"` for unattended tool use
@@ -28,6 +30,7 @@ python3 agent-orchestrator/scripts/agent_orchestrator.py run --engine codex --mo
 python3 agent-orchestrator/scripts/agent_orchestrator.py run --engine claude --model claude-opus-4-8 --reasoning xhigh --prompt "..."
 python3 agent-orchestrator/scripts/agent_orchestrator.py run --engine claude --model claude-fable-5 --prompt "..."
 python3 agent-orchestrator/scripts/agent_orchestrator.py run --engine opencode --model openrouter/x-ai/grok-4.5 --reasoning high --prompt "..."
+python3 agent-orchestrator/scripts/agent_orchestrator.py run --engine opencode --model openrouter/moonshotai/kimi-k3 --prompt "..."
 ```
 
 Override by environment:
@@ -41,6 +44,7 @@ export AGENT_ORCHESTRATOR_CLAUDE_REASONING=xhigh
 export AGENT_ORCHESTRATOR_CLAUDE_FABLE_REASONING=high
 export AGENT_ORCHESTRATOR_OPENCODE_MODEL=openrouter/x-ai/grok-4.5
 export AGENT_ORCHESTRATOR_OPENCODE_REASONING=high
+export AGENT_ORCHESTRATOR_KIMI_K3_REASONING=max
 export AGENT_ORCHESTRATOR_OPENCODE_AUTH_PROVIDER=OpenRouter
 export AGENT_ORCHESTRATOR_RUN_TIMEOUT=1800
 ```
@@ -56,6 +60,8 @@ Claude Fable 5 is available as `claude-fable-5` and Claude Code alias `fable`. I
 OpenCode expects model IDs in provider/model form. The default OpenRouter route is `openrouter/x-ai/grok-4.5`; the helper sends `--variant high` by default and stores OpenCode's JSON event stream in the run artifacts. Newer OpenCode builds document `opencode run --auto` for unattended operation; the helper adds `--auto` when the installed CLI exposes it and otherwise relies on OpenCode config `permission: "allow"`.
 
 The optional Grok 4.5 OpenRouter route is `openrouter/x-ai/grok-4.5`. Its current OpenRouter metadata exposes `high`, `medium`, and `low` reasoning efforts, so the helper selects `high` automatically for that model when `--reasoning` is omitted. Pass `--reasoning high` explicitly when invoking it in scripts so the intent remains clear. See `openrouter-models.md` for the dated catalog snapshot and verification command.
+
+The optional Kimi K3 route is `openrouter/moonshotai/kimi-k3`. Its current OpenRouter metadata exposes only the mandatory `max` reasoning effort, so the helper automatically switches from the general OpenCode `high` default to `max` when this model is selected. Override precedence is `--reasoning`, `AGENT_ORCHESTRATOR_KIMI_K3_REASONING`, then the built-in `max` default. The general `AGENT_ORCHESTRATOR_OPENCODE_REASONING` setting does not override this model-specific constraint.
 
 Recommended local OpenCode config:
 
@@ -182,6 +188,18 @@ The helper builds:
 opencode run --auto --format json --model openrouter/x-ai/grok-4.5 --variant high "Prompt..."
 ```
 
+OpenCode awaited worker using Kimi K3 through OpenRouter:
+
+```bash
+python3 agent-orchestrator/scripts/agent_orchestrator.py run --engine opencode --model openrouter/moonshotai/kimi-k3 --timeout 1800 --prompt "Prompt..."
+```
+
+The helper builds:
+
+```bash
+opencode run --auto --format json --model openrouter/moonshotai/kimi-k3 --variant max "Prompt..."
+```
+
 If the installed `opencode run --help` does not list `--auto`, the helper omits that flag and expects `permission: "allow"` in config for yolo-equivalent behavior.
 
 Resume examples:
@@ -190,6 +208,7 @@ Resume examples:
 codex exec --json --model gpt-5.6-sol -c 'model_reasoning_effort="xhigh"' --cd /path/to/repo --yolo resume SESSION_ID "Follow-up prompt..."
 claude -p --output-format json --model claude-opus-4-8 --effort xhigh --permission-mode bypassPermissions --dangerously-skip-permissions --resume SESSION_ID "Follow-up prompt..."
 opencode run --auto --format json --model openrouter/x-ai/grok-4.5 --variant high --session SESSION_ID "Follow-up prompt..."
+opencode run --auto --format json --model openrouter/moonshotai/kimi-k3 --variant max --session SESSION_ID "Follow-up prompt..."
 ```
 
 ## Output Artifacts

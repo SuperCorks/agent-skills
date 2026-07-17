@@ -23,6 +23,7 @@ python3 agent-orchestrator/scripts/agent_orchestrator.py setup --engine opencode
 python3 agent-orchestrator/scripts/agent_orchestrator.py run --engine codex --cwd "$PWD" --timeout 1800 --prompt "Investigate the failing test and return a handoff packet."
 python3 agent-orchestrator/scripts/agent_orchestrator.py run --engine claude --cwd "$PWD" --timeout 1800 --prompt "Review this implementation for correctness risks and return a handoff packet."
 python3 agent-orchestrator/scripts/agent_orchestrator.py run --engine opencode --cwd "$PWD" --timeout 1800 --prompt "Use Grok 4.5 to review this design and return a handoff packet."
+python3 agent-orchestrator/scripts/agent_orchestrator.py run --engine opencode --model openrouter/moonshotai/kimi-k3 --cwd "$PWD" --timeout 1800 --prompt "Use Kimi K3 to review this implementation and return a handoff packet."
 ```
 
 Default worker settings are:
@@ -32,6 +33,7 @@ Default worker settings are:
 - Claude Code: `claude -p --model claude-opus-4-8 --effort xhigh --permission-mode bypassPermissions --dangerously-skip-permissions`
 - Claude Code with Fable 5: pass `--model claude-fable-5` or `--model fable`; default effort becomes `high` unless `--reasoning` is supplied.
 - OpenCode: `opencode run --auto --model openrouter/x-ai/grok-4.5 --variant high --format json` when the installed CLI supports `--auto`; otherwise use OpenCode config `permission: "allow"`.
+- OpenCode with Kimi K3: pass `--model openrouter/moonshotai/kimi-k3`; the model-specific variant defaults to `max` unless `--reasoning` is supplied.
 - Runs are awaited and captured under `.agent-orchestrator/runs/` unless `--out-dir` is provided.
 - Runs default to a 30-minute timeout; pass `--timeout 0` only when the user explicitly wants no ceiling.
 - No worktrees are used unless the user asks for them.
@@ -46,6 +48,20 @@ Use orchestration when parallel or second-opinion work is likely to reduce risk 
 - Long-running implementation subtasks that can be bounded by a clear prompt and a clear expected handoff.
 
 Avoid orchestration when the task is small, when a normal local command is enough, when the extra worker would need excessive hidden context, or when the user asked for the current agent only.
+
+## User Model Shorthand
+
+Interpret these case-insensitive model names from the user as the following exact models unless the user explicitly supplies a different version, provider, or model ID:
+
+| User says | Use | Engine and exact model argument | Default reasoning |
+| --- | --- | --- | --- |
+| `grok` | xAI Grok 4.5 | `--engine opencode --model openrouter/x-ai/grok-4.5` | `high` |
+| `kimi` | MoonshotAI Kimi K3 | `--engine opencode --model openrouter/moonshotai/kimi-k3` | `max` |
+| `sol` | OpenAI GPT-5.6 Sol | `--engine codex --model gpt-5.6-sol` | `xhigh` |
+| `terra` | OpenAI GPT-5.6 Terra | `--engine codex --model gpt-5.6-terra` | `high` |
+| `fable` | Anthropic Claude Fable 5 | `--engine claude --model claude-fable-5` | `high` |
+
+These are conversational aliases for orchestration decisions, not necessarily aliases accepted directly by each underlying CLI. Translate them to the exact engine and model arguments above when building a worker command.
 
 ## Required Workflow
 
@@ -87,6 +103,8 @@ Prefer Claude for an independent implementation plan, code review, UX/product cr
 Prefer OpenCode when the user specifically wants an OpenRouter model, when OpenCode's local configuration should be used, or when a third model family is useful for a bounded review or implementation pass.
 
 Use OpenCode for other OpenRouter models by passing the provider/model form. See `references/openrouter-models.md` before selecting a model whose catalog metadata or reasoning controls may have changed.
+
+Kimi K3 is an OpenCode option for long-context coding, knowledge work, multimodal review, and agentic tool use. Select it with `--model openrouter/moonshotai/kimi-k3`; the helper automatically uses its currently supported `max` reasoning variant.
 
 Use multiple engines only when the work benefits from independent perspectives. Keep each worker prompt smaller than the whole user request; split by responsibility rather than asking multiple agents to do the same vague thing.
 
@@ -142,12 +160,22 @@ python3 agent-orchestrator/scripts/agent_orchestrator.py run \
   --prompt "Use Grok 4.5 to review the current design. Do not edit files. Return findings with file and line references."
 ```
 
+```bash
+python3 agent-orchestrator/scripts/agent_orchestrator.py run \
+  --engine opencode \
+  --model openrouter/moonshotai/kimi-k3 \
+  --cwd "$PWD" \
+  --name kimi-review \
+  --timeout 1800 \
+  --prompt "Use Kimi K3 to review the current implementation. Do not edit files. Return findings with file and line references."
+```
+
 Useful options:
 
 - `--dry-run`: print the command that would run.
 - `--no-yolo`: disable Codex `--yolo`, Claude permission bypass, or OpenCode `--auto` when the user asks for safer permissions. If OpenCode is globally configured with `permission: "allow"`, change that config for stricter local runs.
 - `--model`: override the default model.
-- `--reasoning`: override Codex `model_reasoning_effort`, Claude `--effort`, or OpenCode `--variant`. Codex Sol defaults to `xhigh`, Codex Terra and Claude Fable 5 default to `high`, and other Claude runs default to `xhigh`.
+- `--reasoning`: override Codex `model_reasoning_effort`, Claude `--effort`, or OpenCode `--variant`. Codex Sol defaults to `xhigh`; Codex Terra, Claude Fable 5, and Grok 4.5 default to `high`; Kimi K3 defaults to `max`; other Claude runs default to `xhigh`.
 - `--resume SESSION_ID`: resume an existing CLI session instead of starting a fresh one.
 - `--timeout SECONDS`: kill the worker after a ceiling; defaults to 1800, and `0` waits indefinitely.
 - `--raw-prompt`: skip the skill's appended handoff instructions.
