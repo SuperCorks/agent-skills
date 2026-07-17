@@ -33,8 +33,10 @@ Create a durable planning artifact that turns messy source context into a decisi
 - Prefer `docs/plans/<yyyy-mm-dd-topic>.html` inside a repo.
 - If no repo docs location is obvious, use a local `outputs/` folder in the current workspace.
 - Embed CSS in the file. Do not require external runtime dependencies.
+- Put open questions and recommended decisions immediately after scope so the reviewer sees decision needs before reading the full plan.
 - Favor reviewability over decoration: clear headings, compact cards and tables, readable typography, responsive layout, and print-friendly structure.
 - Include concrete paths, commands, links, identifiers, source names, and open decisions so a future agent can execute from the plan.
+- Add stable `id` anchors to major sections and link question cards to the relevant detail sections.
 
 5. Verify and hand off:
 - Confirm the file exists and is readable.
@@ -48,6 +50,7 @@ Every HTML plan should include:
 
 - Title and one-paragraph north star.
 - Scope, non-goals, assumptions, and authority boundaries.
+- Open questions and recommended decisions immediately after scope.
 - Sources reviewed with links or local paths.
 - Current state or current gap.
 - Target behavior or desired outcome.
@@ -58,8 +61,21 @@ Every HTML plan should include:
 - QA/validation matrix.
 - Acceptance criteria and definition of done.
 - Risks and mitigations.
-- Open questions and decisions needed.
 - Implementation handoff summary.
+
+## Question Section Requirements
+
+Place open questions near the top of the document, directly after the scope section and before deep source/current-state detail. Each question should be understandable without reading the full plan first.
+
+For each question or decision card, include:
+
+- A specific question title.
+- A short context paragraph explaining what the decision affects and why it matters.
+- A recommended default or proposed answer when there is enough evidence.
+- Links to the relevant sections for more detail, such as `#current`, `#target`, `#ux`, `#architecture`, `#qa`, `#rollout`, or another plan-specific anchor.
+- A clear owner or decision maker when known.
+
+When the plan has a sticky nav or table of contents, place the Questions or Decisions link immediately after Scope.
 
 ## Type-Specific Additions
 
