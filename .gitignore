@@ -1,4 +1,5 @@
 **/node_modules/
+.DS_Store
 .agent-orchestrator/
 
 # Local GTM OAuth tokens (project-specific)
