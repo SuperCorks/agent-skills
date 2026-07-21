@@ -1,0 +1,4 @@
+interface:
+  display_name: "Publish Artifacts"
+  short_description: "Publish artifacts to personal public storage"
+  default_prompt: "Use $publish-artifacts to upload this artifact and return its public link."
