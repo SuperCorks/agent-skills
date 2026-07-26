@@ -29,7 +29,7 @@ DEFAULT_CODEX_TERRA_REASONING = os.environ.get(
     "AGENT_ORCHESTRATOR_CODEX_TERRA_REASONING",
     CODEX_REASONING_OVERRIDE or "high",
 )
-DEFAULT_CLAUDE_MODEL = os.environ.get("AGENT_ORCHESTRATOR_CLAUDE_MODEL", "claude-opus-4-8")
+DEFAULT_CLAUDE_MODEL = os.environ.get("AGENT_ORCHESTRATOR_CLAUDE_MODEL", "claude-opus-5")
 DEFAULT_CLAUDE_REASONING = os.environ.get("AGENT_ORCHESTRATOR_CLAUDE_REASONING", "xhigh")
 DEFAULT_CLAUDE_FABLE_REASONING = os.environ.get("AGENT_ORCHESTRATOR_CLAUDE_FABLE_REASONING", "high")
 DEFAULT_OPENCODE_MODEL = os.environ.get("AGENT_ORCHESTRATOR_OPENCODE_MODEL", "openrouter/x-ai/grok-4.5")
@@ -43,6 +43,20 @@ CLAUDE_FABLE_MODELS = {"fable", "claude-fable-5"}
 CODEX_SOL_MODELS = {"gpt-5.6-sol"}
 CODEX_TERRA_MODELS = {"gpt-5.6-terra"}
 OPENCODE_KIMI_K3_MODELS = {"openrouter/moonshotai/kimi-k3"}
+MODEL_ALIASES = {
+    "codex": {
+        "sol": "gpt-5.6-sol",
+        "terra": "gpt-5.6-terra",
+    },
+    "claude": {
+        "opus": "claude-opus-5",
+        "fable": "claude-fable-5",
+    },
+    "opencode": {
+        "grok": "openrouter/x-ai/grok-4.5",
+        "kimi": "openrouter/moonshotai/kimi-k3",
+    },
+}
 BUILTIN_RUN_TIMEOUT_SECONDS = 45 * 60
 DEFAULT_RUN_TIMEOUT = int(
     os.environ.get("AGENT_ORCHESTRATOR_RUN_TIMEOUT", str(BUILTIN_RUN_TIMEOUT_SECONDS))
@@ -133,19 +147,24 @@ def default_model(engine: str) -> str:
     return DEFAULT_CODEX_MODEL
 
 
+def resolve_model(engine: str, model: str | None = None) -> str:
+    selected_model = model or default_model(engine)
+    return MODEL_ALIASES.get(engine, {}).get(selected_model.lower(), selected_model)
+
+
 def default_reasoning(engine: str, model: str | None = None) -> str:
+    selected_model = resolve_model(engine, model)
     if engine == "claude":
-        if (model or DEFAULT_CLAUDE_MODEL).lower() in CLAUDE_FABLE_MODELS:
+        if selected_model.lower() in CLAUDE_FABLE_MODELS:
             return DEFAULT_CLAUDE_FABLE_REASONING
         return DEFAULT_CLAUDE_REASONING
     if engine == "opencode":
-        if (model or DEFAULT_OPENCODE_MODEL).lower() in OPENCODE_KIMI_K3_MODELS:
+        if selected_model.lower() in OPENCODE_KIMI_K3_MODELS:
             return DEFAULT_KIMI_K3_REASONING
         return DEFAULT_OPENCODE_REASONING
-    selected_model = (model or DEFAULT_CODEX_MODEL).lower()
-    if selected_model in CODEX_SOL_MODELS:
+    if selected_model.lower() in CODEX_SOL_MODELS:
         return DEFAULT_CODEX_SOL_REASONING
-    if selected_model in CODEX_TERRA_MODELS:
+    if selected_model.lower() in CODEX_TERRA_MODELS:
         return DEFAULT_CODEX_TERRA_REASONING
     return DEFAULT_CODEX_REASONING
 
@@ -410,7 +429,7 @@ def build_command(
     extra = args.extra_arg or []
     if args.no_yolo and any(arg in DANGEROUS_EXTRA_ARGS for arg in extra):
         raise SystemExit("--no-yolo cannot be combined with extra permission-bypass arguments")
-    model = args.model
+    model = resolve_model(args.engine, args.model)
     reasoning = args.reasoning
 
     if args.engine == "codex":
@@ -424,9 +443,9 @@ def build_command(
         command.extend(
             [
                 "--model",
-                model or DEFAULT_CODEX_MODEL,
+                model,
                 "-c",
-                f'model_reasoning_effort="{reasoning or default_reasoning("codex", model or DEFAULT_CODEX_MODEL)}"',
+                f'model_reasoning_effort="{reasoning or default_reasoning("codex", model)}"',
                 "--cd",
                 str(cwd),
             ]
@@ -451,10 +470,10 @@ def build_command(
                 "--format",
                 "json",
                 "--model",
-                model or DEFAULT_OPENCODE_MODEL,
+                model,
             ]
         )
-        variant = reasoning or default_reasoning("opencode", model or DEFAULT_OPENCODE_MODEL)
+        variant = reasoning or default_reasoning("opencode", model)
         if variant:
             command.extend(["--variant", variant])
         if args.resume:
@@ -471,9 +490,9 @@ def build_command(
         "--output-format",
         "json",
         "--model",
-        model or DEFAULT_CLAUDE_MODEL,
+        model,
         "--effort",
-        reasoning or default_reasoning("claude", model or DEFAULT_CLAUDE_MODEL),
+        reasoning or default_reasoning("claude", model),
     ]
     if not args.no_yolo:
         command.extend(["--permission-mode", "bypassPermissions", "--dangerously-skip-permissions"])
@@ -659,8 +678,8 @@ def handle_run(args: argparse.Namespace) -> int:
         "engine": args.engine,
         "cwd": str(cwd),
         "run_dir": str(run_dir),
-        "model": args.model or default_model(args.engine),
-        "reasoning": args.reasoning or default_reasoning(args.engine, args.model or default_model(args.engine)),
+        "model": resolve_model(args.engine, args.model),
+        "reasoning": args.reasoning or default_reasoning(args.engine, args.model),
         "yolo_enabled": explicit_permission_bypass_enabled(args.engine, args.no_yolo),
         "resume": args.resume,
         "started_at": started_at,

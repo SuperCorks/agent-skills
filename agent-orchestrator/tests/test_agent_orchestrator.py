@@ -42,6 +42,69 @@ class RuntimeDefaultsTests(unittest.TestCase):
         self.assertEqual(args.timeout, 60)
 
 
+class ModelAliasTests(unittest.TestCase):
+    def test_documented_aliases_resolve_to_exact_model_ids(self) -> None:
+        cases = [
+            ("codex", "sol", "gpt-5.6-sol"),
+            ("codex", "terra", "gpt-5.6-terra"),
+            ("claude", "opus", "claude-opus-5"),
+            ("claude", "fable", "claude-fable-5"),
+            ("opencode", "grok", "openrouter/x-ai/grok-4.5"),
+            ("opencode", "kimi", "openrouter/moonshotai/kimi-k3"),
+        ]
+
+        for engine, alias, expected in cases:
+            with self.subTest(engine=engine, alias=alias):
+                self.assertEqual(
+                    agent_orchestrator.resolve_model(engine, alias.upper()),
+                    expected,
+                )
+
+
+class ClaudeModelDefaultsTests(unittest.TestCase):
+    def build_claude_command(self, *extra_args: str) -> list[str]:
+        parser = agent_orchestrator.build_parser()
+        args = parser.parse_args(
+            [
+                "run",
+                "--engine",
+                "claude",
+                "--prompt",
+                "Test prompt",
+                *extra_args,
+            ]
+        )
+        return agent_orchestrator.build_command(
+            args,
+            Path("/tmp/project"),
+            "Test prompt",
+            None,
+        )
+
+    def test_claude_defaults_to_opus_5_with_xhigh_effort(self) -> None:
+        with (
+            mock.patch.object(agent_orchestrator, "DEFAULT_CLAUDE_MODEL", "claude-opus-5"),
+            mock.patch.object(agent_orchestrator, "DEFAULT_CLAUDE_REASONING", "xhigh"),
+        ):
+            command = self.build_claude_command()
+
+        self.assertEqual(command[command.index("--model") + 1], "claude-opus-5")
+        self.assertEqual(command[command.index("--effort") + 1], "xhigh")
+
+    def test_opus_alias_uses_opus_5_effort_default(self) -> None:
+        with mock.patch.object(agent_orchestrator, "DEFAULT_CLAUDE_REASONING", "xhigh"):
+            command = self.build_claude_command("--model", "opus")
+
+        self.assertEqual(command[command.index("--model") + 1], "claude-opus-5")
+        self.assertEqual(command[command.index("--effort") + 1], "xhigh")
+
+    def test_opus_alias_is_case_insensitive(self) -> None:
+        self.assertEqual(
+            agent_orchestrator.resolve_model("claude", "OPUS"),
+            "claude-opus-5",
+        )
+
+
 class OpenCodeModelReasoningTests(unittest.TestCase):
     def build_opencode_command(self, *extra_args: str) -> list[str]:
         parser = agent_orchestrator.build_parser()
