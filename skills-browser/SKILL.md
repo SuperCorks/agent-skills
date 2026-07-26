@@ -61,6 +61,10 @@ Prerequisites:
 - Network access to GitHub
 - Optional `GITHUB_TOKEN` for higher GitHub API limits
 
+### Dependency Installation
+
+Do not run plain `npm install` in this skill directory because it can rewrite `package.json` or `package-lock.json`. If local dependencies are added or become necessary, use `npm ci` when a compatible lockfile is already present; otherwise use `npm install --no-save --package-lock=false`.
+
 Set the skill directory when running from outside the skill folder:
 
 ```bash

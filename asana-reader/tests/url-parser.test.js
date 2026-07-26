@@ -14,6 +14,7 @@ describe('parseAsanaUrl', () => {
       assert.deepStrictEqual(result, {
         taskGid: '9876543210',
         projectGid: '1234567890',
+        workspaceGid: null,
       });
     });
 
@@ -23,6 +24,7 @@ describe('parseAsanaUrl', () => {
       assert.deepStrictEqual(result, {
         taskGid: '9876543210',
         projectGid: '1234567890',
+        workspaceGid: null,
       });
     });
 
@@ -32,6 +34,7 @@ describe('parseAsanaUrl', () => {
       assert.deepStrictEqual(result, {
         taskGid: '9876543210',
         projectGid: null,
+        workspaceGid: null,
       });
     });
 
@@ -41,6 +44,7 @@ describe('parseAsanaUrl', () => {
       assert.deepStrictEqual(result, {
         taskGid: '9876543210',
         projectGid: null,
+        workspaceGid: null,
       });
     });
 
@@ -50,6 +54,19 @@ describe('parseAsanaUrl', () => {
       assert.deepStrictEqual(result, {
         taskGid: '5678',
         projectGid: '1234',
+        workspaceGid: null,
+      });
+    });
+
+    it('parses the new workspace URL format', () => {
+      const result = parseAsanaUrl(
+        'https://app.asana.com/1/112233/project/445566/task/778899'
+      );
+
+      assert.deepStrictEqual(result, {
+        taskGid: '778899',
+        projectGid: '445566',
+        workspaceGid: '112233',
       });
     });
   });

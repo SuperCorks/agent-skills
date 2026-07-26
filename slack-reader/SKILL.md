@@ -22,7 +22,11 @@ All commands write structured JSON to stdout and errors to stderr. Keep tokens o
 Requirements:
 
 - Node.js 20+
-- Dependencies installed with `npm install` in this skill directory
+- `@slack/web-api` npm package
+
+### Dependency Installation
+
+Do not run plain `npm install` in this skill directory because it can rewrite `package.json` or `package-lock.json`. If dependencies are missing, use `npm ci` when a compatible lockfile is already present; otherwise use `npm install --no-save --package-lock=false`.
 
 Configure one workspace:
 

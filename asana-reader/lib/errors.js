@@ -6,7 +6,7 @@ const ERROR_CODES = {
   ASANA_SDK_MISSING: {
     code: 'ASANA_SDK_MISSING',
     message: 'asana package is not installed',
-    remediation: 'Run: npm install asana',
+    remediation: 'Run: npm install --no-save --package-lock=false',
   },
   ASANA_AUTH_MISSING: {
     code: 'ASANA_AUTH_MISSING',

@@ -6,7 +6,7 @@ const ERROR_CODES = {
   SLACK_SDK_MISSING: {
     code: 'SLACK_SDK_MISSING',
     message: '@slack/web-api package is not installed',
-    remediation: 'Run: npm install @slack/web-api',
+    remediation: 'Run: npm install --no-save --package-lock=false',
   },
   SLACK_AUTH_MISSING: {
     code: 'SLACK_AUTH_MISSING',

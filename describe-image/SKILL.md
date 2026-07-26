@@ -12,6 +12,10 @@ Use this skill when you need to understand the content of an image file in the p
 - Node.js installed
 - `@google/genai` and `dotenv` npm packages
 
+## Dependency Installation
+
+Do not run plain `npm install` in this skill directory because it can rewrite `package.json` or `package-lock.json`. If dependencies are missing, use `npm ci` when a compatible lockfile is already present; otherwise use `npm install --no-save --package-lock=false`.
+
 For `--google`:
 
 - `GOOGLE_AI_API_KEY` environment variable set

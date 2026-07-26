@@ -85,6 +85,10 @@ Use the lightest mode that satisfies the request. Search or fetch before opening
 
 The wrappers in this skill prefer installed CLIs, but if `bb` or `browse` are not globally installed and `npx` is available, they automatically fall back to `npx --yes @browserbasehq/cli` and `npx --yes @browserbasehq/browse-cli`.
 
+### Dependency Installation
+
+Do not run plain `npm install` in this skill directory because it can rewrite `package.json` or `package-lock.json`. If local dependencies are added or become necessary, use `npm ci` when a compatible lockfile is already present; otherwise use `npm install --no-save --package-lock=false`. The global CLI install commands above do not modify this skill's package files.
+
 ### Multi-Account Environment Variables
 
 Prefer `BROWSERBASE_ACCOUNTS` for all authenticated workflows. It is a JSON object mapping account aliases to credential objects:

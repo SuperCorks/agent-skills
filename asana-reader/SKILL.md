@@ -19,7 +19,11 @@ Fetches Asana task details given a URL, GID, or search query, including:
 
 ### Prerequisites
 - Node.js 20+
-- `asana` package: `npm install asana`
+- `asana` and `semver` npm packages
+
+### Dependency Installation
+
+Do not run plain `npm install` in this skill directory because it can rewrite `package.json` or `package-lock.json`. If dependencies are missing, use `npm ci` when a compatible lockfile is already present; otherwise use `npm install --no-save --package-lock=false`.
 
 ### Environment Variables
 
@@ -191,7 +195,7 @@ node scripts/list-projects.js --workspace 1197100180628208 --archived
 
 | Code | Description | Remediation |
 |------|-------------|-------------|
-| `ASANA_SDK_MISSING` | asana package is not installed | Run: `npm install asana` |
+| `ASANA_SDK_MISSING` | asana package is not installed | Run: `npm install --no-save --package-lock=false` |
 | `ASANA_AUTH_MISSING` | ASANA_ACCOUNTS not set | Set the environment variable |
 | `ASANA_AUTH_INVALID` | Token is invalid or expired | Generate a new PAT |
 | `ASANA_ACCOUNT_AMBIGUOUS` | Multiple accounts, none specified | Use `--account <name>` |

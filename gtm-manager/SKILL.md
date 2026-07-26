@@ -12,9 +12,13 @@ Programmatically manage Google Tag Manager via the Tag Manager API v2.
 ### Prerequisites
 
 - Node.js installed
-- `googleapis` and `open` npm packages: `npm install googleapis open`
+- `googleapis` and `open` npm packages
 - GCP project with Tag Manager API enabled
 - OAuth client credentials JSON (for interactive use) or service account key (for automation)
+
+### Dependency Installation
+
+Do not run plain `npm install` in this skill directory because it can rewrite `package.json` or `package-lock.json`. If dependencies are missing, use `npm ci` when a compatible lockfile is already present; otherwise use `npm install --no-save --package-lock=false`.
 
 ### Environment Variables
 
