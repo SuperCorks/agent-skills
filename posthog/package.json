@@ -1,0 +1,17 @@
+{
+  "name": "posthog-skill",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Multi-account PostHog API helpers for agent workflows",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "accounts:list": "node scripts/list-accounts.js",
+    "projects:list": "node scripts/list-projects.js",
+    "auth:verify": "node scripts/verify-access.js",
+    "query": "node scripts/query.js",
+    "api": "node scripts/api-request.js",
+    "test": "node --test"
+  }
+}

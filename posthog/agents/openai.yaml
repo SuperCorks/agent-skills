@@ -1,0 +1,4 @@
+interface:
+  display_name: "PostHog"
+  short_description: "Analyze PostHog across multiple accounts"
+  default_prompt: "Use $posthog to analyze product data in the selected PostHog account and project."
