@@ -1,0 +1,4 @@
+interface:
+  display_name: "Remote Hosts"
+  short_description: "Operate Simon’s remote coding workspaces"
+  default_prompt: "Use $remote-hosts to inspect or work on a remote coding host safely."
