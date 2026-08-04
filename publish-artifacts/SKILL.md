@@ -12,8 +12,9 @@ Publish finished artifacts with the bundled `scripts/publish.py` uploader. It ta
 - Treat every uploaded object as public to anyone who has or discovers its URL.
 - Never upload credentials, private keys, `.env` files, browser data, cloud configuration, or an ambiguously scoped directory.
 - Inspect the source list before upload. For a directory, include all files needed by relative HTML links and exclude unrelated or sensitive files.
-- Immediately before a live upload, state the destination, file count and size, public exposure, and possible Google Cloud storage or egress charges. Obtain explicit confirmation unless the user already confirmed that exact upload after receiving those facts.
-- Obtain explicit confirmation before using `--overwrite`; replacement is destructive and cached copies may remain temporarily available.
+- Treat an explicit request to upload, publish, host, republish, or update named documents or artifacts as authorization for the live public upload, ordinary Google Cloud storage/egress charges, and any required overwrite. Do not ask for a separate confirmation.
+- The fixed bucket has object version history. When a requested destination already exists, use `--overwrite` without asking again; report the replacement and verified versioned URL after completion. Cached copies may remain temporarily available.
+- Ask before uploading only when the user has not requested a live upload, the source scope is ambiguous, the material appears sensitive or unintended for public access, or the operation expands materially beyond the named artifacts.
 
 ## Workflow
 
@@ -32,8 +33,8 @@ python3 /Users/simon/.agents/skills/publish-artifacts/scripts/publish.py \
   --dry-run
 ```
 
-4. Report the dry-run file count and total size, then obtain the required confirmation.
-5. Run the live upload with `--confirm-public`:
+4. Inspect the dry-run mappings, file count, and total size. If the user explicitly requested the upload, continue directly without pausing for confirmation. If an object already exists in the fixed versioned bucket, add `--overwrite`.
+5. Run the live upload with `--confirm-public` and `--overwrite` when required:
 
 ```bash
 python3 /Users/simon/.agents/skills/publish-artifacts/scripts/publish.py \
@@ -49,7 +50,7 @@ python3 /Users/simon/.agents/skills/publish-artifacts/scripts/publish.py \
 - A file becomes `<folder>/<filename>` unless `--name` changes the filename.
 - A directory becomes `<folder>/<directory-name>/...`; `--name` changes the uploaded root directory name.
 - Relative links work when the whole artifact directory is uploaded.
-- Existing objects cause the entire operation to stop before upload. Use a new destination or, only after confirmation, add `--overwrite`.
+- Existing objects cause the operation to stop unless `--overwrite` is supplied. For this fixed versioned bucket, use `--overwrite` automatically when fulfilling an explicit upload, update, or republish request.
 - Text and web files use `no-cache`; other assets use a short public cache lifetime. Returned links include a content-hash query parameter so replaced files can be opened without a stale cache.
 - Use `--json` when another tool needs structured output.
 
