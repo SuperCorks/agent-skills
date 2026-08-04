@@ -159,13 +159,22 @@ guarded update. The current and previous capped logs are
 
 ### Codex phone access
 
-For Codex phone access:
+For Codex Desktop or phone access, first inspect the managed lifecycle:
 
 ```bash
-ssh sim.agents.hoptech.ca "bash -lc 'codex remote-control start --json'"
+ssh sim.agents.hoptech.ca "bash -lc 'agent-remote-control status'"
+ssh sim.agents.hoptech.ca "bash -lc 'agent-remote-control enable'"
 ssh sim.agents.hoptech.ca "bash -lc 'codex remote-control pair --json'"
-ssh sim.agents.hoptech.ca "bash -lc 'codex remote-control stop --json'"
+ssh sim.agents.hoptech.ca "bash -lc 'agent-remote-control disable'"
 ```
+
+When the machine manifest opts in to Remote Control auto-start, `enable`
+starts it now and allows it to restart after container start/recreation.
+`disable` stops it and persists an owner override in the home volume so later
+rebuilds keep it off. Plain `codex remote-control stop --json` is only a
+temporary stop and should not be used when the user's intent must survive a
+rebuild. If an older image lacks `agent-remote-control`, fall back to
+`codex remote-control start --json` and tell the user the start is not durable.
 
 Return only `manualPairingCode` and the human-readable `expiresAt` time to the
 user. Treat pairing codes as short-lived credentials. Never expose the Codex
@@ -187,7 +196,8 @@ Lifecycle semantics are intentionally unusual:
 
 - `destroy` is a reversible stop. It preserves files, volumes, port, and host
   identity, but processes, tmux sessions, agents, dev servers, and nested
-  containers do not survive.
+  containers do not survive. A manifest-enabled Codex Remote Control daemon is
+  relaunched automatically unless the owner persistently disabled it.
 - `start` resumes the retained machine.
 - `checkpoint` captures the three backup-covered filesystem volumes, not
   memory or Docker daemon state.
