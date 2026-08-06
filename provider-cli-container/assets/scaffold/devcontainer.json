@@ -1,0 +1,30 @@
+{
+  "name": "__PROJECT_NAME__ Provider CLI",
+  "initializeCommand": "bash .devcontainer/install-host-command.sh",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": "."
+  },
+  "runArgs": ["--rm"],
+  "shutdownAction": "stopContainer",
+  "remoteUser": "${localEnv:DEVCONTAINER_REMOTE_USER:node}",
+  "containerEnv": {
+    "PROVIDER_EAS_PROJECT": "SET_ME_OR_REMOVE",
+    "PROVIDER_GCP_PROJECT": "SET_ME_OR_REMOVE",
+    "PROVIDER_GITHUB_REPOSITORY": "SET_ME_OR_REMOVE",
+    "PROVIDER_SUPABASE_PROJECT_REF": "SET_ME_OR_REMOVE",
+    "PROVIDER_VERCEL_SCOPE": "SET_ME_OR_REMOVE",
+    "CLOUDSDK_CONFIG": "/home/node/.config/gcloud",
+    "GH_CONFIG_DIR": "/home/node/.config/gh"
+  },
+  "remoteEnv": {
+    "PROVIDER_CLI_SECRETS_FILE": "${containerWorkspaceFolder}/.devcontainer/secrets.env",
+    "PROVIDER_CLI_WORKSPACE": "${containerWorkspaceFolder}",
+    "PATH": "${containerEnv:PATH}:${containerWorkspaceFolder}/.devcontainer/bin"
+  },
+  "mounts": [
+    "source=__CONFIG_VOLUME__,target=/home/node/.config,type=volume"
+  ],
+  "postCreateCommand": "bash .devcontainer/post-create.sh",
+  "postStartCommand": "bash .devcontainer/post-start.sh"
+}

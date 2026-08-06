@@ -33,6 +33,7 @@ A collection of AI agent skills for GitHub Copilot and other AI assistants.
 | [implementation-executor](implementation-executor) | Execute an approved implementation plan with focused changes and validation |
 | [iterable](iterable) | Read Iterable profiles, profile fields, list users, and user events with multi-account support |
 | [posthog](posthog) | Analyze PostHog data and manage product tooling with multi-account support |
+| [provider-cli-container](provider-cli-container) | Initialize and operate isolated, pinned provider CLI containers with project-scoped account guards |
 | [pr-review-guidelines](pr-review-guidelines) | Code review rubric focused on correctness, maintainability, consistency, and evidence-backed gates |
 | [security-guidance](security-guidance) | Security review checklist for common vulnerabilities with severity and confidence reporting |
 | [skills-browser](skills-browser) | Find useful Agent Skills in curated public skill repositories for a user query |

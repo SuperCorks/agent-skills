@@ -1,0 +1,224 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+workspace="${PROVIDER_CLI_WORKSPACE:-__WORKSPACE_DIR__}"
+secrets_file="${PROVIDER_CLI_SECRETS_FILE:-${workspace}/.devcontainer/secrets.env}"
+command_cwd="${workspace}"
+
+usage() {
+  cat <<'EOF'
+Usage:
+  __COMMAND_NAME__ [--cwd relative/path] doctor
+  __COMMAND_NAME__ [--cwd relative/path] vercel <arguments...>
+  __COMMAND_NAME__ [--cwd relative/path] eas <arguments...>
+  __COMMAND_NAME__ [--cwd relative/path] supabase <arguments...>
+  __COMMAND_NAME__ [--cwd relative/path] posthog <arguments...>
+  __COMMAND_NAME__ [--cwd relative/path] gcloud <arguments...>
+  __COMMAND_NAME__ [--cwd relative/path] gswitch <arguments...>
+  __COMMAND_NAME__ [--cwd relative/path] gh <arguments...>
+
+This short-lived container pins provider CLI versions and isolates project CLI
+accounts. Run dependencies, builds, tests, local services, browsers, and native
+tooling through the host or a purpose-built runner.
+EOF
+}
+
+require_target() {
+  local name="$1"
+  local value="${!name:-}"
+  if [[ -z "${value}" || "${value}" == SET_ME_OR_REMOVE ]]; then
+    echo "${name} must be configured before using this provider." >&2
+    exit 1
+  fi
+}
+
+validate_secrets_file() {
+  [[ -f "${secrets_file}" ]] || return 0
+  local permissions
+  permissions="$(stat -c '%a' "${secrets_file}")"
+  if (( (10#${permissions} / 10) % 10 != 0 || 10#${permissions} % 10 != 0 )); then
+    echo "${secrets_file} must not be readable by group or other users." >&2
+    exit 1
+  fi
+}
+
+load_selected_secrets() {
+  validate_secrets_file
+  [[ -f "${secrets_file}" ]] || return 0
+
+  local allowed=" $* "
+  local line
+  local line_number=0
+  local key
+  local value
+  while IFS= read -r line || [[ -n "${line}" ]]; do
+    line_number=$((line_number + 1))
+    line="${line%$'\r'}"
+    [[ -z "${line}" || "${line}" == \#* ]] && continue
+
+    if [[ ! "${line}" =~ ^([A-Za-z_][A-Za-z0-9_]*)=(.*)$ ]]; then
+      echo "Invalid entry on line ${line_number} of ${secrets_file}." >&2
+      exit 1
+    fi
+
+    key="${BASH_REMATCH[1]}"
+    value="${BASH_REMATCH[2]}"
+    if [[ "${value}" =~ ^\"(.*)\"$ || "${value}" =~ ^\'(.*)\'$ ]]; then
+      value="${BASH_REMATCH[1]}"
+    fi
+    if [[ "${allowed}" == *" ${key} "* ]]; then
+      export "${key}=${value}"
+    fi
+  done < "${secrets_file}"
+}
+
+secret_status() {
+  local name="$1"
+  if [[ -f "${secrets_file}" ]] && grep -Eq "^${name}=.+$" "${secrets_file}"; then
+    printf '  %-30s configured\n' "${name}"
+  else
+    printf '  %-30s not configured\n' "${name}"
+  fi
+}
+
+reject_local_supabase_command() {
+  local argument
+  for argument in "$@"; do
+    if [[ "${argument}" == "--local" ]]; then
+      echo "Local Supabase services do not run through __COMMAND_NAME__." >&2
+      exit 1
+    fi
+  done
+
+  case "${1:-}" in
+    start|stop|status) ;;
+    db)
+      case "${2:-}" in
+        start|reset) ;;
+        *) return 0 ;;
+      esac
+      ;;
+    test)
+      [[ "${2:-}" == "db" ]] || return 0
+      ;;
+    *) return 0 ;;
+  esac
+
+  echo "Local Supabase services do not run through __COMMAND_NAME__." >&2
+  exit 1
+}
+
+doctor() {
+  validate_secrets_file
+  echo "__PROJECT_NAME__ provider toolchain"
+  printf '  %-30s %s\n' "node" "$(node --version)"
+  printf '  %-30s %s\n' "npm" "$(npm --version)"
+  printf '  %-30s %s\n' "supabase" "$(supabase --version)"
+  printf '  %-30s %s\n' "vercel" "$(vercel --version 2>/dev/null | tail -1)"
+  printf '  %-30s %s\n' "eas" "$(eas --version)"
+  printf '  %-30s %s\n' "posthog" "$(posthog-cli --version)"
+  printf '  %-30s %s\n' "gcloud" "$(gcloud version --format=json | jq -r '."Google Cloud SDK"')"
+  printf '  %-30s %s\n' "gswitch" "$(gswitch --version)"
+  printf '  %-30s %s\n' "gh" "$(gh --version | head -1)"
+  printf '  %-30s %s\n' "architecture" "$(uname -m)"
+
+  echo
+  echo "Expected targets"
+  printf '  %-30s %s\n' "Vercel scope" "${PROVIDER_VERCEL_SCOPE:-not configured}"
+  printf '  %-30s %s\n' "EAS project" "${PROVIDER_EAS_PROJECT:-not configured}"
+  printf '  %-30s %s\n' "Supabase project ref" "${PROVIDER_SUPABASE_PROJECT_REF:-not configured}"
+  printf '  %-30s %s\n' "Google Cloud project" "${PROVIDER_GCP_PROJECT:-not configured}"
+  printf '  %-30s %s\n' "GitHub repository" "${PROVIDER_GITHUB_REPOSITORY:-not configured}"
+
+  echo
+  echo "Optional credential keys"
+  secret_status VERCEL_TOKEN
+  secret_status EXPO_TOKEN
+  secret_status SUPABASE_ACCESS_TOKEN
+  secret_status POSTHOG_CLI_API_KEY
+  secret_status GH_TOKEN
+}
+
+if [[ "${1:-}" == "--cwd" ]]; then
+  [[ $# -ge 3 ]] || { usage; exit 1; }
+  requested_cwd="$2"
+  shift 2
+  if [[ "${requested_cwd}" == /* || "${requested_cwd}" == *".."* ]]; then
+    echo "--cwd must be a relative path inside the workspace." >&2
+    exit 1
+  fi
+  command_cwd="$(realpath -m "${workspace}/${requested_cwd}")"
+  case "${command_cwd}" in
+    "${workspace}"|"${workspace}"/*) ;;
+    *) echo "--cwd must stay inside the workspace." >&2; exit 1 ;;
+  esac
+  [[ -d "${command_cwd}" ]] || { echo "Directory does not exist: ${command_cwd}" >&2; exit 1; }
+fi
+
+if [[ $# -eq 0 ]]; then
+  usage
+  exit 1
+fi
+
+provider="$1"
+shift
+cd "${command_cwd}"
+
+case "${provider}" in
+  doctor)
+    doctor
+    ;;
+  vercel)
+    require_target PROVIDER_VERCEL_SCOPE
+    load_selected_secrets VERCEL_TOKEN
+    exec vercel --scope "${PROVIDER_VERCEL_SCOPE}" "$@"
+    ;;
+  eas)
+    require_target PROVIDER_EAS_PROJECT
+    load_selected_secrets EXPO_TOKEN
+    exec eas "$@"
+    ;;
+  supabase)
+    require_target PROVIDER_SUPABASE_PROJECT_REF
+    reject_local_supabase_command "$@"
+    load_selected_secrets SUPABASE_ACCESS_TOKEN
+    if [[ "${1:-}" == "link" ]]; then
+      shift
+      exec supabase link --project-ref "${PROVIDER_SUPABASE_PROJECT_REF}" "$@"
+    fi
+    if [[ -f supabase/.temp/project-ref ]]; then
+      linked_ref="$(tr -d '[:space:]' < supabase/.temp/project-ref)"
+      if [[ "${linked_ref}" != "${PROVIDER_SUPABASE_PROJECT_REF}" ]]; then
+        echo "Refusing linked Supabase project ${linked_ref}; expected ${PROVIDER_SUPABASE_PROJECT_REF}." >&2
+        exit 1
+      fi
+    fi
+    exec supabase "$@"
+    ;;
+  posthog)
+    load_selected_secrets POSTHOG_CLI_API_KEY POSTHOG_CLI_PROJECT_ID POSTHOG_CLI_HOST
+    exec posthog-cli "$@"
+    ;;
+  gcloud)
+    require_target PROVIDER_GCP_PROJECT
+    exec gcloud --project "${PROVIDER_GCP_PROJECT}" "$@"
+    ;;
+  gswitch)
+    exec gswitch "$@"
+    ;;
+  gh)
+    require_target PROVIDER_GITHUB_REPOSITORY
+    load_selected_secrets GH_TOKEN
+    export GH_REPO="${PROVIDER_GITHUB_REPOSITORY}"
+    exec gh "$@"
+    ;;
+  --help|-h|help)
+    usage
+    ;;
+  *)
+    echo "Unsupported provider command: ${provider}" >&2
+    echo "__COMMAND_NAME__ is only for the provider CLIs listed in --help." >&2
+    exit 1
+    ;;
+esac

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Provider CLI Container"
+  short_description: "Build isolated provider CLI environments"
+  default_prompt: "Use $provider-cli-container to initialize or operate a project-scoped provider CLI container."
