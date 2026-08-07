@@ -1,11 +1,13 @@
 ---
 name: provider-cli-container
-description: Design, initialize, operate, and validate a short-lived Dev Container used only for pinned provider CLIs and project-scoped cloud accounts. Use when a repository needs isolated access to services such as Vercel, EAS, hosted Supabase, PostHog, Google Cloud, gswitch, or GitHub; when migrating provider credentials away from host-global profiles; when deciding whether work belongs in the provider container, a purpose-built test runner, or the host toolchain; or when troubleshooting an existing provider CLI gateway.
+description: Design, initialize, operate, and validate a short-lived Dev Container used only for pinned provider CLIs and project-scoped cloud accounts. Use when a repository needs isolated access to services such as Vercel, EAS, hosted Supabase, PostHog, Google Cloud, Google Workspace, or GitHub; when migrating provider credentials away from host-global profiles; when deciding whether work belongs in the provider container, a purpose-built test runner, or the host toolchain; or when troubleshooting an existing provider CLI gateway.
 ---
 
 # Provider CLI Container
 
 Treat the container as an account and CLI-version boundary, not as the project's development environment. Keep its lifecycle short, its command surface allowlisted, and its persisted state limited to provider configuration.
+
+Assign one intended identity per provider to each project container. Use native CLI authentication and the project-specific config volume. Do not install an account switcher such as `gswitch`; account switching solves the host-global problem that the container boundary already solves. Use another project container or config volume when another identity is required.
 
 ## Choose the execution lane
 
@@ -67,6 +69,7 @@ If the wrapper rejects an arbitrary command, interactive shell, or local-service
 ## Handle credentials and lifecycle
 
 - Prefer project- or organization-scoped tokens and robot users over personal broad-scope credentials.
+- Use native login and status commands such as `gcloud auth login`, `gcloud auth application-default login`, `gws auth login`, and `gws auth status`. Force the intended account and project on guarded commands when the CLI supports it.
 - Load only the selected provider's credential variables into a command.
 - Persist interactive CLI configuration in one project-specific named volume; do not persist dependency or database state.
 - Remove the config volume only for an explicit login reset. Explain that it signs out the project's stored provider accounts.

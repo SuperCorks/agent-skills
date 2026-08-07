@@ -20,6 +20,7 @@ Keep these properties when adapting the scaffold:
 - **Ephemeral lifecycle:** use `--rm`; stop command-created containers after each host-gateway invocation.
 - **Native architecture:** select `arm64` or `amd64` downloads using `TARGETARCH`; verify downloaded binaries with SHA-256.
 - **Minimal persistence:** retain one project-specific CLI config volume and nothing else.
+- **Single native identity:** use each provider CLI's own credential slot; do not add an account switcher inside the container.
 - **No Docker authority:** do not mount the Docker socket or install Docker-in-Docker.
 - **Worktree safety:** resolve the gateway from the current worktree when correctness depends on checked-in configuration.
 - **Conflict safety:** never overwrite an unrelated command already present in the host install directory.
@@ -49,7 +50,8 @@ Delete every unused CLI install, secret key, doctor line, usage line, and wrappe
 | EAS | Compare `eas project:info` with the expected owner/project before cloud builds or updates | `eas whoami` | Project-restricted `EXPO_TOKEN` or robot user |
 | Hosted Supabase | Guard the linked project ref; reject local lifecycle and test commands | `supabase projects list` | `SUPABASE_ACCESS_TOKEN` for explicit hosted operations |
 | PostHog | Select an explicit application directory and project ID/host | CLI help or an available read-only project command | Personal/project API key only for source maps or symbols |
-| Google Cloud | Force `--project`; isolate the active account with an account switcher when needed | `gcloud auth list --filter=status:ACTIVE` | Project-volume Application Default Credentials or interactive state |
+| Google Cloud | Force the intended `--account` and `--project` | `gcloud auth list --filter=status:ACTIVE` | Direct `gcloud auth login` plus `gcloud auth application-default login` in the project volume |
+| Google Workspace | Keep one `gws` credential slot and reject raw auth/export bypasses | Validate the account returned by `gws auth login`; inspect `gws auth status` | Direct `gws auth login`, a securely transferred credential file for headless hosts, or a service account |
 | GitHub | Set or verify the expected `owner/repository`, especially in linked worktrees | `gh auth status` and `gh repo view <owner/repository>` | Project-volume login or a least-privilege token |
 
 Provider CLIs change. Verify command syntax and authentication behavior against primary documentation when adapting a project, especially before adding mutation automation.
@@ -59,6 +61,8 @@ Provider CLIs change. Verify command syntax and authentication behavior against 
 Use `secrets.env.example` only as a list of accepted key names and comments. Keep `secrets.env` ignored and mode `600`. Parse it as data rather than sourcing it into a shell; reject malformed entries and never print values.
 
 Let interactive logins write to provider-specific config paths under the named volume. Avoid host-global profiles because they make the active account depend on unrelated work. A reset should delete only this named config volume and should never touch application data, databases, or dependency caches.
+
+For browserless Google Cloud login, prefer `--no-launch-browser` and complete the printed authorization-code flow on a trusted browser machine. `gws auth login` requires a localhost browser callback; on a genuinely headless host, follow the native `gws auth export --unmasked` credential-file flow on a trusted browser machine or use a service account. Treat the exported file as a secret, transfer it without logging its contents, store it as `<provider-home>/.config/gws/credentials.json` in the project config volume with mode `600`, and delete the transfer copy after verifying `gws auth status`.
 
 ## Validation
 

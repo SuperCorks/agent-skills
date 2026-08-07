@@ -9,13 +9,20 @@
   "shutdownAction": "stopContainer",
   "remoteUser": "${localEnv:DEVCONTAINER_REMOTE_USER:node}",
   "containerEnv": {
+    "HOME": "/home/node",
+    "PROVIDER_CLI_HOME": "/home/node",
     "PROVIDER_EAS_PROJECT": "SET_ME_OR_REMOVE",
+    "PROVIDER_GCP_ACCOUNT_EMAIL": "SET_ME_OR_REMOVE",
     "PROVIDER_GCP_PROJECT": "SET_ME_OR_REMOVE",
     "PROVIDER_GITHUB_REPOSITORY": "SET_ME_OR_REMOVE",
+    "PROVIDER_GOOGLE_WORKSPACE_ACCOUNT_EMAIL": "SET_ME_OR_REMOVE",
     "PROVIDER_SUPABASE_PROJECT_REF": "SET_ME_OR_REMOVE",
     "PROVIDER_VERCEL_SCOPE": "SET_ME_OR_REMOVE",
     "CLOUDSDK_CONFIG": "/home/node/.config/gcloud",
-    "GH_CONFIG_DIR": "/home/node/.config/gh"
+    "GH_CONFIG_DIR": "/home/node/.config/gh",
+    "GOOGLE_WORKSPACE_CLI_CONFIG_DIR": "/home/node/.config/gws",
+    "GOOGLE_WORKSPACE_CLI_KEYRING_BACKEND": "file",
+    "XDG_CONFIG_HOME": "/home/node/.config"
   },
   "remoteEnv": {
     "PROVIDER_CLI_SECRETS_FILE": "${containerWorkspaceFolder}/.devcontainer/secrets.env",

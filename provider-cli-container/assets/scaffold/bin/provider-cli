@@ -5,6 +5,9 @@ set -euo pipefail
 workspace="${PROVIDER_CLI_WORKSPACE:-__WORKSPACE_DIR__}"
 secrets_file="${PROVIDER_CLI_SECRETS_FILE:-${workspace}/.devcontainer/secrets.env}"
 command_cwd="${workspace}"
+provider_home="${PROVIDER_CLI_HOME:-/home/node}"
+
+export HOME="${provider_home}"
 
 usage() {
   cat <<'EOF'
@@ -14,8 +17,10 @@ Usage:
   __COMMAND_NAME__ [--cwd relative/path] eas <arguments...>
   __COMMAND_NAME__ [--cwd relative/path] supabase <arguments...>
   __COMMAND_NAME__ [--cwd relative/path] posthog <arguments...>
+  __COMMAND_NAME__ gcloud <login|status>
   __COMMAND_NAME__ [--cwd relative/path] gcloud <arguments...>
-  __COMMAND_NAME__ [--cwd relative/path] gswitch <arguments...>
+  __COMMAND_NAME__ gws <login|status|logout> [arguments...]
+  __COMMAND_NAME__ [--cwd relative/path] gws <arguments...>
   __COMMAND_NAME__ [--cwd relative/path] gh <arguments...>
 
 This short-lived container pins provider CLI versions and isolates project CLI
@@ -109,6 +114,94 @@ reject_local_supabase_command() {
   exit 1
 }
 
+reject_gcloud_overrides() {
+  local argument
+  for argument in "$@"; do
+    case "${argument}" in
+      --account|--account=*|--billing-project|--billing-project=*|--configuration|--configuration=*|--impersonate-service-account|--impersonate-service-account=*|--project|--project=*)
+        echo "Google Cloud account, billing, configuration, and project overrides are disabled." >&2
+        exit 1
+        ;;
+    esac
+  done
+}
+
+run_gcloud() {
+  [[ $# -gt 0 ]] || { usage; exit 1; }
+  require_target PROVIDER_GCP_ACCOUNT_EMAIL
+  require_target PROVIDER_GCP_PROJECT
+  local account_email="${PROVIDER_GCP_ACCOUNT_EMAIL}"
+
+  case "$1" in
+    login)
+      [[ $# -eq 1 ]] || { echo "gcloud login does not accept extra arguments." >&2; exit 1; }
+      gcloud auth login "${account_email}" --force --no-launch-browser
+      exec gcloud auth application-default login "${account_email}" --no-launch-browser
+      ;;
+    status)
+      [[ $# -eq 1 ]] || { echo "gcloud status does not accept extra arguments." >&2; exit 1; }
+      exec gcloud auth list \
+        --filter="account=${account_email}" \
+        --format='table(account,status)'
+      ;;
+  esac
+
+  reject_gcloud_overrides "$@"
+  exec gcloud \
+    --account "${account_email}" \
+    --project "${PROVIDER_GCP_PROJECT}" \
+    "$@"
+}
+
+run_gws() {
+  [[ $# -gt 0 ]] || { usage; exit 1; }
+  require_target PROVIDER_GOOGLE_WORKSPACE_ACCOUNT_EMAIL
+  local expected_account="${PROVIDER_GOOGLE_WORKSPACE_ACCOUNT_EMAIL}"
+
+  case "$1" in
+    login)
+      shift
+      load_selected_secrets \
+        GOOGLE_WORKSPACE_CLI_CLIENT_ID \
+        GOOGLE_WORKSPACE_CLI_CLIENT_SECRET
+      local login_output
+      local actual_account
+      if ! login_output="$(gws auth login "$@")"; then
+        exit 1
+      fi
+      if ! actual_account="$(
+        printf '%s\n' "${login_output}" \
+          | jq -er '.account | select(type == "string" and length > 0)'
+      )"; then
+        gws auth logout >/dev/null 2>&1 || true
+        echo "Google Workspace login did not return a verifiable account. Credentials were removed." >&2
+        exit 1
+      fi
+      if [[ "${actual_account}" != "${expected_account}" ]]; then
+        gws auth logout >/dev/null 2>&1 || true
+        echo "Google Workspace login returned '${actual_account:-unknown}'; expected '${expected_account}'. Credentials were removed." >&2
+        exit 1
+      fi
+      printf '%s\n' "${login_output}"
+      ;;
+    status)
+      [[ $# -eq 1 ]] || { echo "gws status does not accept extra arguments." >&2; exit 1; }
+      exec gws auth status
+      ;;
+    logout)
+      [[ $# -eq 1 ]] || { echo "gws logout does not accept extra arguments." >&2; exit 1; }
+      exec gws auth logout
+      ;;
+    auth)
+      echo "Raw gws auth commands are disabled; use gws login, status, or logout." >&2
+      exit 1
+      ;;
+    *)
+      exec gws "$@"
+      ;;
+  esac
+}
+
 doctor() {
   validate_secrets_file
   echo "__PROJECT_NAME__ provider toolchain"
@@ -119,7 +212,7 @@ doctor() {
   printf '  %-30s %s\n' "eas" "$(eas --version)"
   printf '  %-30s %s\n' "posthog" "$(posthog-cli --version)"
   printf '  %-30s %s\n' "gcloud" "$(gcloud version --format=json | jq -r '."Google Cloud SDK"')"
-  printf '  %-30s %s\n' "gswitch" "$(gswitch --version)"
+  printf '  %-30s %s\n' "gws" "$(gws --version | head -1)"
   printf '  %-30s %s\n' "gh" "$(gh --version | head -1)"
   printf '  %-30s %s\n' "architecture" "$(uname -m)"
 
@@ -128,7 +221,9 @@ doctor() {
   printf '  %-30s %s\n' "Vercel scope" "${PROVIDER_VERCEL_SCOPE:-not configured}"
   printf '  %-30s %s\n' "EAS project" "${PROVIDER_EAS_PROJECT:-not configured}"
   printf '  %-30s %s\n' "Supabase project ref" "${PROVIDER_SUPABASE_PROJECT_REF:-not configured}"
+  printf '  %-30s %s\n' "Google Cloud account" "${PROVIDER_GCP_ACCOUNT_EMAIL:-not configured}"
   printf '  %-30s %s\n' "Google Cloud project" "${PROVIDER_GCP_PROJECT:-not configured}"
+  printf '  %-30s %s\n' "Google Workspace account" "${PROVIDER_GOOGLE_WORKSPACE_ACCOUNT_EMAIL:-not configured}"
   printf '  %-30s %s\n' "GitHub repository" "${PROVIDER_GITHUB_REPOSITORY:-not configured}"
 
   echo
@@ -137,6 +232,8 @@ doctor() {
   secret_status EXPO_TOKEN
   secret_status SUPABASE_ACCESS_TOKEN
   secret_status POSTHOG_CLI_API_KEY
+  secret_status GOOGLE_WORKSPACE_CLI_CLIENT_ID
+  secret_status GOOGLE_WORKSPACE_CLI_CLIENT_SECRET
   secret_status GH_TOKEN
 }
 
@@ -201,11 +298,10 @@ case "${provider}" in
     exec posthog-cli "$@"
     ;;
   gcloud)
-    require_target PROVIDER_GCP_PROJECT
-    exec gcloud --project "${PROVIDER_GCP_PROJECT}" "$@"
+    run_gcloud "$@"
     ;;
-  gswitch)
-    exec gswitch "$@"
+  gws)
+    run_gws "$@"
     ;;
   gh)
     require_target PROVIDER_GITHUB_REPOSITORY

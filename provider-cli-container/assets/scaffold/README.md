@@ -36,6 +36,17 @@ chmod 600 .devcontainer/secrets.env
 
 Keep only required credential keys. The real file is ignored and must never be printed or committed. Interactive CLI state persists in the project-specific config volume.
 
+Each retained Google provider has one native credential slot in this project's volume. Use `gcloud` and `gws` directly; do not add an account switcher. Configure the intended Google account email in `devcontainer.json`, then authenticate with:
+
+```sh
+__COMMAND_NAME__ gcloud login
+__COMMAND_NAME__ gcloud status
+__COMMAND_NAME__ gws login --services drive,sheets
+__COMMAND_NAME__ gws status
+```
+
+`gcloud login` uses authorization-code URLs suitable for a browserless container. `gws auth login` requires a localhost callback and an OAuth Desktop client. On a genuinely headless host, authenticate with `gws` on a trusted browser machine and use its native unmasked export flow to create a credential file. Transfer it without printing it, store it as `/home/node/.config/gws/credentials.json` in this project's config volume with mode `600`, delete the transfer copy after `gws status` succeeds, and prefer a service account for unattended automation.
+
 ## Provider workflow
 
 Before a mutation, verify both identity and target with read-only commands such as:
@@ -44,7 +55,8 @@ Before a mutation, verify both identity and target with read-only commands such 
 __COMMAND_NAME__ vercel whoami
 __COMMAND_NAME__ eas whoami
 __COMMAND_NAME__ supabase projects list
-__COMMAND_NAME__ gcloud auth list --filter=status:ACTIVE
+__COMMAND_NAME__ gcloud status
+__COMMAND_NAME__ gws status
 __COMMAND_NAME__ gh auth status
 __COMMAND_NAME__ gh repo view <owner/repository> --json nameWithOwner
 ```

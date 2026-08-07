@@ -22,6 +22,17 @@ assert_contains() {
   grep -Fqx -- "${expected}" "${file}" || fail "expected '${expected}' in ${file}"
 }
 
+assert_not_contains() {
+  local unexpected="$1"
+  local file="$2"
+  if grep -Fqx -- "${unexpected}" "${file}"; then
+    fail "did not expect '${unexpected}' in ${file}"
+  fi
+}
+
+assert_contains '    "HOME": "/home/node",' "${workspace}/.devcontainer/devcontainer.json"
+assert_contains '    "PROVIDER_CLI_HOME": "/home/node",' "${workspace}/.devcontainer/devcontainer.json"
+
 host_bin_directory="${temporary_directory}/installed-bin"
 PROVIDER_CLI_HOST_BIN_DIR="${host_bin_directory}" \
   bash "${workspace}/.devcontainer/install-host-command.sh" >/dev/null 2>&1
@@ -92,6 +103,80 @@ fi
 
 PROVIDER_CLI_WORKSPACE="${workspace}" \
   "${workspace}/.devcontainer/bin/__COMMAND_NAME__" --help >/dev/null
+
+provider_bin="${temporary_directory}/provider-bin"
+provider_capture="${temporary_directory}/provider-arguments"
+provider_home="${temporary_directory}/provider-home"
+mkdir -p "${provider_bin}" "${provider_home}"
+printf '%s\n' \
+  '#!/usr/bin/env bash' \
+  'set -euo pipefail' \
+  'printf "COMMAND %s\n" "${0##*/}" >> "${PROVIDER_TEST_CAPTURE}"' \
+  'printf "HOME %s\n" "${HOME:-}" >> "${PROVIDER_TEST_CAPTURE}"' \
+  'for argument in "$@"; do printf "ARG %s\n" "$argument"; done >> "${PROVIDER_TEST_CAPTURE}"' \
+  'if [[ "${0##*/}" == gws && "${1:-}" == auth && "${2:-}" == login ]]; then' \
+  '  printf '\''{"account":"%s"}\n'\'' "${PROVIDER_TEST_GWS_LOGIN_ACCOUNT:-workspace@example.com}"' \
+  'fi' \
+  > "${provider_bin}/provider-command"
+chmod +x "${provider_bin}/provider-command"
+for command_name in gcloud gws; do
+  ln -s "${provider_bin}/provider-command" "${provider_bin}/${command_name}"
+done
+
+run_provider() {
+  PATH="${provider_bin}:${PATH}" \
+  HOME="${temporary_directory}/unrelated-home" \
+  PROVIDER_CLI_HOME="${provider_home}" \
+  PROVIDER_CLI_WORKSPACE="${workspace}" \
+  PROVIDER_GCP_ACCOUNT_EMAIL="cloud@example.com" \
+  PROVIDER_GCP_PROJECT="example-project" \
+  PROVIDER_GOOGLE_WORKSPACE_ACCOUNT_EMAIL="workspace@example.com" \
+  PROVIDER_TEST_CAPTURE="${provider_capture}" \
+  PROVIDER_TEST_GWS_LOGIN_ACCOUNT="${PROVIDER_TEST_GWS_LOGIN_ACCOUNT:-workspace@example.com}" \
+    "${workspace}/.devcontainer/bin/__COMMAND_NAME__" "$@"
+}
+
+: > "${provider_capture}"
+run_provider gcloud compute instances list
+assert_contains "COMMAND gcloud" "${provider_capture}"
+assert_contains "HOME ${provider_home}" "${provider_capture}"
+assert_contains "ARG --account" "${provider_capture}"
+assert_contains "ARG cloud@example.com" "${provider_capture}"
+assert_contains "ARG --project" "${provider_capture}"
+assert_contains "ARG example-project" "${provider_capture}"
+
+: > "${provider_capture}"
+run_provider gcloud login
+assert_contains "ARG login" "${provider_capture}"
+assert_contains "ARG application-default" "${provider_capture}"
+assert_contains "ARG --no-launch-browser" "${provider_capture}"
+
+: > "${provider_capture}"
+run_provider gws login --services drive,sheets >/dev/null
+assert_contains "COMMAND gws" "${provider_capture}"
+assert_contains "ARG auth" "${provider_capture}"
+assert_contains "ARG login" "${provider_capture}"
+assert_contains "ARG --services" "${provider_capture}"
+assert_contains "ARG drive,sheets" "${provider_capture}"
+
+: > "${provider_capture}"
+run_provider gws status
+assert_contains "ARG auth" "${provider_capture}"
+assert_contains "ARG status" "${provider_capture}"
+
+: > "${provider_capture}"
+if PROVIDER_TEST_GWS_LOGIN_ACCOUNT="wrong@example.com" run_provider gws login >/dev/null 2>&1; then
+  fail "provider wrapper accepted the wrong Google Workspace account"
+fi
+assert_contains "ARG logout" "${provider_capture}"
+
+if run_provider gws auth export --unmasked >/dev/null 2>&1; then
+  fail "provider wrapper exposed raw Google Workspace credential export"
+fi
+
+if run_provider gswitch list >/dev/null 2>&1; then
+  fail "provider wrapper exposed an account switcher"
+fi
 
 if PROVIDER_CLI_WORKSPACE="${workspace}" \
   "${workspace}/.devcontainer/bin/__COMMAND_NAME__" shell >/dev/null 2>&1; then

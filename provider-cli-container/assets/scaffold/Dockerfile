@@ -4,7 +4,7 @@ ARG TARGETARCH
 ARG EAS_CLI_VERSION=21.3.0
 ARG GCLOUD_CLI_VERSION=576.0.0
 ARG GH_CLI_VERSION=2.94.0
-ARG GSWITCH_VERSION=1.5.0
+ARG GWS_CLI_VERSION=0.22.5
 ARG POSTHOG_CLI_VERSION=0.8.4
 ARG SUPABASE_CLI_VERSION=2.109.0
 ARG VERCEL_CLI_VERSION=58.0.0
@@ -68,8 +68,8 @@ RUN case "${TARGETARCH}" in \
     && rm /tmp/gh.tar.gz
 
 RUN npm install --global \
+      "@googleworkspace/cli@${GWS_CLI_VERSION}" \
       "@posthog/cli@${POSTHOG_CLI_VERSION}" \
-      "@supercorks/gswitch@${GSWITCH_VERSION}" \
       "eas-cli@${EAS_CLI_VERSION}" \
       "vercel@${VERCEL_CLI_VERSION}" \
     && npm cache clean --force
