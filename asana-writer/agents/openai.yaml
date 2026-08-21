@@ -1,0 +1,4 @@
+interface:
+  display_name: "Asana Writer"
+  short_description: "Create and update Asana project work"
+  default_prompt: "Use $asana-writer to create or update the requested Asana project work."
