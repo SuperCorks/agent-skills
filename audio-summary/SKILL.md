@@ -66,6 +66,11 @@ The provider configuration is intentionally aligned with Swipe News:
 - Speechify speed: `SPEECHIFY_VOICE_SPEED` (`1.1`)
 - Speechify language: `SPEECHIFY_LANGUAGE` (`en-US`)
 
+Credential ownership:
+
+- `OPENROUTER_API_KEY` belongs to the OpenRouter account `admin@hoptech.ca`.
+- `SPEECHIFY_API_KEY` belongs to the Speechify account `simoncorcos.ing@gmail.com`.
+
 The helper reads `OPENROUTER_API_KEY`, `SPEECHIFY_API_KEY`, and the Speechify profile from the current environment, `AUDIO_SUMMARY_ENV_FILE`, or Simon's TLDR Audio `.env.local` fallback without printing credentials.
 
 Use `--dry-run` to validate inputs, mode, endpoints, and resolved non-secret provider settings without calling either provider. Live generation consumes OpenRouter and Speechify credits, so follow the active environment's confirmation policy immediately before the paid calls.
