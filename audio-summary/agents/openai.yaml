@@ -1,0 +1,4 @@
+interface:
+  display_name: "Audio Summary"
+  short_description: "Publish narrated summaries of the current task"
+  default_prompt: "Use $audio-summary to create and publish a medium audio recap of this task."

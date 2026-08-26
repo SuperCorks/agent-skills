@@ -16,6 +16,7 @@ A collection of AI agent skills for GitHub Copilot and other AI assistants.
 | [agent-thread-reader](agent-thread-reader) | Read local Codex, Copilot, and Claude Code agent thread/session history |
 | [architect-planning](architect-planning) | Problem framing and decision-complete implementation planning before code changes |
 | [asana-reader](asana-reader) | Read Asana tasks by URL, ID, or name search with multi-account support |
+| [audio-summary](audio-summary) | Create and publish narrated summaries of the current task or latest output |
 | [boulevard](boulevard) | Query Boulevard APIs, discover availability, book sandbox appointments, and compare or sync services/packages |
 | [browserbase](browserbase) | Browserbase browser automation, Fetch/Search, remote auth contexts, UI QA, debugging, tracing, and platform workflows |
 | [code-simplifier](code-simplifier) | Behavior-preserving refactor workflow for reducing complexity and improving readability |
