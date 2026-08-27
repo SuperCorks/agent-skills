@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Change explanation</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --page: #f4f1ea;
+      --surface: #fffdf8;
+      --ink: #20231f;
+      --muted: #5f665f;
+      --line: #d8d5cc;
+      --accent: #285c4d;
+      --accent-soft: #dcebe5;
+      --before: #7a4038;
+      --before-soft: #f4e1dd;
+      --after: #285c4d;
+      --after-soft: #dcebe5;
+      --unknown: #70511e;
+      --unknown-soft: #f4e8ca;
+      --radius: 16px;
+      --shadow: 0 16px 40px rgb(46 43 36 / 0.08);
+    }
+
+    * { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      background: var(--page);
+      color: var(--ink);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 17px;
+      line-height: 1.65;
+    }
+
+    a { color: var(--accent); }
+    a:focus-visible, button:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+
+    header, main, footer, nav {
+      width: min(1080px, calc(100% - 32px));
+      margin-inline: auto;
+    }
+
+    header { padding: 72px 0 30px; }
+
+    .eyebrow {
+      color: var(--accent);
+      font-size: 0.8rem;
+      font-weight: 750;
+      letter-spacing: 0.11em;
+      text-transform: uppercase;
+    }
+
+    h1, h2, h3 { line-height: 1.18; text-wrap: balance; }
+    h1 { max-width: 18ch; margin: 10px 0 20px; font-size: clamp(2.5rem, 7vw, 5.4rem); letter-spacing: -0.055em; }
+    h2 { margin-top: 0; font-size: clamp(1.55rem, 3vw, 2.25rem); letter-spacing: -0.025em; }
+    h3 { font-size: 1.08rem; }
+
+    .lede { max-width: 66ch; color: var(--muted); font-size: 1.2rem; }
+
+    .metadata {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      gap: 12px;
+      margin-top: 30px;
+    }
+
+    .metadata div, .card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+
+    .metadata div { padding: 14px 16px; }
+    .metadata dt { color: var(--muted); font-size: 0.77rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+    .metadata dd { margin: 4px 0 0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.88rem; overflow-wrap: anywhere; }
+
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      display: flex;
+      gap: 8px;
+      padding: 12px 0;
+      overflow-x: auto;
+      background: color-mix(in srgb, var(--page) 90%, transparent);
+      backdrop-filter: blur(12px);
+    }
+
+    nav a {
+      flex: 0 0 auto;
+      padding: 8px 12px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--surface);
+      color: var(--ink);
+      font-size: 0.88rem;
+      text-decoration: none;
+    }
+
+    main { padding: 26px 0 80px; }
+    section { scroll-margin-top: 84px; margin: 22px 0; padding: clamp(22px, 4vw, 42px); }
+    .card { overflow: hidden; }
+    .narrow { max-width: 760px; }
+    .muted { color: var(--muted); }
+
+    .badges { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0; }
+    .badge { padding: 5px 9px; border-radius: 999px; font-size: 0.76rem; font-weight: 750; letter-spacing: 0.03em; }
+    .observed, .executed { color: var(--accent); background: var(--accent-soft); }
+    .inferred, .unknown { color: var(--unknown); background: var(--unknown-soft); }
+
+    .comparison, .flow {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      margin-top: 20px;
+    }
+
+    .comparison article, .flow article { padding: 20px; border-radius: 13px; }
+    .before { border: 1px solid color-mix(in srgb, var(--before) 35%, transparent); background: var(--before-soft); }
+    .after { border: 1px solid color-mix(in srgb, var(--after) 35%, transparent); background: var(--after-soft); }
+
+    .steps { margin: 24px 0 0; padding: 0; list-style: none; counter-reset: step; }
+    .steps li { position: relative; margin: 0 0 18px 22px; padding: 0 0 18px 34px; border-left: 2px solid var(--line); counter-increment: step; }
+    .steps li::before {
+      content: counter(step);
+      position: absolute;
+      left: -17px;
+      top: -2px;
+      display: grid;
+      width: 32px;
+      height: 32px;
+      place-items: center;
+      border-radius: 50%;
+      background: var(--accent);
+      color: white;
+      font-size: 0.82rem;
+      font-weight: 800;
+    }
+
+    pre {
+      max-width: 100%;
+      margin: 18px 0;
+      padding: 18px;
+      overflow: auto;
+      border: 1px solid #353a35;
+      border-radius: 12px;
+      background: #1e211f;
+      color: #eef3ef;
+      font-size: 0.86rem;
+      line-height: 1.55;
+      white-space: pre;
+    }
+
+    code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    :not(pre) > code { padding: 0.12em 0.35em; border-radius: 5px; background: var(--accent-soft); font-size: 0.9em; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+    th, td { padding: 12px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { color: var(--muted); font-size: 0.76rem; letter-spacing: 0.06em; text-transform: uppercase; }
+
+    .question { margin-top: 16px; padding: 20px; border: 1px solid var(--line); border-radius: 13px; background: color-mix(in srgb, var(--surface) 82%, var(--accent-soft)); }
+    .question button { padding: 9px 13px; border: 0; border-radius: 9px; background: var(--accent); color: white; font: inherit; font-size: 0.9rem; font-weight: 700; cursor: pointer; }
+    .answer[hidden] { display: none; }
+    .answer { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
+
+    footer { padding: 10px 0 54px; color: var(--muted); font-size: 0.88rem; }
+
+    @media (max-width: 700px) {
+      header { padding-top: 44px; }
+      .comparison, .flow { grid-template-columns: 1fr; }
+      section { padding: 22px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+    }
+
+    @media print {
+      body { background: white; color: black; font-size: 11pt; }
+      header, main, footer, nav { width: 100%; }
+      nav, button { display: none; }
+      .card, .metadata div { break-inside: avoid; box-shadow: none; }
+      .answer[hidden] { display: block; }
+      a { color: inherit; text-decoration: underline; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Copy this asset, then replace its example content with evidence from the bounded change. -->
+  <header>
+    <div class="eyebrow">Change explanation</div>
+    <h1>Teach the behavior before the diff</h1>
+    <p class="lede">Use this opening to state the outcome in plain language, establish why the change matters, and tell the reader what they should understand by the end.</p>
+    <dl class="metadata">
+      <div><dt>Repository</dt><dd>/absolute/path/to/repository</dd></div>
+      <div><dt>Comparison</dt><dd>base-revision..head-revision</dd></div>
+      <div><dt>Generated</dt><dd>YYYY-MM-DD HH:MM timezone</dd></div>
+      <div><dt>Scope</dt><dd>Committed, staged, or unstaged change</dd></div>
+    </dl>
+  </header>
+
+  <nav aria-label="Explanation sections">
+    <a href="#background">Background</a>
+    <a href="#behavior">Before and after</a>
+    <a href="#walkthrough">Walkthrough</a>
+    <a href="#evidence">Evidence</a>
+    <a href="#checkpoint">Checkpoint</a>
+  </nav>
+
+  <main>
+    <section id="background" class="card">
+      <div class="eyebrow">Mental model</div>
+      <h2>Background</h2>
+      <p class="narrow">Explain only the existing concepts needed for this change. Name the important components, contracts, and state owners before introducing new implementation details.</p>
+      <div class="badges" aria-label="Evidence status">
+        <span class="badge observed">Observed in source</span>
+        <span class="badge inferred">Intent inferred</span>
+      </div>
+      <div class="flow" aria-label="Example component relationship">
+        <article class="before"><h3>Input boundary</h3><p>Show representative input and the contract that accepts it.</p></article>
+        <article class="after"><h3>Behavior owner</h3><p>Show where the system transforms state or produces the observable result.</p></article>
+      </div>
+    </section>
+
+    <section id="behavior" class="card">
+      <div class="eyebrow">Concrete behavior</div>
+      <h2>Before and after</h2>
+      <div class="comparison">
+        <article class="before"><h3>Before</h3><p>Use a realistic input and describe the old output, side effect, or failure mode.</p></article>
+        <article class="after"><h3>After</h3><p>Repeat the same input and describe exactly what changed.</p></article>
+      </div>
+    </section>
+
+    <section id="walkthrough" class="card">
+      <div class="eyebrow">Literate diff</div>
+      <h2>Walkthrough in execution order</h2>
+      <ol class="steps">
+        <li><h3>Contract or data shape</h3><p>Start with the foundational change and cite its file, symbol, and line.</p></li>
+        <li><h3>Behavior</h3><p>Explain how implementation consumes the new contract and what invariant it preserves.</p></li>
+        <li><h3>Consumers and tests</h3><p>End with downstream effects and the evidence that exercises them.</p></li>
+      </ol>
+      <pre><code>// Include only the code needed to explain the mechanism.
+const outcome = transform(representativeInput);</code></pre>
+    </section>
+
+    <section id="evidence" class="card">
+      <div class="eyebrow">Grounding</div>
+      <h2>Evidence, impact, and unknowns</h2>
+      <table>
+        <thead><tr><th>Claim</th><th>Status</th><th>Evidence</th><th>Limit</th></tr></thead>
+        <tbody>
+          <tr><td>State the behavior being established.</td><td><span class="badge executed">Executed</span></td><td>Command, test, trace, or source reference.</td><td>What the evidence does not prove.</td></tr>
+          <tr><td>State a material unresolved question.</td><td><span class="badge unknown">Unknown</span></td><td>Explain what was inspected.</td><td>Name the smallest next check.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="checkpoint" class="card">
+      <div class="eyebrow">Active recall</div>
+      <h2>Check your model</h2>
+      <p class="muted">Pause before revealing each answer. Replace these examples with questions tied to causality, prediction, and extension.</p>
+      <article class="question">
+        <h3>Why does the new behavior happen?</h3>
+        <p>Explain the causal path from the representative input to the changed output.</p>
+        <button type="button" data-reveal-target="answer-causality" aria-expanded="false">Reveal model answer</button>
+        <div id="answer-causality" class="answer" hidden><strong>Model answer:</strong> Trace the relevant contract, transformation, and consumer in one concise chain.</div>
+      </article>
+      <article class="question">
+        <h3>What happens at the important boundary?</h3>
+        <p>Predict the result for a concrete edge case before checking the implementation or test.</p>
+        <button type="button" data-reveal-target="answer-prediction" aria-expanded="false">Reveal model answer</button>
+        <div id="answer-prediction" class="answer" hidden><strong>Model answer:</strong> State the expected output or failure path and the branch that causes it.</div>
+      </article>
+      <article class="question">
+        <h3>Where would the next nearby requirement go?</h3>
+        <p>Name the extension point and the invariant that the implementation must preserve.</p>
+        <button type="button" data-reveal-target="answer-extension" aria-expanded="false">Reveal model answer</button>
+        <div id="answer-extension" class="answer" hidden><strong>Model answer:</strong> Point to the responsible symbol and explain why that layer owns the behavior.</div>
+      </article>
+    </section>
+  </main>
+
+  <footer>Anchor the finished artifact to its exact comparison range and regenerate it when the change moves.</footer>
+
+  <script>
+    (() => {
+      document.querySelectorAll("[data-reveal-target]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const answer = document.getElementById(button.dataset.revealTarget);
+          const willShow = answer.hidden;
+          answer.hidden = !willShow;
+          button.setAttribute("aria-expanded", String(willShow));
+          button.textContent = willShow ? "Hide model answer" : "Reveal model answer";
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

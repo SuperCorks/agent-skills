@@ -1,0 +1,4 @@
+interface:
+  display_name: "Change Explainer"
+  short_description: "Understand code changes through grounded HTML"
+  default_prompt: "Use $change-explainer to create an evidence-grounded HTML walkthrough of this change."

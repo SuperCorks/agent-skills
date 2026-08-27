@@ -23,6 +23,7 @@ A collection of AI agent skills for GitHub Copilot and other AI assistants.
 | [browser-profile-sync](browser-profile-sync) | Merge Chromium bookmarks and mirror local cookie databases across Chrome, Brave, and Comet on macOS |
 | [browserbase](browserbase) | Browserbase browser automation, Fetch/Search, remote auth contexts, UI QA, debugging, tracing, and platform workflows |
 | [bug-diagnosis](bug-diagnosis) | Diagnose bugs, flaky failures, and performance regressions to an evidence-backed cause without implicitly implementing a fix |
+| [change-explainer](change-explainer) | Create evidence-grounded HTML walkthroughs that teach how a bounded code change works |
 | [change-impact-audit](change-impact-audit) | Audit a code change's blast radius and test the assumptions that keep it safe |
 | [code-simplifier](code-simplifier) | Behavior-preserving refactor workflow for reducing complexity and improving readability |
 | [codebase-explorer](codebase-explorer) | Read-only architecture mapping and execution tracing for unfamiliar or complex codebases |
