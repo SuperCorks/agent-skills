@@ -200,6 +200,31 @@ class CaptureIntegrationTests(unittest.TestCase):
         self.assertEqual(found["ledger_events"][0]["content"], "future assistant decision")
         self.assertTrue(all("scopes" in body for method, path, body in self.server.requests if path == "/api/v1/search"))
 
+    def test_initialize_skips_out_of_scope_hashing_and_later_enrollment_keeps_eof_boundary(self):
+        other_repo = self.root / "other-repo"
+        other_repo.mkdir()
+        (other_repo / ".ai-memory.toml").write_text('workspace="other"\nproject="outside"\n')
+        other_path = self.native / ("rollout-" + FORK + ".jsonl")
+        self.append({"type": "session_meta", "payload": {"id": FORK, "cwd": str(other_repo),
+                    "timestamp": datetime.now(timezone.utc).isoformat()}}, other_path)
+        self.append(message("outside historical material"), other_path)
+        with patch("agent_memory.capture.transcript.snapshot", wraps=snapshot) as snapshot_call:
+            result = capture.initialize(self.config)
+        self.assertEqual(result["baselined_files"], 1)
+        self.assertNotIn(other_path, [call.args[0] for call in snapshot_call.call_args_list])
+        original_activation = capture.activation(self.config)
+        self.assertNotIn(str(other_path), original_activation["files"])
+
+        # Becoming allowlisted later must not turn skipped history into backfill.
+        self.config.scopes.append({"workspace": "other", "project": "outside"})
+        payload = {"session_id": FORK, "cwd": str(other_repo), "transcript_path": str(other_path), "source": "startup"}
+        capture.hook(self.config, "SessionStart", payload, spawn=False)
+        self.append(message("future outside work"), other_path)
+        capture.hook(self.config, "Stop", payload, spawn=False)
+        capture.drain(self.config)
+        self.assertEqual([event["content"] for event in self.events()], ["future outside work"])
+        self.assertEqual(capture.activation(self.config), original_activation)
+
     def test_fork_start_excludes_copied_history_but_records_new_turn(self):
         self.append(message("parent old history"))
         capture.initialize(self.config)

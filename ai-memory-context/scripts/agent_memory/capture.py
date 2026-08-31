@@ -24,9 +24,13 @@ def initialize(config):
         for path in transcript.files(config):
             try:
                 meta = transcript.header(path)
+                # Inspect authoritative metadata before reading historical bytes.
+                # Out-of-scope sessions are never snapshotted. If a scope later
+                # becomes eligible, enrollment establishes its own EOF boundary.
+                config.resolve_scope(meta["cwd"])
                 activation["files"][str(path)] = {**transcript.snapshot(path), "session_id": meta["id"]}
             except MemoryError:
-                # Metadata cannot prove ownership. Such a file is never uploaded.
+                # Unreadable/unallowlisted metadata cannot prove eligible scope.
                 continue
         write_json(config.state_dir / "activation.json", activation)
         return {"initialized": True, "already_initialized": False,
