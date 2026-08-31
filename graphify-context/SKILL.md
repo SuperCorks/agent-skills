@@ -38,9 +38,11 @@ For every worktree that needs a graph:
 3. Refresh or build the graph in that worktree when it is missing or stale.
 4. Query only after the guard passes.
 
-When using Graphify MCP tools, pass the current worktree's absolute path as
-`project_path` whenever the tool accepts it. Do not rely on a long-lived MCP
-server's default graph; it may point at another repository or worktree.
+The guarded CLI wrapper is the canonical route in repositories that provide
+one. Do not register a parallel raw Graphify MCP path there: it bypasses the
+freshness/locking checks even when given the right `project_path`. For other
+repositories that deliberately support MCP, pass an absolute `project_path`
+and document how that integration enforces equivalent freshness checks.
 
 ## Query before browsing broadly
 
@@ -70,9 +72,18 @@ Use the project wrapper when available. Without one, follow the installed
 Graphify skill or CLI help for the current version. A typical incremental
 refresh is `graphify update .`; a missing graph requires a full build.
 
-Refresh after a new worktree, a relevant corpus change, altered exclusions, or
-a substantial deletion/refactor. If the project fingerprints HEAD or corpus
-content, honor that guard even when `graphify query` would otherwise run.
+Build lazily on the first relationship question in a new worktree. A missing
+graph is a startup warning, not a reason to block unrelated work. Refresh for a
+changed code/SQL corpus, extraction configuration, tool version, or damaged
+graph. A commit that only updates excluded docs does not by itself invalidate
+a graph: HEAD records provenance; content/config/tool fingerprints determine
+validity. Never copy or symlink an unchecked primary-checkout graph into a
+worktree. Honor the project guard even when raw `graphify query` would run.
+
+A valid guard must reject missing output, malformed state, changed checksums,
+wrong repository scope, unsupported options, and a concurrent refresh. Never
+stamp a failed build as fresh. Pass bounded query options such as `--budget`
+through unchanged; do not accept flags silently and discard their values.
 
 Inspect repository policy before staging generated output. Some teams commit
 `graphify-out/` for shared maps; others deliberately keep it reproducible and
@@ -90,6 +101,6 @@ untracked. The repository rule wins.
 - Stop when the evidence is sufficient; do not invoke every retrieval layer by
   default.
 
-If two focused graph attempts miss material evidence and a fallback succeeds,
-record the retrieval miss using the repository's measurement workflow when it
-has one.
+After two focused misses, change retrieval layers. Prefer metadata telemetry
+over mandatory manual timing logs, and optionally annotate a material miss.
+Neither graph call counts nor graph size proves better retrieval quality.

@@ -71,10 +71,10 @@ mob/
   infra/.ai-memory.toml     -> workspace="mob", project="infra"
 ```
 
-Do not put one explicit `project` marker at the common parent: it would collapse
-unrelated repositories into one memory project. A workspace-only parent marker
-is appropriate only when the parent itself is a meaningful meta-project and a
-parent-started session may legitimately create history there.
+When tasks start in the parent, give that parent an explicit **meta-project**
+identity too, such as `workspace="mob", project="mob"`. This is workspace
+coordination history, not a substitute for the child markers. A child without
+its own marker would inherit the parent scope, so verify every child first.
 
 It is valid to start an agent task in the parent folder. Until its working
 directory is inside a child repository, pass that child's explicit `workspace`
@@ -82,12 +82,12 @@ and `project` on memory reads/writes. If the task crosses repositories, scope
 each memory operation to the intended child rather than relying on the server's
 current-project pointer.
 
-For the cleanest compiled session history, enter the primary repository before
-the first prompt when practical. Under the default follow-cwd routing, a
-parent-started cross-repository session can keep its compiled session page
-anchored to where it started even while later observations route by their own
-working directories. This does not prevent cross-repository work, but it makes
-explicit query scopes and canonical per-repository documentation important.
+Native Codex hooks use the task's top-level `cwd`, **not** a nested shell tool's
+`workdir`. Running `cd child` in a tool does not reroute that task's transcript.
+A parent-started task therefore keeps one visible transcript in the parent
+meta-project. Query that scope deliberately when looking for workspace-level
+history; keep child-specific reads/writes explicitly scoped. Do not require a
+new task or worktree just to make history routing work.
 
 ## Work safely with concurrent agents
 
@@ -111,8 +111,14 @@ make memory retrieval deterministic.
 Installed lifecycle hooks capture sanitized, bounded prompts and supported tool
 events. They do **not** preserve the complete native agent transcript.
 
-For the richest portable visible-event ledger in a terminal session, launch a
-supported harness through:
+For native Codex Desktop capture on configured hosts, use the bundled
+`agent-memory` companion. It queues future visible user/assistant/tool records
+from the native rollout into ai-memory workstreams; it does not capture hidden
+reasoning. It is forward-only by default and does not backfill history. Read
+[the native desktop guide](references/native-desktop.md) before installing,
+changing capture scope, diagnosing a queue, or validating coverage.
+
+The terminal harness remains an alternative, not a requirement for Desktop:
 
 ```sh
 ai-memory run codex
@@ -120,10 +126,11 @@ ai-memory run claude
 ai-memory run opencode
 ```
 
-Codex has no fully reliable native SessionEnd event. When a Codex session ends
-without finalization and the exact target is known, use
-`ai-memory finalize-session --agent codex`; add `--session-id` when concurrent
-Codex sessions make "latest" ambiguous.
+Current Codex supports `SessionEnd` for main tasks, but crashes, missing hook
+trust, and unsupported clients can still miss it. The companion completes short
+import runs independently of the native task lifecycle. Do not finalize the
+"latest" session as a delivery ritual; it can select another concurrent task,
+and ai-memory 1.28.1 finalization does not reliably cover resumed ended sessions.
 
 Do not claim that ai-memory contains everything unless the actual capture mode
 and session finalization support that claim.
@@ -132,8 +139,15 @@ and session finalization support that claim.
 
 - Query memory before non-trivial work when an earlier decision, failed attempt,
   handoff, or historical constraint could change the approach.
-- Prefer the installed ai-memory retrieval and handoff skills for exact tool
-  routing.
+- For combined page and native transcript history, use
+  `agent-memory search "question" --repo /absolute/repository --json`, then
+  `agent-memory read-session SESSION_ID --repo /absolute/repository --json`.
+  Add `--include-parent` only when workspace coordination history is relevant.
+- Native `memory_query` searches memory pages, not the workstream event ledger.
+  Always pass explicit `workspace` and `project` to project MCP reads/writes;
+  use complete `scopes` only on tools that support that argument. Global status
+  inspection does not need a project. Intentional global searches require a
+  genuinely cross-project task, not a workaround for a missing scope.
 - Do not manually duplicate routine hook capture in durable pages.
 - Write a durable ai-memory page only when the user explicitly asks to remember
   or preserve something permanently.
@@ -156,8 +170,21 @@ When history is missing or appears under the wrong project:
 2. Confirm the intended `(workspace, project)` explicitly.
 3. Check whether the task began in a parent folder or changed repositories.
 4. Distinguish hook capture from MCP retrieval and from a managed
-   `ai-memory run` ledger.
+   `ai-memory run` or native companion ledger.
 5. Use ai-memory's non-destructive status/search/read tools first.
+6. Run `agent-memory doctor --repo /absolute/repository --json`. Queue health
+   alone does not prove hooks are trusted or native events are arriving; use
+   the native canary in the guide. Do not enable embeddings or consolidation
+   merely to repair missing capture or wrong scopes.
+
+## Measure without bookkeeping rituals
+
+The native hook adapter records metadata-only retrieval timings and outcomes.
+Use `agent-memory report --repo /absolute/repository --days 7 --json` to inspect
+observed calls, errors, latency, and capture gaps. Counts and tool duration are
+not proof of usefulness, retrieval recall, or time-to-sufficient-evidence.
+Annotate a useful result or miss only when it materially explains a decision;
+do not require agents to start/finish a stopwatch or log every ordinary read.
 
 Moving, renaming, purging, or deleting memory is state-changing. Preview exact
 targets, read the installed ai-memory operational guidance, and obtain the
