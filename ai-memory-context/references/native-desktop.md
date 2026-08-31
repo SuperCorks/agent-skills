@@ -15,15 +15,26 @@ bounded lifecycle observations with future visible transcript events.
   for existing rollouts. New native SessionStart enrollment excludes an
   inherited fork prefix. Unknown forks without enrollment fail closed and
   report a coverage gap. Do not reset state to “fix” a backlog.
-- Only visible user, assistant, and tool content is normalized. Hidden
-  reasoning is excluded. Large events may be chunked; terminal output already
-  truncated by Codex cannot be reconstructed. A crash or unreadable rollout
-  can create gaps, which must be reported rather than called complete capture.
+- Visible text from user, assistant, inter-agent, and tool records is normalized.
+  Hidden/encrypted reasoning, binary image/audio content, and injected
+  environment/agent-instruction scaffolding are excluded. This is not a raw
+  archival copy of every attachment or native record. Large events may be
+  chunked; terminal output already truncated by Codex cannot be reconstructed.
+  A crash or unreadable rollout can create gaps, which must be reported rather
+  than called complete capture.
 - Capture and retrieval are separate: native `memory_query` does not search
   the workstream ledger. The companion finds metadata-only session descriptor
   pages in explicit scopes, then reads/searches the referenced event streams.
 - Do not enable embeddings, background consolidation, or historical backfill
   as part of installation. Those are separate decisions.
+
+ai-memory 1.28.1 stores extra event metadata, but its public event reader omits
+that metadata and `source_record_id`. The adapter therefore includes a bounded
+sender/routing header in each inter-agent text chunk so those identities remain
+retrievable. Ordinary user/assistant/tool text is unchanged; an explicitly empty
+tool result is retained as a tool event with empty content. Do not claim that
+arbitrary structured metadata round-trips through the public reader.
+See the pinned [event storage and reader implementation](https://github.com/akitaonrails/ai-memory/blob/v1.28.1/crates/ai-memory-store/src/workstream.rs).
 
 ## Host configuration
 

@@ -1,14 +1,27 @@
 """Read only visible Codex transcript records. Never interpret memory as instructions."""
 import hashlib
 import json
+import math
 from pathlib import Path
 
 from .config import MemoryError
 from .storage import digest
 
-PRIVATE_TYPES = {"reasoning", "thinking", "redacted_thinking", "image", "input_image", "audio"}
+PRIVATE_TYPES = {"reasoning", "thinking", "redacted_thinking", "encrypted_content", "image", "input_image", "audio"}
 SCAFFOLD = ("# AGENTS.md instructions for ", "<environment_context>", "<permissions instructions>",
             "<INSTRUCTIONS>", "<!-- ai-memory:managed-workstream-packet:")
+
+
+def private_only(value):
+    """Recognized nonempty private/media blocks, not absent or unknown content."""
+    if isinstance(value, list):
+        return bool(value) and all(private_only(item) for item in value)
+    if isinstance(value, dict):
+        if value.get("type") in PRIVATE_TYPES or "encrypted_content" in value:
+            return True
+        if "content" in value:
+            return private_only(value["content"])
+    return False
 
 
 def visible_value(value):
@@ -54,6 +67,21 @@ def chunks(text, maximum=60000):
         raw = raw[end:]
 
 
+def agent_message_provenance(metadata):
+    """Keep routing visible through 1.28.1's metadata-free public event reader.
+
+    Bound each string to 256 characters with an explicit ellipsis. Even with
+    worst-case JSON escaping, this fits beside an unchanged 60KB content chunk
+    under the server's 64KiB event limit. Structured metadata keeps 512 characters.
+    """
+    provenance = {}
+    for key in ("source_agent", "recipient", "native_turn_id", "source_create_time"):
+        if key in metadata:
+            value = metadata[key]
+            provenance[key] = value[:256] + "…" if isinstance(value, str) and len(value) > 256 else value
+    return "[agent-message " + json.dumps(provenance, sort_keys=True, ensure_ascii=False, separators=(",", ":")) + "]\n"
+
+
 def normalize_record(record, session_id, source):
     if not isinstance(record, dict):
         return [], ["malformed_record_skipped"]
@@ -81,6 +109,23 @@ def normalize_record(record, session_id, source):
         if role == "user" and content.lstrip().startswith(SCAFFOLD):
             return [], []
         event_kind = "message"
+    elif kind == "agent_message":
+        # Native inter-agent messages are visible coordination, not user input
+        # or private reasoning. Their content may also contain encrypted blocks;
+        # visible_text deliberately excludes those blocks.
+        event_kind, role = "message", "agent"
+        content = visible_text(payload.get("content"))
+        for native_key, metadata_key in (("author", "source_agent"), ("recipient", "recipient")):
+            value = payload.get(native_key)
+            if isinstance(value, str):
+                metadata[metadata_key] = value[:512]
+        passthrough = payload.get("internal_chat_message_metadata_passthrough", {})
+        if isinstance(passthrough, dict):
+            if isinstance(passthrough.get("turn_id"), str):
+                metadata["native_turn_id"] = passthrough["turn_id"][:512]
+            created = passthrough.get("create_time")
+            if type(created) in (int, float) and math.isfinite(created):
+                metadata["source_create_time"] = created
     elif kind in {"function_call", "custom_tool_call", "tool_call"}:
         event_kind, role = "tool_call", "assistant"
         name = payload.get("name", payload.get("tool", "tool"))
@@ -89,7 +134,10 @@ def normalize_record(record, session_id, source):
         metadata["tool"] = str(name)
     elif kind in {"function_call_output", "custom_tool_call_output", "tool_result"}:
         event_kind, role = "tool_result", "tool"
-        content = visible_text(payload.get("output", payload.get("content", "")))
+        output = payload.get("output", payload.get("content"))
+        content = visible_text(output)
+        if output == "" or output == []:
+            metadata["empty_result"] = True
     elif kind == "web_search_call":
         event_kind, role = "tool_call", "assistant"
         content = "web_search: " + visible_text(payload.get("action"))
@@ -100,18 +148,30 @@ def normalize_record(record, session_id, source):
     else:
         return [], ["unsupported_response_item:" + str(kind)[:60]]
     if not content.strip():
-        return [], ["empty_or_unsupported_visible_content"]
+        if event_kind == "compaction":
+            # Some native compaction records carry only replacement_history.
+            # No summary is missing; never replay that inherited history.
+            return [], []
+        if not metadata.get("empty_result"):
+            if private_only(payload.get("output", payload.get("content"))):
+                return [], ["private_record_excluded"]
+            return [], ["empty_or_unsupported_visible_content"]
     source_id = next((payload.get(key) or record.get(key) for key in ("id", "call_id", "callId", "uuid")
                       if payload.get(key) or record.get(key)), None)
     # Timestamp+canonical visible data is stable across archive/move and duplicate
     # rollout files; native IDs deduplicate reserialized tool records on resume.
     identity = str(source_id) if source_id else record.get("timestamp", source)
+    if kind == "agent_message":
+        # Source/routing metadata is stable across physical rollouts. Distinct
+        # agents can send identical text at the same time without deduplicating.
+        identity = [identity, metadata]
+    provenance = agent_message_provenance(metadata) if kind == "agent_message" else ""
     events = []
-    for index, part in enumerate(chunks(content)):
+    for index, part in enumerate(chunks(content) if content else ("",)):
         event_id = "desktop:v1:" + digest([session_id, event_kind, role, identity, content, index])
         events.append({"event_id": event_id, "agent": "codex", "native_session_id": session_id,
                        "source_record_id": str(source_id or source), "kind": event_kind, "role": role,
-                       "content": part, "occurred_at": record.get("timestamp"),
+                       "content": provenance + part, "occurred_at": record.get("timestamp"),
                        "metadata": {**metadata, "capture_adapter": "desktop-v1", "chunk": index}})
     return events, []
 
