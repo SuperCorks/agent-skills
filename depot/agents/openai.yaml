@@ -1,0 +1,4 @@
+interface:
+  display_name: "Depot.dev"
+  short_description: "Adopt Depot runners, builds, or full CI safely"
+  default_prompt: "Use $depot to assess this project's pipeline and implement the requested Depot acceleration or CI migration with verification and rollback."
