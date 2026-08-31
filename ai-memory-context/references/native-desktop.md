@@ -91,6 +91,11 @@ Reconnect/restart the affected MCP sessions after changing server definitions.
 Existing tasks may retain their old server processes or cached hook definitions.
 Repository-level configuration can override global settings; update only the
 repositories in scope, and never mutate another active task's worktree.
+For a reused worktree created before the workflow update, its owning task must
+first integrate the updated repository baseline using that project's Git
+workflow, preserving its in-progress changes. Then rerun the context doctor
+and review/reload hooks and MCP connections. Updating the primary checkout
+alone does not update another worktree's tracked configuration.
 
 ## Native activation canary
 
@@ -123,6 +128,12 @@ discoverable across configured hosts without a shared mutable index page.
 
 For backlog or failure, preserve offsets and retry the durable queue. Check
 credentials, connectivity, explicit markers/allowlist, and native hook trust.
+An allowlisted scope with working server authentication can report
+`scope_exists: false` before its first capture. ai-memory 1.28.1 creates the
+explicit project on the first admitted lifecycle event or managed import.
+Treat this as awaiting first capture; do not create dummy pages or replay
+fabricated hooks just to make the doctor green. If the project is still absent
+after an acknowledged capture, investigate routing and delivery.
 Each drain invocation forwards at most 32 native lifecycle observations; repeat
 while the native pending count decreases. Observations older than 28 days are
 held for operator review because upstream retry deduplication expires; do not
