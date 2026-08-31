@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Web Computer Use",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "See which task is using your browser and desktop, and for how long.",
   "minimum_chrome_version": "120",
   "permissions": [

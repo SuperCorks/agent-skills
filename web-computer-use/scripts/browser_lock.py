@@ -18,6 +18,7 @@ import uuid
 
 
 BROWSERS = ("chrome", "comet", "brave", "safari")
+PLUGIN_BROWSERS = ("chrome", "brave")
 MODES = ("plugin", "computer-use")
 LEASE_SECONDS = 300
 MAX_WAIT_SECONDS = 600
@@ -39,16 +40,16 @@ def emit(value, stream=None):
 def validate_mode(browser, mode):
     if browser not in BROWSERS or mode not in MODES:
         raise LockError("invalid_request", "Unknown browser or mode.")
-    if mode == "plugin" and browser != "chrome":
-        raise LockError("invalid_request", "Plugin mode is supported only for Chrome.")
+    if mode == "plugin" and browser not in PLUGIN_BROWSERS:
+        raise LockError("invalid_request", "Plugin mode is supported only for Chrome and Brave.")
 
 
 def candidates_for(browser, mode, fallbacks=(), pinned=False, profile=None):
     validate_mode(browser, mode)
     if pinned and fallbacks:
         raise LockError("invalid_request", "A pinned browser/profile cannot have fallbacks.")
-    if profile is not None and browser != "chrome":
-        raise LockError("invalid_request", "Chrome profile metadata requires Chrome.")
+    if profile is not None and browser not in PLUGIN_BROWSERS:
+        raise LockError("invalid_request", "Profile metadata is supported for Chrome and Brave.")
     candidates = [{"browser": browser, "mode": mode}]
     for fallback in fallbacks:
         validate_mode(fallback, "computer-use")
@@ -81,7 +82,7 @@ def blockers_for(candidate, leases, request):
         elif (lease["queued_at"], lease["token"]) < (
             request["queued_at"], request["token"]
         ):
-            # Writer priority is browser-local. An unavailable Chrome writer
+            # Writer priority is browser-local. An unavailable browser writer
             # must not reserve an otherwise free desktop or another browser.
             if any(item == {"browser": candidate["browser"], "mode": "computer-use"}
                    for item in lease["candidates"]):
@@ -322,7 +323,7 @@ def reserve(store, owner, candidates=None, profile=None, wait=MAX_WAIT_SECONDS,
                                        "expires_at": min(now + LEASE_SECONDS, wall_deadline),
                                        "state": "pending"}
                             if mode == "plugin":
-                                # Downgrade keeps the existing Chrome reservation
+                                # Downgrade keeps the existing browser reservation
                                 # while releasing desktop access atomically.
                                 request.update(state="held", expires_at=now + LEASE_SECONDS)
                                 if previous["mode"] != mode:
@@ -358,7 +359,7 @@ def reserve(store, owner, candidates=None, profile=None, wait=MAX_WAIT_SECONDS,
                             request.update(candidate)
                             request.update(state="held", expires_at=now + LEASE_SECONDS,
                                            acquired_at=now, mode_since=now)
-                            if candidate["browser"] != "chrome":
+                            if candidate["browser"] != candidates[0]["browser"]:
                                 request["profile"] = None
                             store.write(request, path)
                             owns_request = True
@@ -414,7 +415,7 @@ def parser():
     acquire.add_argument("--mode", choices=MODES, required=True)
     acquire.add_argument("--fallback", choices=BROWSERS, nargs="*", default=[])
     acquire.add_argument("--pinned", action="store_true", help="Reject fallbacks for an explicit browser/profile choice.")
-    acquire.add_argument("--profile", help="Verified or intended Chrome display name; this never selects a profile.")
+    acquire.add_argument("--profile", help="Verified or intended Chrome/Brave display name; this never selects a profile.")
     acquire.add_argument("--thread-id", default=os.environ.get("CODEX_THREAD_ID") or None,
                          help="Codex task UUID; defaults to CODEX_THREAD_ID when available.")
     acquire.add_argument("--task-name", help="Current task title, used by the read-only status extension.")

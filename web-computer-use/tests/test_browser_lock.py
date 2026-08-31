@@ -71,9 +71,10 @@ class BrowserLocksTests(unittest.TestCase):
         self.assertEqual(self.acquire("writer", mode="computer-use")["resources"],
                          {"chrome": "exclusive", "desktop": "exclusive"})
 
-    def test_desktop_excludes_other_browsers_but_not_chrome_plugin(self):
+    def test_desktop_excludes_other_browsers_but_not_plugin_browsers(self):
         first = self.acquire("comet", "comet", "computer-use")
-        self.assertEqual(self.acquire("reader")["status"], "acquired")
+        for browser in locks.PLUGIN_BROWSERS:
+            self.assertEqual(self.acquire(browser + "-reader", browser)["resources"], {browser: "shared"})
         for browser in ("chrome", "brave", "safari"):
             blocked = self.acquire(browser, browser, "computer-use")
             self.assertEqual(blocked["status"], "timeout")
@@ -82,9 +83,10 @@ class BrowserLocksTests(unittest.TestCase):
         self.release(first)
         self.assertEqual(self.acquire("safari", "safari", "computer-use")["status"], "acquired")
 
-    def test_multiple_processes_share_chrome(self):
-        children = [self.start_cli("acquire", "--browser", "chrome", "--mode", "plugin",
-                                   "--owner", f"reader-{index}", "--wait", "3") for index in range(6)]
+    def test_multiple_processes_share_chrome_and_brave(self):
+        children = [self.start_cli("acquire", "--browser", browser, "--mode", "plugin",
+                                   "--owner", f"{browser}-reader-{index}", "--wait", "3")
+                    for browser in locks.PLUGIN_BROWSERS for index in range(3)]
         for child in children:
             code, result, _ = self.finish(child)
             self.assertEqual(code, 0)
@@ -99,33 +101,38 @@ class BrowserLocksTests(unittest.TestCase):
         self.assertEqual(len(self.store.status()["reservations"]), 1)
 
     def test_queued_writer_blocks_new_readers_then_acquires(self):
-        first = self.acquire("reader")
-        writer = self.start_cli("acquire", "--browser", "chrome", "--mode", "computer-use",
-                                "--owner", "writer", "--wait", "4")
-        self.wait_pending()
-        self.assertEqual(self.acquire("new-reader")["status"], "timeout")
-        self.assertEqual(self.acquire("brave", "brave", "computer-use")["status"], "acquired")
-        # The waiting Chrome writer did not reserve the desktop or Brave.
-        for lease in self.store.status()["reservations"]:
-            if lease["owner"] == "brave":
-                self.store.release(lease["token"], lease["owner"])
-        self.release(first)
-        code, result, stderr = self.finish(writer)
-        self.assertEqual(code, 0)
-        self.assertEqual(result["resources"], {"chrome": "exclusive", "desktop": "exclusive"})
-        self.assertIn('"status": "waiting"', stderr)
+        for browser in locks.PLUGIN_BROWSERS:
+            with self.subTest(browser=browser):
+                first = self.acquire("reader", browser)
+                writer = self.start_cli("acquire", "--browser", browser, "--mode", "computer-use",
+                                        "--owner", "writer", "--wait", "4")
+                self.wait_pending()
+                self.assertEqual(self.acquire("new-reader", browser)["status"], "timeout")
+                other = self.acquire("other", "comet", "computer-use")
+                self.assertEqual(other["status"], "acquired")
+                # A waiting writer does not reserve the desktop or another browser.
+                self.release(other)
+                self.release(first)
+                code, result, stderr = self.finish(writer)
+                self.assertEqual(code, 0)
+                self.assertEqual(result["resources"], {browser: "exclusive", "desktop": "exclusive"})
+                self.assertIn('"status": "waiting"', stderr)
+                self.release(result)
 
     def test_simultaneous_upgrades_do_not_deadlock(self):
-        readers = [self.acquire(owner) for owner in ("a", "b")]
-        children = [self.start_cli("transition", "--token", reader["lease"]["token"],
-                                   "--owner", reader["lease"]["owner"], "--mode", "computer-use",
-                                   "--wait", "3") for reader in readers]
-        results = [self.finish(child)[1] for child in children]
-        self.assertEqual(sum(result["status"] == "acquired" for result in results), 1)
-        self.assertEqual(sum(result["status"] == "timeout" for result in results), 1)
-        leases = self.store.status()["reservations"]
-        self.assertEqual(len(leases), 1)
-        self.assertEqual(leases[0]["mode"], "computer-use")
+        for browser in locks.PLUGIN_BROWSERS:
+            with self.subTest(browser=browser):
+                readers = [self.acquire(owner, browser) for owner in ("a", "b")]
+                children = [self.start_cli("transition", "--token", reader["lease"]["token"],
+                                           "--owner", reader["lease"]["owner"], "--mode", "computer-use",
+                                           "--wait", "3") for reader in readers]
+                results = [self.finish(child)[1] for child in children]
+                self.assertEqual(sum(result["status"] == "acquired" for result in results), 1)
+                self.assertEqual(sum(result["status"] == "timeout" for result in results), 1)
+                leases = self.store.status()["reservations"]
+                self.assertEqual(len(leases), 1)
+                self.assertEqual(leases[0]["mode"], "computer-use")
+                self.release(next(result for result in results if result["status"] == "acquired"))
 
     def test_failed_upgrade_relinquishes_reader(self):
         first = self.acquire("a")
@@ -148,6 +155,44 @@ class BrowserLocksTests(unittest.TestCase):
         self.assertEqual(result["lease"]["browser"], "comet")
         self.assertIsNone(result["lease"]["profile"])
         self.assertTrue((self.root / f"comet.{result['lease']['token']}.json").is_file())
+
+    def test_brave_profile_is_not_carried_into_chrome_fallback(self):
+        self.acquire("reader", "brave")
+        result = self.acquire("writer", "brave", "computer-use", fallbacks=("chrome",), profile="Work")
+        self.assertEqual(result["lease"]["browser"], "chrome")
+        self.assertIsNone(result["lease"]["profile"])
+
+    def test_brave_cli_lifecycle_keeps_profile_but_excludes_all_profiles(self):
+        def cli(*args):
+            code, result, _ = self.finish(self.start_cli(*args))
+            self.assertEqual(code, 0, result)
+            return result
+
+        first = cli("acquire", "--browser", "brave", "--mode", "plugin", "--owner", "work",
+                    "--profile", "Work", "--pinned", "--wait", "0")
+        token = first["lease"]["token"]
+        second = self.acquire("personal", "brave", profile="Personal")
+        self.assertEqual(first["resources"], {"brave": "shared"})
+        self.assertEqual(second["status"], "acquired")
+        self.assertEqual(self.acquire("desktop", "brave", "computer-use", profile="Other")["status"], "timeout")
+        self.release(second)
+        renewed = cli("renew", "--token", token, "--owner", "work")
+        self.assertEqual(renewed["lease"]["profile"], "Work")
+        upgraded = cli("transition", "--token", token, "--owner", "work", "--mode", "computer-use", "--wait", "0")
+        self.assertEqual(upgraded["resources"], {"brave": "exclusive", "desktop": "exclusive"})
+        self.assertEqual(upgraded["lease"]["profile"], "Work")
+        chrome = self.acquire("chrome-reader")
+        self.assertEqual(chrome["status"], "acquired")
+        self.assertEqual(self.acquire("blocked", "brave")["status"], "timeout")
+        downgraded = cli("transition", "--token", token, "--owner", "work", "--mode", "plugin", "--wait", "0")
+        self.assertEqual(downgraded["resources"], {"brave": "shared"})
+        self.assertEqual(downgraded["lease"]["profile"], "Work")
+        self.assertEqual(downgraded["lease"]["token"], token)
+        self.assertEqual(self.acquire("desktop", "comet", "computer-use")["status"], "acquired")
+        code, error, _ = self.finish(self.start_cli("release", "--token", token, "--owner", "wrong"))
+        self.assertEqual(code, 2)
+        self.assertEqual(error["code"], "wrong_owner")
+        self.assertEqual(cli("release", "--token", token, "--owner", "work")["status"], "released")
 
     def test_fallback_has_one_deadline(self):
         self.acquire("desktop", mode="computer-use")
@@ -204,7 +249,9 @@ class BrowserLocksTests(unittest.TestCase):
     def test_invalid_options_never_reserve(self):
         for args in [("chrome", "plugin", ["comet"], True, None),
                      ("chrome", "computer-use", ["brave"], True, "Work"),
-                     ("brave", "plugin", [], False, None),
+                     ("brave", "plugin", ["chrome"], True, "Work"),
+                     ("comet", "plugin", [], False, None),
+                     ("safari", "plugin", [], False, None),
                      ("safari", "computer-use", [], False, "Default")]:
             with self.assertRaises(locks.LockError):
                 locks.candidates_for(*args)

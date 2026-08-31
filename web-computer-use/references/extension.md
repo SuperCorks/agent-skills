@@ -8,7 +8,7 @@ The bundled Manifest V3 extension is optional. Chrome starts the Python native h
 - **Computer Use active:** opaque robot plus green dot when the selected browser has a nonexpired, held `computer-use` reservation. This indicates a cooperative reservation, not independent detection of every mouse/keyboard action.
 - **Unknown:** translucent robot with a `?` badge when the bridge is missing, disconnected, stale for over six seconds, reports invalid state, or cannot identify which browser to monitor. Unknown is never presented as free.
 - The popup shows one browser instead of a four-browser list. It updates elapsed timers every second without rebuilding focused links on every tick. It shows the holding task's title, profile, start time, and a link to open its Codex task when an ID was recorded. That browser's plugin and queued reservations have their own task names/timers; a fallback queue appears for each eligible selected browser.
-- Chrome-plugin-only activity remains visible when monitoring Chrome but does not light the Computer Use dot. If another browser holds the shared desktop, a compact notice shows the blocking task and timer. That notice does not turn on the selected browser's green dot or display unrelated reservations.
+- Plugin-only activity in Chrome or Brave remains visible when monitoring that browser but does not light the Computer Use dot. If another browser holds the shared desktop, a compact notice shows the blocking task and timer. That notice does not turn on the selected browser's green dot or display unrelated reservations.
 
 `acquired_at` begins when a pending request actually acquires access. `mode_since` begins at acquisition or a mode change. Renewals preserve both; an upgrade that relinquishes/reacquires ownership resets both, while a downgrade preserves continuous browser acquisition time and updates mode time. Earlier lease files without these fields show an unavailable elapsed time rather than using their request creation time as a false start time.
 
@@ -64,6 +64,12 @@ Extension installation and browser settings changes must follow the current tool
 The one per-user native-host registration can serve the extension in multiple Chrome profiles. All profiles read the same machine-level reservations, while each extension profile saves its own browser selection. Each connected profile has a lightweight on-demand host process, which exits when Chrome closes its connection. A persistent port receives a snapshot every second; a reconnect alarm retries after disconnection. No website host permissions, tab-reading permission, content scripts, or browsing-history permission are requested.
 
 The only native messages accepted are `{"type":"getStatus"}` and `{"type":"subscribe"}`. The host validates the exact extension origin, uses framed JSON with bounded message sizes, reads under the existing guard, and strips ownership tokens and local filesystem paths from successful snapshots. It never creates the reservation directory/guard, prunes expired files, renews leases, or exposes write/force-unlock operations. Expired records are excluded from the display without deletion.
+
+## Updating an existing installation
+
+Keep the installed skill path stable (on this Mac, `~/.agents/skills/web-computer-use`) because both unpacked extensions and native-host launchers refer to it. Sync the helper and extension together. After extension code changes, use the browser's extensions page to **Reload Web Computer Use** in every installed profile, preserving its pin, incognito setting, key, and saved Browser selection. Reloading restarts this extension's native-host connection and picks up the changed Python helper too; copying files alone does not replace an already-running host or loaded service worker. Do not reload or modify the separate ChatGPT control extension.
+
+Version 1.2 adds Brave plugin reservations. Older running status hosts/models can show unknown status while such a lease exists; reload them rather than deleting the lease. On this Mac the companion extension is installed in Chrome's Default, HOP, and Corcos.ca profiles, Comet, and Brave, with pinning and incognito access enabled. This is an installation record, not proof that those browsers/profiles are currently running or unchanged. Safari installation is intentionally excluded.
 
 ## Validation and preview
 

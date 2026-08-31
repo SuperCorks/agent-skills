@@ -97,6 +97,15 @@ class NativeHostTests(unittest.TestCase):
         self.assertNotIn("pid", result)
         self.assertNotIn("executable", result)
 
+    def test_brave_plugin_snapshot_reports_profile_without_exposing_token(self):
+        lease = reserve(self.store, "brave-agent", candidates=candidates_for("brave", "plugin", profile="Work"),
+                        profile="Work", task_name="Review in Brave", wait=0)["lease"]
+        result = native_host.handle_request({"type": "getStatus"}, self.store, "brave")
+        self.assertEqual(result["status"], "ok")
+        self.assertEqual(result["reservations"][0]["profile"], "Work")
+        self.assertEqual(result["reservations"][0]["mode"], "plugin")
+        self.assertNotIn(lease["token"], json.dumps(result))
+
     def test_frame_round_trip_and_limits(self):
         output = io.BytesIO()
         native_host.write_message(output, {"type": "getStatus", "unicode": "🤖"})

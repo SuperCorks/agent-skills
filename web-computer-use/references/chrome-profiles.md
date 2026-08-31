@@ -1,5 +1,7 @@
 # Chrome profile switching through Computer Use
 
+For autonomous plugin page work, select the named profile connection directly using [Plugin connections and named profiles](plugin-connections.md); no desktop switch is needed. The procedure below applies to Keeper, profile UI, native dialogs, and other work that actually requires Computer Use.
+
 Use Chrome's native **Window** menu in the macOS menu bar to activate an existing window in the desired profile. This is distinct from the avatar/profile picker and from the **Profiles** menu. Use the currently installed Computer Use skill for its supported APIs; do not hardcode plugin paths, version numbers, UI indexes, or private activation calls.
 
 ## Verified switching procedure

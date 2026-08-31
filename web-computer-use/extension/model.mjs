@@ -1,4 +1,5 @@
 export const BROWSERS = ['chrome', 'comet', 'brave', 'safari'];
+const PLUGIN_BROWSERS = ['chrome', 'brave'];
 export const LABELS = {chrome: 'Chrome', comet: 'Comet', brave: 'Brave', safari: 'Safari'};
 export const STALE_MS = 6000;
 export const SELECTION_KEY = 'browserSelection';
@@ -35,10 +36,11 @@ export function viewState(envelope, now = Date.now()) {
   if (!valid) return unknown(snapshot?.code || (snapshot?.status === 'ok' ? 'stale' : 'disconnected'));
   const wellFormed = snapshot.reservations.every(lease => lease && BROWSERS.includes(lease.browser)
     && ['plugin', 'computer-use'].includes(lease.mode) && ['held', 'pending'].includes(lease.state)
-    && (lease.mode !== 'plugin' || lease.browser === 'chrome') && Number.isFinite(lease.expires_at)
+    && (lease.mode !== 'plugin' || PLUGIN_BROWSERS.includes(lease.browser)) && Number.isFinite(lease.expires_at)
     && (lease.candidates == null || (Array.isArray(lease.candidates)
       && lease.candidates.every(candidate => candidate && BROWSERS.includes(candidate.browser)
-        && ['plugin', 'computer-use'].includes(candidate.mode)))));
+        && ['plugin', 'computer-use'].includes(candidate.mode)
+        && (candidate.mode !== 'plugin' || PLUGIN_BROWSERS.includes(candidate.browser))))));
   if (!wellFormed) return unknown('invalid_snapshot');
   const all = snapshot.reservations.filter(lease => lease.expires_at * 1000 > now);
   const desktop = all.filter(lease => lease.state === 'held' && lease.mode === 'computer-use');

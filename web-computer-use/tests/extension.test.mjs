@@ -15,6 +15,26 @@ test('active Computer Use has green-dot icon, plugin-only and no leases are idle
   assert.equal(iconState(viewState(envelope({...lease, browser: 'comet'}), now)), 'idle');
   assert.equal(iconState(viewState({...envelope({...lease, browser: 'comet'}), selection: 'comet'}, now)), 'active');
 });
+test('Brave plugin tasks show their profile without lighting the Computer Use dot', () => {
+  const plugin = {...lease, browser: 'brave', mode: 'plugin', profile: 'Work',
+    candidates: [{browser: 'brave', mode: 'plugin'}]};
+  const data = {...envelope(plugin, lease), selection: 'brave'};
+  const view = viewState(data, now);
+  assert.equal(view.known, true);
+  assert.equal(view.state, 'Plugin · 1');
+  assert.equal(iconState(view), 'idle');
+  assert.deepEqual(view.reservations, [plugin]);
+  assert.equal(view.reservations[0].profile, 'Work');
+  assert.equal(view.desktopBlocker, lease);
+  assert.equal(viewState({...data, selection: 'chrome'}, now).state, 'Computer Use');
+});
+test('unsupported plugin browsers fail closed, including queued candidates', () => {
+  for (const browser of ['comet', 'safari']) {
+    assert.equal(viewState(envelope({...lease, browser, mode: 'plugin'}), now).reason, 'invalid_snapshot');
+    const pending = {...lease, state: 'pending', candidates: [{browser, mode: 'plugin'}]};
+    assert.equal(viewState(envelope(pending), now).reason, 'invalid_snapshot');
+  }
+});
 test('disconnected, stale and conflicting snapshots cannot show active or free', () => {
   assert.equal(iconState(viewState(null, now)), 'unknown');
   assert.equal(iconState(viewState(envelope(lease), now + 7000)), 'unknown');
