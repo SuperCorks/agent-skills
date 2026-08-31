@@ -1,0 +1,44 @@
+:root { color-scheme: light; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #222a25; background: #f7f8f5; }
+* { box-sizing: border-box; }
+body { margin: 0; width: 390px; }
+main { padding: 20px; }
+.header { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+h1 { margin: 0; font-size: 16px; font-weight: 650; letter-spacing: -.3px; }
+.eyebrow { margin: 5px 0 0; font-size: 9px; font-weight: 650; letter-spacing: 1.3px; color: #636f60; }
+button { border: 1px solid #dce2d9; border-radius: 50%; background: #fff; width: 30px; height: 30px; color: #526050; cursor: pointer; font-size: 21px; }
+#refresh { margin-left: auto; }
+button:hover { background: #eaf0e5; }
+button:focus-visible, a:focus-visible, select:focus-visible { outline: 3px solid #2f7760; outline-offset: 4px; }
+.browser-picker { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.browser-picker label { font-size: 12px; font-weight: 600; }
+.browser-picker select { font: inherit; font-size: 12px; color: #203a27; background: #fff; border: 1px solid #cbd6c5; border-radius: 7px; padding: 8px 10px; min-width: 210px; max-width: 275px; }
+.selection-feedback { margin: 7px 0 16px; font-size: 10px; line-height: 1.5; color: #61705e; }
+.desktop-blocker { margin-top: 14px; padding: 13px; background: #f5f0e4; border: 1px solid #e3dac1; border-radius: 10px; }
+.desktop-blocker h2 { color: #766027; }
+.desktop-blocker .task-title { font-size: 12px; }
+.desktop-blocker .detail { display: flex; justify-content: space-between; gap: 8px; }
+.activity-card { border: 1px solid #dbe3d5; border-radius: 16px; background: #fff; padding: 18px; }
+.activity-card.active { background: #eaf4e4; border-color: #cfdfc5; }
+.activity-card.unknown { background: #f2f0eb; border-color: #dfdcd4; }
+.state-line { display: flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 600; color: #52604e; }
+.dot { width: 7px; height: 7px; border-radius: 50%; background: #8c9688; display: inline-block; flex: none; }
+.active .dot { background: #24934a; box-shadow: 0 0 0 3px #24934a15; }
+.unknown .dot { background: #958165; }
+.timer { display: block; margin: 13px 0 12px; font-size: 42px; line-height: 1; font-weight: 550; letter-spacing: -1.8px; font-variant-numeric: tabular-nums; }
+.idle-title { margin: 15px 0 8px; font-size: 24px; font-weight: 550; letter-spacing: -.7px; }
+.task-title { display: block; color: #203a27; font-size: 14px; font-weight: 600; line-height: 1.45; overflow-wrap: anywhere; }
+a.task-title { text-decoration: none; }
+a.task-title:hover { text-decoration: underline; }
+.task-title .arrow { margin-left: 4px; font-size: 12px; }
+.detail { margin: 7px 0 0; font-size: 11px; color: #61705e; line-height: 1.5; overflow-wrap: anywhere; }
+.explanation { font-size: 12px; line-height: 1.55; color: #667162; margin: 0; }
+h2 { display: flex; justify-content: space-between; align-items: center; font-size: 12px; font-weight: 650; margin: 0 0 8px; }
+.tasks-section { margin-top: 23px; }
+.task-row { padding: 12px 0; border-bottom: 1px solid #e6eae2; }
+.task-row .task-title { font-size: 12px; }
+.task-row .detail { display: flex; justify-content: space-between; gap: 8px; }
+.small-timer { font-variant-numeric: tabular-nums; white-space: nowrap; }
+footer { display: flex; justify-content: space-between; margin-top: 18px; font-size: 10px; color: #626e5c; }
+.preview { margin: -7px 0 12px; background: #fff1cd; color: #775e1c; font-size: 10px; padding: 7px; border-radius: 5px; text-align: center; }
+[hidden] { display: none !important; }
+@media (prefers-reduced-motion: no-preference) { button { transition: background .15s; } }

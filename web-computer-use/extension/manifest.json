@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "Web Computer Use",
+  "version": "1.1.0",
+  "description": "See which task is using your browser and desktop, and for how long.",
+  "minimum_chrome_version": "120",
+  "permissions": [
+    "nativeMessaging",
+    "alarms",
+    "storage"
+  ],
+  "background": {
+    "service_worker": "service-worker.mjs",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "Web Computer Use \u2014 connecting",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/idle-16.png",
+      "32": "icons/idle-32.png"
+    }
+  },
+  "icons": {
+    "16": "icons/robot-16.png",
+    "48": "icons/robot-48.png",
+    "128": "icons/robot-128.png"
+  },
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA64ESWgwrxNXcF/bFdsyfvv8fct1RQt4jLuJPDK7cj9b8XxRf/VB4E1nE1LFMAupQP8Ci7XRelvhbYupydxkMSy5xEz2LsSTRFrf4xorRTXp1yGNGl49hVCs1iEG1a3Gx2cxdgNn/pp9lwRMjEeoQT9zSsFNCTqAqNYdt9sls6As7EqCU7KpWnInpmgTgWe+FVx2k/RV+iO0zSe/aehAjzk0OgECPhT3cJAHgc+kLLD6eC00xEsKqmqjCp+TenpW3KGrgbR9cGW1qQ3bkOmqEpOBO5Fvg4y1DxZK5ZyQ1HOTcYVa6eHQ6WBQeScag7liKNCQRusKnn3Zk9kweam3TzQIDAQAB"
+}

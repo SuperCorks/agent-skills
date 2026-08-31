@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Web Computer Use</title>
+  <link rel="stylesheet" href="popup.css">
+  <script type="module" src="popup.mjs"></script>
+</head>
+<body>
+  <main>
+    <header class="header">
+      <img src="icons/robot-48.png" alt="" width="36" height="36">
+      <div><h1>Web Computer Use</h1><p class="eyebrow">LOCAL BROWSER ACTIVITY</p></div>
+      <button id="refresh" aria-label="Refresh status" title="Refresh status">↻</button>
+    </header>
+    <p id="preview" class="preview" hidden>PREVIEW · SAMPLE RESERVATIONS</p>
+    <div class="browser-picker">
+      <label for="browser-select">Browser</label>
+      <select id="browser-select" aria-describedby="selection-feedback">
+        <option value="auto">Automatic</option>
+        <option value="chrome">Chrome</option>
+        <option value="comet">Comet</option>
+        <option value="brave">Brave</option>
+        <option value="safari">Safari</option>
+      </select>
+    </div>
+    <p id="selection-feedback" class="selection-feedback" aria-live="polite"></p>
+    <section id="activity" aria-label="Computer Use activity"></section>
+    <section id="desktop-blocker" class="desktop-blocker" aria-label="Shared desktop reservation" hidden></section>
+    <section id="tasks-section" class="tasks-section" aria-labelledby="tasks-heading" hidden>
+      <h2 id="tasks-heading">Reservations</h2>
+      <div id="tasks"></div>
+    </section>
+    <footer><span id="freshness">Connecting…</span><span>View only</span></footer>
+  </main>
+</body>
+</html>

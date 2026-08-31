@@ -1,0 +1,7 @@
+interface:
+  display_name: "Web Computer Use"
+  short_description: "Coordinate browser profiles, Keeper, and reservations"
+  default_prompt: "Use $web-computer-use to choose the right local browser/profile and coordinate safe browser access for this task."
+
+policy:
+  allow_implicit_invocation: true
