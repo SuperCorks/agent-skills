@@ -22,6 +22,8 @@ Do not equate that display name with the on-disk `Default` directory. Chrome may
 
 If the profile is ambiguous or Default is missing, inspect available display names through the UI under an exclusive reservation. If no clear match remains, release the reservation and ask which profile to use; do not create, rename, or silently substitute a profile. `--profile` in the helper records a label only; it does not select or verify a profile.
 
+For Computer Use, switch between **existing Chrome profile windows through Chrome's native macOS Window menu**. Selecting another profile in the avatar/profile picker has intermittently left Computer Use with only a window title, no controls, and no screenshot on this Mac. Select the desired existing window, then obtain fresh state and verify the actual profile, main-window controls, and screenshot before acting. Give agent-created work windows distinct names through **Window → Name Window…** when tab titles are ambiguous; a custom window name is only a routing hint, never proof of profile identity. Read [Chrome profile switching](references/chrome-profiles.md) for the verified procedure, first-use cases, and recovery. Routine switches do not require restarting Chrome or Computer Use.
+
 Honor explicit browser/profile choices and firm project instructions. Pass `--pinned` and omit fallbacks in those cases. When the choice is open, try suitable browsers immediately in order **Chrome → Comet → Brave → Safari**, skipping browsers that cannot satisfy the task or verified account requirements. Never migrate authentication state to make a fallback work. A browser being free is not evidence of the correct account.
 
 ## Reserve before operating
