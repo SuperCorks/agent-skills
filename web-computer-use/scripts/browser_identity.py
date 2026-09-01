@@ -9,12 +9,20 @@ import sys
 BROWSER_APPS = {"Google Chrome.app": "chrome", "Comet.app": "comet", "Brave Browser.app": "brave"}
 
 
+def app_name(part):
+    """Normalize a real app bundle or macOS code-sign clone bundle name."""
+    if part.endswith(".app.bundle"):
+        return part.removesuffix(".bundle")
+    return part if part.endswith(".app") else None
+
+
 def browser_from_executable(executable):
     """Match the enclosing app bundle, not a Chrome-looking user-agent string."""
     parts = PurePosixPath(executable).parts
     for index, part in enumerate(parts):
-        if part.endswith(".app"):
-            return BROWSER_APPS.get(part) if parts[index + 1:index + 2] == ("Contents",) else None
+        bundle = app_name(part)
+        if bundle is not None:
+            return BROWSER_APPS.get(bundle) if parts[index + 1:index + 2] == ("Contents",) else None
     return None
 
 
