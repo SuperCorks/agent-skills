@@ -1,6 +1,6 @@
 ---
 name: kernel-api
-description: Read or manage work data through the Kernel Agent API. Use for Kernel tasks, Standing tasks, Habits, organizations, projects, tags, schedules, time tracking, visible calendar events, Inbox routing rules, and sanitized suggestion history. Do not use for Kernel source-code changes, API-key administration, OAuth, or provider synchronization.
+description: Read or manage work data through the Kernel Agent API. Use for Kernel tasks, Standing tasks, Habits, organizations, projects, tags, schedules, time tracking, visible calendar events, Inbox routing rules, and sanitized suggestion or analysis history. Do not use for Kernel source-code changes, API-key administration, OAuth, or provider synchronization.
 ---
 
 # Kernel API
@@ -29,7 +29,7 @@ Consult the live OpenAPI contract for exact payloads rather than relying on reme
 
 ## Capabilities
 
-Kernel has two fixed access presets. A Read only key can read workspace data, organizations, projects, tags, ordinary and Standing tasks, task comments, activity, attachments, Habits and occurrences, schedules, work sessions, time entries, visible synced calendar events, Inbox sources and rules, and sanitized suggestion history. A Full work key adds the supported mutations below. A valid key without an operation's scope returns `403`.
+Kernel has two fixed access presets. A Read only key can read workspace data, organizations, projects, tags, ordinary and Standing tasks, task comments, activity, attachments, Habits and occurrences, schedules, work sessions, time entries, visible synced calendar events, Inbox sources and rules, and sanitized suggestion and analysis history. A Full work key adds the supported mutations below. A valid key without an operation's scope returns `403`.
 
 - **Tasks:** list, create, inspect, update, complete, bulk-update, start work on, and conditionally delete ordinary tasks; search task options; inspect activity and comments; create comments; list, upload, download, and remove attachments; undo supported task deletions.
 - **Standing tasks and Habits:** list and inspect both. Full work keys can create, update, archive, restore, or conditionally delete Standing tasks; create, update, pause, resume, or archive Habits; inspect occurrences; and skip occurrences.
@@ -37,10 +37,21 @@ Kernel has two fixed access presets. A Read only key can read workspace data, or
 - **Portfolio:** list organizations, projects, and tags; create, update, archive, and restore them and manage organization images where supported.
 - **Scheduling:** inspect scheduling settings and scheduled blocks; create planned tasks, relocate planner items, edit, snooze, or intentionally remove blocks, preview schedules, update settings, and request rebuilds.
 - **Calendars:** read normalized planner-visible events; RSVP, associate meeting billing, create reviewable meeting time, and start, pause, or stop meeting tracking.
-- **Inbox:** discover connected Gmail and Slack sources, inspect routing/exclusion rules, read sanitized suggestion history, and manage source rules.
+- **Inbox:** discover connected Gmail and Slack sources, inspect routing/exclusion rules, read sanitized suggestion history, inspect analysis outcomes including zero-suggestion decisions, and manage source rules.
 - **Realtime:** open the authenticated server-sent event stream for workspace invalidations and reload authoritative state after change events.
 
-The Agent API deliberately cannot administer API keys, OAuth grants, provider connections or synchronization, provider-owned calendar events, monetary billing, raw Inbox message content, analysis internals, or live suggestion-review decisions. Do not use signed-in/internal routes to bypass those boundaries.
+The Agent API deliberately cannot administer API keys, OAuth grants, provider connections or synchronization, provider-owned calendar events, monetary billing, raw Inbox message content, unrestricted analysis internals, or live suggestion-review decisions. Do not use signed-in/internal routes, direct database access, or provider gateways to bypass those boundaries.
+
+## Inbox analysis diagnosis
+
+When the user asks why an email or Slack message did not become a suggestion:
+
+1. Call `GET /inbox-sources` to resolve the intended account or workspace.
+2. Call `GET /inbox-analysis-history` with the narrowest available combination of `sourceId`, `provider`, `threadId`, `providerRecordId`, `from`, and `to`. Follow `nextCursor` when necessary.
+3. Inspect `status`, `decision.classification`, `decision.planningFit`, `decision.summary`, `decision.suggestionOperationCount`, `decision.taskReconciliationCount`, and `decision.excludedByRule`.
+4. Use `GET /inbox-analysis-history/{analysisRunId}` for one exact result and `/inbox-sources/{sourceId}/rules` when current routing context is also relevant.
+
+Analysis history is intentionally sanitized. It includes sender/thread/message provenance and a bounded decision summary, but never retained message bodies, evidence, prompts, drafts, model usage, provider response metadata, or raw errors. Treat summaries and sender/subject metadata as private work data. If the public endpoint is unavailable in the deployed contract, report that limitation instead of inspecting the production database or using an internal route.
 
 ## Request rules
 
@@ -64,4 +75,4 @@ For a mutation, also send `Content-Type: application/json` and `Idempotency-Key:
 
 ## Authorization boundary
 
-Read requests are safe to perform when they answer the user's request. Make mutations only when the user asks to change Kernel data, and resolve ambiguous targets before acting. Do not use unlisted or signed-in/internal routes as a workaround for an Agent API limitation.
+Read requests are safe to perform when they answer the user's request. Make mutations only when the user asks to change Kernel data, and resolve ambiguous targets before acting. Do not use unlisted or signed-in/internal routes, direct database access, or provider gateways as a workaround for an Agent API limitation.
