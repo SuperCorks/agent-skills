@@ -1,0 +1,7 @@
+interface:
+  display_name: "Lovable Workflow"
+  short_description: "Safely change and release Lovable projects"
+  default_prompt: "Use $lovable-workflow to safely modify, validate, and deliver this Lovable-connected project."
+
+policy:
+  allow_implicit_invocation: true

@@ -43,6 +43,7 @@ A collection of AI agent skills for GitHub Copilot and other AI assistants.
 | [html-plan](html-plan) | Create reviewable HTML planning artifacts for implementation, QA, rollout, design, data, compliance, architecture, and handoff work |
 | [implementation-executor](implementation-executor) | Execute an approved implementation plan with focused changes and validation |
 | [iterable](iterable) | Read Iterable profiles, profile fields, list users, and user events with multi-account support |
+| [lovable-workflow](lovable-workflow) | Safely modify, validate, synchronize, and release Lovable-managed projects |
 | [merge-conflict-resolution](merge-conflict-resolution) | Resolve active Git merge, rebase, or cherry-pick conflicts by preserving both sides' intended behavior |
 | [pastel-reader](pastel-reader) | Read and audit Pastel canvases, comments, replies, labels, attachments, and metadata with multi-account support |
 | [posthog](posthog) | Analyze PostHog data and manage product tooling with multi-account support |
