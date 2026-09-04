@@ -51,6 +51,15 @@ Establish the expected behavior, target user, incumbent design system, and scope
 - Text zoom, long labels, localization, empty data, and dense content do not break the layout.
 - Fixed, sticky, and viewport-height elements tolerate mobile browser chrome and on-screen keyboards.
 
+### Alignment and spacing
+
+- Each relationship has an intentional edge, centerline, or baseline; centering is used where appropriate rather than applied indiscriminately.
+- Labels, icons, images, badges, and inputs align on the intended visual axis. Button labels and icon-label groups are optically centered horizontally and vertically within their controls.
+- Equivalent controls and repeated components use consistent dimensions, padding, grid lines, and gaps without one- or two-pixel drift from line-height, icon bounds, or intrinsic image whitespace.
+- Spacing expresses grouping: items within a component sit closer than distinct components, and larger structural gaps separate groups and sections consistently.
+- Section titles have deliberate separation from their content, and adjacent components neither touch accidentally nor create unexplained dead space.
+- Alignment and spacing survive wrapping, text zoom, long or localized labels, image loading, and responsive reflow.
+
 ### Visual system and craft
 
 - Typography, spacing, color, radii, iconography, imagery, and motion form a coherent hierarchy and use established tokens.

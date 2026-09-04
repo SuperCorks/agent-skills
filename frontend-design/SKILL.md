@@ -27,7 +27,9 @@ Before editing UI:
 
 - Ground visual choices in the product's subject, audience, and operating context, not in current design trends.
 - Give open-ended work one memorable idea. Spend visual boldness there and keep supporting elements disciplined.
-- Treat typography, spacing, color, imagery, and motion as one system. Reuse established tokens and primitives.
+- Treat typography, spacing, alignment, color, imagery, and motion as one system. Reuse established tokens and primitives.
+- Make alignment deliberate: choose the relevant edge, centerline, or text baseline; optically center labels, icons, and media inside buttons and similar controls; do not assume default flex or line-height behavior looks aligned.
+- Make spacing communicate relationships: keep items within a group closer than separate groups, and preserve clear, consistent separation between sibling components, sections, and a section title and its content.
 - Make structure carry meaning. Cards, dividers, labels, badges, and decorative chrome must clarify hierarchy or state.
 - Avoid template defaults without a brief-based reason: generic gradient heroes, interchangeable card grids, arbitrary groups of three, decorative all-caps labels, gratuitous glass, and uniform reveal animations.
 - During refinement, preserve information architecture, routes, analytics hooks, factual copy, and recognizable brand elements unless the user authorizes changing them.
@@ -51,7 +53,7 @@ When the UI can run:
 
 1. Inspect representative desktop and narrow/mobile widths.
 2. Exercise the primary interaction, keyboard path, and relevant state changes; check console output when available.
-3. Review screenshots for hierarchy, rhythm, overflow, contrast, consistency, and unintended generic patterns.
+3. Review screenshots for hierarchy, alignment, spacing and grouping, overflow, contrast, consistency, and unintended generic patterns.
 4. Batch the fixes, then perform at most one focused confirmation pass.
 
 If runtime verification is unavailable, use the strongest available evidence and name what remains unverified. For review work, use the verdict and blocker-first contract in [references/reviewing.md](references/reviewing.md).
