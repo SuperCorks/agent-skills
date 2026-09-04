@@ -36,6 +36,15 @@ Define:
 
 Replace any choice that could be pasted unchanged into an unrelated product.
 
+## Align and space deliberately
+
+- Decide what should share an edge, centerline, or text baseline for each relationship. Do not center everything by habit.
+- When a label and image or icon share a compact row, align them on the intended visual axis—usually optical center for controls, but baseline or edge alignment when the composition calls for it.
+- In buttons and other fixed-height controls, center labels and icons horizontally and vertically within the usable box. Check line-height, unequal padding, icon view boxes, and intrinsic image whitespace when mathematical centering still looks wrong.
+- Keep repeated controls, rows, cards, and media aligned to stable grid lines, with consistent heights and internal padding where equivalence is intended.
+- Use spacing as hierarchy: tight within a component, larger between distinct components or groups, and deliberate between a section title and its content. Do not let separate elements touch because a gap or margin collapsed.
+- Recheck alignment and gaps after wrapping, localization, long content, image loading, and responsive collapse.
+
 ## Use systems and assets deliberately
 
 - Prefer the project's component library and tokens. If an official design system governs the product, use its supported packages and conventions.
