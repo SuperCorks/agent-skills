@@ -33,7 +33,7 @@ A collection of AI agent skills for GitHub Copilot and other AI assistants.
 | [docs-maintainer](docs-maintainer) | Update user-facing documentation to match implemented behavior |
 | [domain-modeling](domain-modeling) | Clarify canonical domain vocabulary, concepts, invariants, and boundaries, with durable ADR updates when warranted |
 | [feature-dev](feature-dev) | Staged workflow for robust feature development from discovery through delivery |
-| [frontend-design](frontend-design) | UX and accessibility review guidance for distinctive, usable interfaces |
+| [frontend-design](frontend-design) | Design, implement, refine, and review distinctive, accessible web interfaces |
 | [git-workflow-gates](git-workflow-gates) | Branch-state checks and post-documentation PR gate workflow for multi-repo workspaces |
 | [github-pr-formatting](github-pr-formatting) | Open clean draft PRs and post correctly formatted comments/bodies |
 | [godaddy](godaddy) | Manage GoDaddy domains and DNS records with multi-account API credentials |
