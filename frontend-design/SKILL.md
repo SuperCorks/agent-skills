@@ -1,46 +1,57 @@
 ---
 name: frontend-design
-description: UX and accessibility review guidance for distinctive, usable interfaces with explicit blocker-first output.
+description: Design, implement, redesign, refine, or review web interfaces. Use for frontend UI, UX, visual design, accessibility, design QA, and bounded browser verification; not for backend-only work.
 ---
 
-# Frontend Design and UX Review
+# Frontend design
 
-Use this skill for design-focused frontend QA with concrete a11y and consistency criteria.
+Create interfaces that are useful, specific to their subject, visually intentional, accessible, and proven in the running product. The user's brief and the product's established design system outrank this skill's preferences.
 
-## When to use
-- Reviewing frontend changes for usability, consistency, and accessibility.
-- Designing or refining UI while preserving established system patterns.
-- Producing action-oriented UX findings for implementation.
+## Route the work
 
-## Inputs expected
-- Changed UI files/components and expected behavior.
-- Existing design system/pattern constraints.
-- Any provided references (screenshots, mockups, Figma links).
+- New surface or substantial redesign: read [references/designing.md](references/designing.md).
+- Critique, accessibility check, UX audit, or review-only request: read [references/reviewing.md](references/reviewing.md) and keep the work read-only.
+- Narrow implementation or refinement: preserve the incumbent visual language. Read the designing reference only when material visual choices remain open.
+- Implementation followed by QA: use the designing reference while building and the reviewing reference for the final pass.
 
-## Workflow
-1. Semantics and structure:
-- Validate correct element usage (buttons vs links, heading hierarchy, landmarks).
+## Ground the work
 
-2. Interaction behavior:
-- Verify hover/focus/active states and keyboard navigation.
-- Ensure visible focus indicators.
+Before editing UI:
 
-3. Accessibility checks:
-- Labels, accessible names, alt text, and necessary ARIA usage.
-- Ensure error/empty/loading states are understandable.
+1. Inspect the relevant implementation, nearby components, design tokens, and any `PRODUCT.md`, `DESIGN.md`, screenshots, mockups, or references.
+2. Identify the audience, primary job, content hierarchy, platform constraints, available assets, and whether the request is preservation, refinement, or replacement.
+3. State important assumptions. Ask at most one blocking design question when plausible answers would produce materially different interfaces; otherwise proceed.
+4. Use real product content and assets when available. Never invent claims, customers, metrics, data, or capabilities to make a design feel complete.
 
-4. Visual consistency:
-- Confirm spacing/typography/tokens align with existing system.
-- Flag generic/boilerplate UI patterns that reduce clarity.
+## Core standard
 
-## Output format (evidence required)
-- Summary verdict: `pass` or `needs changes`.
-- Blockers first:
-  - What is wrong
-  - Criterion violated (a11y/semantics/consistency/usability)
-  - Concrete fix
-- Non-blocking suggestions (explicitly marked).
+- Ground visual choices in the product's subject, audience, and operating context, not in current design trends.
+- Give open-ended work one memorable idea. Spend visual boldness there and keep supporting elements disciplined.
+- Treat typography, spacing, color, imagery, and motion as one system. Reuse established tokens and primitives.
+- Make structure carry meaning. Cards, dividers, labels, badges, and decorative chrome must clarify hierarchy or state.
+- Avoid template defaults without a brief-based reason: generic gradient heroes, interchangeable card grids, arbitrary groups of three, decorative all-caps labels, gratuitous glass, and uniform reveal animations.
+- During refinement, preserve information architecture, routes, analytics hooks, factual copy, and recognizable brand elements unless the user authorizes changing them.
+- Prefer the simplest implementation that delivers the intended experience and check existing dependencies before adding one.
 
-## Quality gate / halt conditions
-- Halt with `needs changes` for accessibility blockers or broken keyboard/focus behavior.
-- Do not propose unrelated redesigns unless explicitly requested.
+## Implementation floor
+
+Every changed surface must account for:
+
+- native semantics, accessible names, keyboard operation, and visible focus;
+- contrast, legible type, useful line length, and responsive reflow without clipping or accidental overflow;
+- relevant loading, empty, error, disabled, success, and long-content states;
+- purposeful motion with reduced-motion behavior;
+- clear actions and feedback that follow the project's language, framework, components, and tokens.
+
+Do not call a mockup production-ready when reachable states are intentionally out of scope. Name the gap instead.
+
+## Verify in the running interface
+
+When the UI can run:
+
+1. Inspect representative desktop and narrow/mobile widths.
+2. Exercise the primary interaction, keyboard path, and relevant state changes; check console output when available.
+3. Review screenshots for hierarchy, rhythm, overflow, contrast, consistency, and unintended generic patterns.
+4. Batch the fixes, then perform at most one focused confirmation pass.
+
+If runtime verification is unavailable, use the strongest available evidence and name what remains unverified. For review work, use the verdict and blocker-first contract in [references/reviewing.md](references/reviewing.md).
