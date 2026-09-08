@@ -20,6 +20,7 @@ Create a durable planning artifact that turns messy source context into a decisi
 2. Gather source context before writing:
 - Read relevant repo docs, existing plans, code paths, tests, config, and deployment files.
 - Inspect sibling or reference implementations when the user names them.
+- For plans that change product UI, use `frontend-design` to identify the governing design sources, comparable surfaces, and reusable components and page patterns before drafting. If unavailable, inspect the project docs, source, and relevant existing pages directly. New pages inherit the applicable product system unless redesign is requested.
 - Use named external context tools when available and relevant, such as Figma, Slack, browser, Computer Use, Gmail/Drive, PostHog, admin dashboards, or analytics tools.
 - Check branch/worktree state only when sequencing, PR, deploy, or handoff details depend on it.
 - If a source is inaccessible, record exactly what was unavailable and continue with clearly labeled assumptions.
@@ -82,6 +83,7 @@ When the plan has a sticky nav or table of contents, place the Questions or Deci
 For frontend, design, or product plans, include:
 
 - Figma/design references, node IDs, screenshots, or current/target comparisons when available.
+- A concise design context and reuse mapping: governing sources, reference routes/files, verified components and variants, layout/behavior rules, and justified extensions. Distinguish documented rules from inference and unresolved conflicts. Make mockups follow this context and include source checks and rendered comparison criteria in the implementation handoff.
 - Embedded HTML mockups or prototypes by default for any plan with a meaningful frontend, dashboard, or product UI surface. Use low-fidelity wireframes when final visuals are unknown. Skip only when the user explicitly declines visuals or the plan is purely non-UI.
 - UX behavior, states, responsive behavior, empty/error/loading cases, and URL parameter behavior.
 - Content and data-model requirements per feature.

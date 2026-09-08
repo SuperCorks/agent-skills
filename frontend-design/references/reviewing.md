@@ -17,6 +17,8 @@ Do not report a preference as a defect. Tie findings to task completion, accessi
 
 Establish the expected behavior, target user, incumbent design system, and scope. Inspect the changed surface beside nearby patterns. When possible, test desktop and narrow/mobile widths plus the primary pointer and keyboard paths, including focus, overlays, dismissal, validation, and state feedback. Report only evidenced findings from the gates below.
 
+For material UI changes, use the task's design context and acceptance criteria. If they are missing or stale, reconstruct the relevant sources and comparable patterns with [existing-system.md](existing-system.md), without changing product code during review-only work. Use its [comparison procedure](existing-system.md#verify-consistency) and record reference/result evidence at named states and viewports. Check page composition as well as component and token usage. Respect explicit redesign scope; infer missing conventions from evidence rather than imposing personal taste.
+
 ## Gates
 
 ### Usability and information architecture
@@ -89,6 +91,8 @@ Establish the expected behavior, target user, incumbent design system, and scope
 
 Return `needs changes` when any blocker remains. Use judgment for major findings: return `needs changes` when they make the requested outcome incomplete; otherwise return `pass` and list them as non-blocking follow-ups.
 
+A material departure from an applicable design acceptance criterion requires `needs changes`, even when the page works and builds. Tie it to the governing source and observed result. If a required visual criterion cannot be assessed, report the evidence gap and return `needs changes` for that incomplete review; do not invent a visual defect. A scoped source-only review can pass its own checks, but must explicitly leave visual consistency unverified.
+
 ## Output contract
 
 Start with exactly one verdict:
@@ -99,4 +103,4 @@ or
 
 `Verdict: needs changes`
 
-Then report blockers first. Each finding must include the observed problem and state or viewport, the violated criterion, evidence (preferably `file:line` plus runtime observation), and a concrete fix. Separate major findings and suggestions. If no findings remain, state what was verified instead of inventing polish work.
+Then report blockers first. Each finding must include the observed problem and state or viewport, the violated criterion, evidence (preferably `file:line` plus runtime observation), and a concrete fix. Separate major findings, suggestions, and unavailable evidence. State the scope verified and any remaining limits even when no findings remain.

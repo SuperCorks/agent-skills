@@ -25,6 +25,7 @@ description: Problem framing and decision-complete implementation planning befor
 2. Discover the current system:
    - Map relevant entry points, ownership, conventions, dependencies, and impacted surfaces.
    - Inspect repository documentation, ADRs, prior plans, and nearby decisions before proposing a new pattern. Treat absent historical evidence as unknown rather than inventing rationale.
+   - For UI plans, use `frontend-design` to capture governing design sources, comparable surfaces, component reuse, layout/behavior rules, and necessary extensions. If unavailable, establish that context directly from project docs, source, and existing pages. A new page inherits the relevant product system unless redesign is requested.
 3. Sketch the contract from the caller outward:
    - Show how a user or caller invokes the behavior and what inputs, outputs, errors, and compatibility promises it observes.
    - Define public interfaces and boundary contracts before internal helpers.
@@ -38,6 +39,7 @@ description: Problem framing and decision-complete implementation planning befor
    - Define one primary design. Compare meaningful alternatives for one-way-door decisions such as public contracts, durable schemas, or irreversible migrations; do not pad reversible choices with ceremonial alternatives.
 7. Make execution decision-complete:
    - Sequence vertical, independently verifiable units and name the files, contracts, tests, migration/compatibility work, rollout, and rollback involved.
+   - Carry UI design criteria and reference sources into the implementation handoff, with source checks and rendered comparisons that can establish consistency. Label unavailable evidence instead of treating visual assumptions as verified facts.
 
 ## Output format (evidence required)
 

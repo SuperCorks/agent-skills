@@ -28,6 +28,7 @@ For a diagnosis-only request, use `bug-diagnosis` and stop after evidence-backed
    - Ask clarifying questions only if they materially affect implementation.
 2. Codebase exploration:
    - Map relevant entry points and trace the current behavior through its user-facing path.
+   - For UI work, use `frontend-design` to establish the governing design sources, comparable surfaces, reuse mapping, and observable design criteria before implementation. If unavailable, capture those facts directly from project docs, components, and relevant pages; preserve the existing system unless redesign is requested.
 3. Plan and approval gate:
    - Produce a concrete plan split into vertical units that each deliver and verify a coherent behavior, rather than separate layer-by-layer batches.
    - Halt before coding if scope or requirements are ambiguous.
@@ -38,6 +39,7 @@ For a diagnosis-only request, use `bug-diagnosis` and stop after evidence-backed
 5. Validate the product:
    - Run project-appropriate lint, build, and test checks.
    - Exercise the real artifact or representative user path when practical; compilation and unit tests alone do not prove runtime behavior.
+   - For UI changes, apply the frontend design review against the captured criteria and reference surfaces. Record source and rendered evidence separately, including any visual checks that remain unavailable.
    - Perform targeted security and maintainability review.
 6. Documentation and handoff:
    - Update user-facing docs when behavior changes.
@@ -64,6 +66,7 @@ For a diagnosis-only request, use `bug-diagnosis` and stop after evidence-backed
 
 - Planning-heavy tasks: use `architect-planning`.
 - Architecture mapping: use `codebase-explorer`.
+- UI context, implementation, and visual verification: use `frontend-design`.
 - Diagnosis without an authorized fix: use `bug-diagnosis`.
 - Security review: use `security-guidance`.
 - Test strategy and execution: use `test-engineer`.

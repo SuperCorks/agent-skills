@@ -1,6 +1,6 @@
 # Designing and redesigning interfaces
 
-Use this reference when the visual direction is materially open.
+Use this reference when the brief opens the visual direction: a new product or an explicitly requested redesign. New pages and components within an existing product normally use [existing-system.md](existing-system.md); absent design documentation does not change that default.
 
 ## Read the brief
 
@@ -17,7 +17,7 @@ If one reasonable interpretation of an incomplete brief dominates, state it and 
 
 ## Decide what survives
 
-- **Refine:** preserve identity, content, behavior, tokens, and component conventions. Improve hierarchy, rhythm, clarity, responsiveness, and craft within the system.
+- **Refine:** preserve identity, content, behavior, tokens, and component conventions. Follow the existing-system reference to improve within the system.
 - **Redesign:** preserve product truth, functions, durable content, and platform expectations, then choose a coherent replacement visual world. Avoid a half-old, half-new compromise.
 - **New surface:** inherit the product's established system when one exists. A missing `DESIGN.md` is not proof that no system exists.
 
@@ -25,7 +25,7 @@ Before redesigning, record navigation, conversion or task paths, brand assets, t
 
 ## Form a direction before coding
 
-Define:
+For choices the brief leaves open, define the following. Retained product rules supply the constrained choices; do not replace them to satisfy this exercise.
 
 1. **Concept:** one sentence connecting the visual idea to the product and audience.
 2. **Palette:** a small set of semantic roles with concrete values.
@@ -34,7 +34,7 @@ Define:
 5. **Signature:** one memorable element or interaction and why it belongs.
 6. **Restraint:** what stays quiet or is omitted.
 
-Replace any choice that could be pasted unchanged into an unrelated product.
+Ground new visual choices in this product. Retain established conventions even when other products also use them.
 
 ## Align and space deliberately
 
@@ -55,7 +55,7 @@ Replace any choice that could be pasted unchanged into an unrelated product.
 
 ## Catch model defaults
 
-Treat these as warning signs, not universal bans:
+Treat these as warning signs for newly introduced design choices, not bans on established product conventions:
 
 - a centered headline, short subhead, two buttons, and decorative gradient regardless of subject;
 - identical rounded cards for every content type;
@@ -78,4 +78,4 @@ Return to the subject instead of selecting a different preset.
 
 ## Finish with bounded visual QA
 
-Render representative desktop and mobile states together when possible. Inspect once, batch fixes, and confirm once. Stop when the requested outcome and quality floor are met.
+Render representative desktop and mobile states together when possible. Inspect against the agreed direction and retained product rules, batch fixes, and confirm. Recheck only for new failures or unresolved criteria; stop when the requested outcome and quality floor are met.

@@ -20,6 +20,7 @@ description: Executes an approved implementation plan with focused changes and e
 
 1. Verify prerequisites:
    - Confirm plan approval, branch state, repository conventions, and the plan's independently verifiable units.
+   - For UI work, use `frontend-design` to verify the plan's governing design sources, reference surfaces, reuse mapping, and observable design criteria. Fill missing context before editing. If the skill is unavailable, inspect the relevant docs, components, and existing pages directly; inherit their applicable system unless redesign is requested.
 2. Execute one unit at a time:
    - Implement the smallest complete unit that produces an observable behavior.
    - Keep changes aligned with the plan and avoid unrelated refactors or scope expansion.
@@ -30,6 +31,7 @@ description: Executes an approved implementation plan with focused changes and e
 4. Validate the integrated result:
    - Run the repository's relevant format, lint, build, and test commands.
    - Exercise the built artifact or representative user path when practical; record why if runtime verification is unavailable.
+   - For UI changes, compare the rendered result with its design references and check component/style usage against the captured criteria. Apply the frontend design review when available; report material departures and unavailable visual evidence explicitly.
 5. Prepare handoff:
    - Summarize modified files, completed units, rationale, commands, real-path evidence, and any blockers or follow-ups.
 
