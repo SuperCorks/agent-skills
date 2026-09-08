@@ -12,6 +12,7 @@ Create interfaces that are useful, specific to their subject, visually intention
 - **Inherit** is the default for changes within an existing product, including new pages and components. Read [references/existing-system.md](references/existing-system.md) to identify and apply its documented or implicit system.
 - **Extend** when a required pattern is missing: use the same existing-system reference to establish the gap and fit the addition into the product.
 - **Explore** when the brief opens the visual direction, such as a new product or an explicitly requested redesign: read [references/designing.md](references/designing.md). Preserve any constraints the brief retains.
+- For planning, use the applicable mode to gather design context and define future verification. Read-only discovery for a plan is not a review deliverable; do not assign a pass/fail verdict to unimplemented UI.
 - Critique, accessibility check, UX audit, or review-only request: read [references/reviewing.md](references/reviewing.md) and keep the work read-only.
 - Scale discovery to the change: a small edit needs its affected component and closest usage, not a fresh app inventory.
 - Implementation followed by QA: use the relevant mode while building and the reviewing reference for the final pass.
