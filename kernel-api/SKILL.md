@@ -27,6 +27,16 @@ When working in the Kernel source repository, the corresponding checked-in sourc
 
 Consult the live OpenAPI contract for exact payloads rather than relying on remembered fields.
 
+## Linking to tasks
+
+Use the task's returned `key` for user-facing links: `[TT-266](https://app.krnl.work/t/TT-266)`.
+The URL format is `https://app.krnl.work/t/{key}` for ordinary tasks, Habit occurrences, and
+Standing tasks. If you only have a UUID, read the task through the API to obtain its key; do not
+put a UUID after `/t/` or generate a `/tasks?panel=task&id=...` link.
+
+Short links require sign-in and open the task's Details panel. Former keys keep working after
+portfolio reassignment. Continue using the task's UUID `id` in API paths and request bodies.
+
 ## Capabilities
 
 Kernel has two fixed access presets. A Read only key can read workspace data, organizations, projects, tags, ordinary and Standing tasks, task comments, activity, attachments, Habits and occurrences, schedules, work sessions, time entries, visible synced calendar events, Inbox sources and rules, and sanitized suggestion and analysis history. A Full work key adds the supported mutations below. A valid key without an operation's scope returns `403`.
