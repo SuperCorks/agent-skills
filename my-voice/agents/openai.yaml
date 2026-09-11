@@ -1,0 +1,4 @@
+interface:
+  display_name: "My Voice"
+  short_description: "Draft in your voice with a private writing profile"
+  default_prompt: "Use $my-voice to draft this email."
