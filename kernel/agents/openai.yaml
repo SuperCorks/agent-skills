@@ -1,0 +1,4 @@
+interface:
+  display_name: "Kernel"
+  short_description: "Operate the Kernel work-management API"
+  default_prompt: "Use $kernel to inspect or manage my Kernel work data."

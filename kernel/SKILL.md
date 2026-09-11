@@ -1,9 +1,9 @@
 ---
-name: kernel-api
+name: kernel
 description: Read or manage work data through the Kernel Agent API. Use for Kernel tasks, Standing tasks, Habits, organizations, projects, tags, schedules, time tracking, visible calendar events, Inbox routing rules, and sanitized suggestion or analysis history. Do not use for Kernel source-code changes, API-key administration, OAuth, or provider synchronization.
 ---
 
-# Kernel API
+# Kernel
 
 Use the production Agent API at `https://app.krnl.work/api/v1`.
 
@@ -21,7 +21,7 @@ Use these public sources in this order:
 1. LLM-oriented Markdown guide: `https://app.krnl.work/api/agent-api.md`.
 2. Raw public OpenAPI 3.1 contract: `https://app.krnl.work/api/openapi.yaml`. Use it for current paths, methods, parameters, request bodies, schemas, status codes, and required scopes.
 3. Browsable Scalar reference: `https://app.krnl.work/developers/api`.
-4. Download this skill: `https://app.krnl.work/api/skills/kernel-api/SKILL.md`.
+4. Download this skill: `https://app.krnl.work/api/skills/kernel/SKILL.md`.
 
 When working in the Kernel source repository, the corresponding checked-in sources are `docs/agent-api.md`, `packages/api-contract/public-openapi.yaml`, and `packages/api-contract/src/public-api.ts`. Use the public Markdown guide outside that repository.
 
@@ -39,9 +39,9 @@ portfolio reassignment. Continue using the task's UUID `id` in API paths and req
 
 ## Capabilities
 
-Kernel has two fixed access presets. A Read only key can read workspace data, organizations, projects, tags, ordinary and Standing tasks, task comments, activity, attachments, Habits and occurrences, schedules, work sessions, time entries, visible synced calendar events, Inbox sources and rules, and sanitized suggestion and analysis history. A Full work key adds the supported mutations below. A valid key without an operation's scope returns `403`.
+Kernel has two fixed access presets. A Read only key can read workspace data, organizations, projects, tags, ordinary and Standing tasks, task comments, work notes, activity, attachments, Habits and occurrences, schedules, work sessions, time entries, visible synced calendar events, Inbox sources and rules, and sanitized suggestion and analysis history. A Full work key adds the supported mutations below. A valid key without an operation's scope returns `403`.
 
-- **Tasks:** list, create, inspect, update, complete, bulk-update, start work on, and conditionally delete ordinary tasks; search task options; inspect activity and comments; create comments; list, upload, download, and remove attachments; undo supported task deletions.
+- **Tasks:** list, create, inspect, update, complete, bulk-update, start work on, and conditionally delete ordinary tasks; search task options; inspect activity and comments; create comments; create, read, edit, and delete work notes; list, upload, download, and remove attachments; undo supported task deletions.
 - **Standing tasks and Habits:** list and inspect both. Full work keys can create, update, archive, restore, or conditionally delete Standing tasks; create, update, pause, resume, or archive Habits; inspect occurrences; and skip occurrences.
 - **Time:** list work sessions and time entries; stop or undo-stop sessions; create, update, approve, split, merge, export, and delete time entries.
 - **Portfolio:** list organizations, projects, and tags; create, update, archive, and restore them and manage organization images where supported.
@@ -51,6 +51,16 @@ Kernel has two fixed access presets. A Read only key can read workspace data, or
 - **Realtime:** open the authenticated server-sent event stream for workspace invalidations and reload authoritative state after change events.
 
 The Agent API deliberately cannot administer API keys, OAuth grants, provider connections or synchronization, provider-owned calendar events, monetary billing, raw Inbox message content, unrestricted analysis internals, or live suggestion-review decisions. Do not use signed-in/internal routes, direct database access, or provider gateways to bypass those boundaries.
+
+## Work summaries and notes
+
+- Prepare the exact Markdown summary and show its Kernel task destination for approval before saving. Summary approval authorizes only that summary; description, date, or lifecycle changes need separate approval.
+- Resolve the current task’s confirmed Codex association through `GET /integrations/codex/tasks/{taskId}`. For a thread linked to several tasks, use `workNoteTargets`: prefer an active work session, then the closest past time entry. Past recorded work takes precedence over future blocks. Honor an explicit user-selected destination; resolve ties or pending associations before posting.
+- After approval, `POST /tasks/{taskId}/work-notes` with `{body, codexHandoffId}` for the selected task and matching handoff. Without a Codex association, omit `codexHandoffId`. Post once to one task; do not append the summary to its description.
+- Notes support Markdown up to 50,000 characters. Kernel supplies the original date and author and adds a compact activity link. Read with `GET /tasks/{taskId}/work-notes`, following `meta.nextCursor`; `codexHandoffId` filters one association.
+- Edit or delete through `/tasks/{taskId}/work-notes/{noteId}` using the current `version`. API keys can change only their own notes. A deleted note keeps a tombstone without readable content, including on idempotent replay.
+- Link to a specific summary with `/tasks?panel=task&id={taskId}&panelSection=details&workNote=task:{noteId}`. This source-qualified note URL is distinct from the short task links above; keep its note selection intact.
+- Time notes stay on their original time entries or drafts. Use their existing APIs for edits, respecting billing and draft restrictions. Kernel’s combined work-note history is signed-in only and must not be accessed with an API key.
 
 ## Inbox analysis diagnosis
 
