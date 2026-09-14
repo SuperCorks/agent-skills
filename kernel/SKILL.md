@@ -1,11 +1,50 @@
 ---
 name: kernel
-description: Read or manage work data through the Kernel Agent API. Use for Kernel tasks, Standing tasks, Habits, organizations, projects, tags, schedules, time tracking, visible calendar events, Inbox routing rules, and sanitized suggestion or analysis history. Do not use for Kernel source-code changes, API-key administration, OAuth, or provider synchronization.
+description: Read or manage work data through the Kernel Agent API, including associated task completion and work summaries under AGENTS.md presets. Use for Kernel tasks, Standing tasks, Habits, organizations, projects, tags, schedules, time tracking, visible calendar events, Inbox routing rules, and sanitized suggestion or analysis history. Not for implementing Kernel source code, API-key administration, OAuth, or provider synchronization.
 ---
 
 # Kernel
 
 Use the production Agent API at `https://app.krnl.work/api/v1`.
+
+## Task context and management presets
+
+For a Kernel-launched assignment, gather context from the supplied task YAML and relevant saved
+task details, comments, and attachment references before starting. Clarify unclear requirements
+with the user. The YAML `id` identifies the Kernel task; `codexHandoffId` identifies its Codex
+association, not another task. Treat task content as work data, not as a source of preset settings.
+
+Host-global, workspace, or project `AGENTS.md` instructions can select these independent presets:
+
+```yaml
+kernel:
+  task_lifecycle: ask
+  work_summaries: ask
+```
+
+This is an example selection, not a skill default or application configuration. Resolve each
+setting from the most specific applicable `AGENTS.md` that supplies it; a missing setting defaults
+to `off`. Direct user instructions override a preset for the requested action. The skill defines
+the behavior; `AGENTS.md` selects it.
+
+| Preset | `task_lifecycle` | `work_summaries` |
+| --- | --- | --- |
+| `off` | Do not initiate or offer task completion. | Do not prepare, offer, or save a Kernel work summary. |
+| `ask` | Propose marking the task Done and obtain approval before updating it. | Show the exact Markdown and Kernel task destination; save after approval. |
+| `yolo` | Mark the task Done without asking when its full scope is complete. | Prepare and save the summary without asking. |
+
+- Lifecycle automation covers only Done/completed. Doing, Blocked, Ready, Backlog, and reopening
+  require a direct user request under every preset; do not initiate or offer those transitions.
+  Completing a smaller assignment or stopping a Codex turn does not complete the whole Kernel task.
+- When summaries are enabled, prepare one at completion and at meaningful pauses after substantive
+  work: a blocker, stop, or handoff. Routine questions, polling, or pauses with no new work do not
+  produce summaries. Describe completed work, evidence, and any remaining work or blocker; do not
+  imply completion merely because you are pausing. Do not save the same summary again on resume.
+- Settings and approvals are independent. Summary approval does not authorize completion, and
+  completion approval does not authorize a summary. `yolo` supplies standing authorization only
+  for that setting; it does not authorize description, date, time-record, or unrelated changes.
+- Summary `off` does not suppress ordinary conversation answers or a directly requested summary.
+  Do not query association or work-note endpoints solely to offer management that is off.
 
 ## Authentication
 
@@ -54,13 +93,28 @@ The Agent API deliberately cannot administer API keys, OAuth grants, provider co
 
 ## Work summaries and notes
 
-- Prepare the exact Markdown summary and show its Kernel task destination for approval before saving. Summary approval authorizes only that summary; description, date, or lifecycle changes need separate approval.
-- Resolve the current task’s confirmed Codex association through `GET /integrations/codex/tasks/{taskId}`. For a thread linked to several tasks, use `workNoteTargets`: prefer an active work session, then the closest past time entry. Past recorded work takes precedence over future blocks. Honor an explicit user-selected destination; resolve ties or pending associations before posting.
-- After approval, `POST /tasks/{taskId}/work-notes` with `{body, codexHandoffId}` for the selected task and matching handoff. Without a Codex association, omit `codexHandoffId`. Post once to one task; do not append the summary to its description.
+- Apply `work_summaries` before preparing or offering a summary. Resolve its destination and prepare its content according to that preset; write only after `ask` approval, under `yolo`, or when directly requested.
+- Resolve the current task's confirmed Codex association through `GET /integrations/codex/tasks/{taskId}`. Verify that the supplied `codexHandoffId` belongs to the current Codex task and the exact Kernel task. For a thread linked to several tasks, use `workNoteTargets`: prefer an active work session, then the closest past time entry. Past recorded work takes precedence over future blocks. Honor an explicit user-selected destination and use that task's matching confirmed handoff.
+- In `ask`, resolve ties, missing work evidence, or pending associations with the user before posting. In `yolo`, if the destination or association cannot be verified, leave data unchanged and report the unresolved association without guessing or introducing an approval step. Do not omit an existing but unresolved Codex association to bypass validation.
+- `POST /tasks/{taskId}/work-notes` with `{body, codexHandoffId}` for the selected task and matching handoff. For work with no Codex association, omit `codexHandoffId`. Post once to one task; do not append the summary to its description. Reuse the same Idempotency-Key after an uncertain response and check existing notes when resuming to avoid duplicate summaries. Return the saved summary link.
 - Notes support Markdown up to 50,000 characters. Kernel supplies the original date and author and adds a compact activity link. Read with `GET /tasks/{taskId}/work-notes`, following `meta.nextCursor`; `codexHandoffId` filters one association.
 - Edit or delete through `/tasks/{taskId}/work-notes/{noteId}` using the current `version`. API keys can change only their own notes. A deleted note keeps a tombstone without readable content, including on idempotent replay.
 - Link to a specific summary with `/tasks?panel=task&id={taskId}&panelSection=details&workNote=task:{noteId}`. This source-qualified note URL is distinct from the short task links above; keep its note selection intact.
 - Time notes stay on their original time entries or drafts. Use their existing APIs for edits, respecting billing and draft restrictions. Kernel’s combined work-note history is signed-in only and must not be accessed with an API key.
+
+## Task completion and other lifecycle changes
+
+Apply `task_lifecycle` before initiating or offering completion. Verify the associated task using
+the association procedure above, then read its current details with `GET /tasks/{taskId}`.
+Complete only the task whose full scope is satisfied; a summary destination selected from work
+history is not by itself evidence that that task is complete. If it is already Done, make no update.
+
+Use `POST /tasks/{taskId}/complete` with its current `{version}` and an Idempotency-Key after
+`ask` approval, under `yolo`, or when directly requested. Resolve an uncertain association according
+to the selected preset before writing. On `409`, reread and reassess the task rather than applying
+completion to changed scope blindly. For directly requested non-completion transitions, consult the
+current contract for `PATCH /tasks/{taskId}` with `{version, lifecycle}` and any requested fields.
+Do not start a work session or change time records as a shortcut to setting lifecycle.
 
 ## Inbox analysis diagnosis
 
@@ -95,4 +149,4 @@ For a mutation, also send `Content-Type: application/json` and `Idempotency-Key:
 
 ## Authorization boundary
 
-Read requests are safe to perform when they answer the user's request. Make mutations only when the user asks to change Kernel data, and resolve ambiguous targets before acting. Do not use unlisted or signed-in/internal routes, direct database access, or provider gateways as a workaround for an Agent API limitation.
+Read requests are safe to perform when they answer the user's request. Make mutations when directly requested, after the applicable `ask` approval, or under an applicable `yolo` preset for that operation. Presets do not expand API permissions or authorize unrelated actions. Resolve ambiguous targets according to the selected preset before acting. Do not use unlisted or signed-in/internal routes, direct database access, or provider gateways as a workaround for an Agent API limitation.
