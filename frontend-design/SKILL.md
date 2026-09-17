@@ -34,6 +34,7 @@ Before editing UI:
 - Treat typography, spacing, alignment, color, imagery, and motion as one system. Reuse established tokens and primitives.
 - Make alignment deliberate: choose the relevant edge, centerline, or text baseline; optically center labels, icons, and media inside buttons and similar controls; do not assume default flex or line-height behavior looks aligned.
 - Make spacing communicate relationships: keep items within a group closer than separate groups, and preserve clear, consistent separation between sibling components, sections, and a section title and its content.
+- Minimize unexpected layout shift wherever practical. Reserve space for media and asynchronous content, keep loading placeholders close to the final layout, reduce movement caused by font loading, and avoid inserting content that unexpectedly pushes existing content around. Preserve responsive reflow and content visibility.
 - Make structure carry meaning. Cards, dividers, labels, badges, and decorative chrome must clarify hierarchy or state.
 - Avoid introducing template defaults without a product- or brief-based reason: generic gradient heroes, interchangeable card grids, arbitrary groups of three, decorative all-caps labels, gratuitous glass, and uniform reveal animations. These preferences do not override established product conventions.
 - During refinement, preserve information architecture, routes, analytics hooks, factual copy, and recognizable brand elements unless the user authorizes changing them.
@@ -56,7 +57,7 @@ Do not call a mockup production-ready when reachable states are intentionally ou
 When the UI can run:
 
 1. Inspect representative desktop and narrow/mobile widths.
-2. Exercise the primary interaction, keyboard path, and relevant state changes; check console output when available.
+2. Exercise the primary interaction, keyboard path, and relevant state changes; check console output when available. Check layout stability during initial loading and relevant state transitions at both desktop and narrow/mobile widths.
 3. Compare the result with the governing design reference for hierarchy, alignment, spacing and grouping, density, overflow, contrast, and states. For existing products, use the [comparison procedure](references/existing-system.md#verify-consistency).
 4. Batch the fixes, then perform a focused confirmation pass. Repeat only for new failures or unresolved acceptance criteria; stop once the requested outcome and quality floor are met.
 
