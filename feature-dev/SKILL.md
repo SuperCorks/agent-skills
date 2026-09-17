@@ -26,6 +26,7 @@ For a diagnosis-only request, use `bug-diagnosis` and stop after evidence-backed
 1. Discovery and intent lock:
    - Restate the problem, constraints, and observable definition of done.
    - Ask clarifying questions only if they materially affect implementation.
+   - Use `requirements-interview` when available for unresolved intent or requirements. Reuse existing context, distinguish observed behavior from intended behavior and inferred assumptions, and stop questioning once the next step is actionable. Carry consequential uncertainty into the plan without adding a new approval gate.
 2. Codebase exploration:
    - Map relevant entry points and trace the current behavior through its user-facing path.
    - For UI work, use `frontend-design` to establish the governing design sources, comparable surfaces, reuse mapping, and observable design criteria before implementation. If unavailable, capture those facts directly from project docs, components, and relevant pages; preserve the existing system unless redesign is requested.

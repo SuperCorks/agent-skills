@@ -21,10 +21,12 @@ description: Problem framing and decision-complete implementation planning befor
 
 1. Lock the problem and evidence of success:
    - Clarify the objective, constraints, and out-of-scope work.
+   - When unresolved intent or requirements would change the plan, use `requirements-interview` if available. Start from existing context, investigate factual questions, and ask only consequential human decisions; skip a separate interview for actionable requests.
    - Express acceptance criteria as falsifiable, observable outcomes rather than implementation claims.
 2. Discover the current system:
    - Map relevant entry points, ownership, conventions, dependencies, and impacted surfaces.
    - Inspect repository documentation, ADRs, prior plans, and nearby decisions before proposing a new pattern. Treat absent historical evidence as unknown rather than inventing rationale.
+   - Keep the source and status of consequential claims visible: user decisions, observed behavior, documented or researched facts, and agent inferences are different evidence. Carry unresolved assumptions and deliberate deferrals into the plan with the consequence if wrong; current behavior alone does not establish desired behavior.
    - For UI plans, use `frontend-design` to capture governing design sources, comparable surfaces, component reuse, layout/behavior rules, and necessary extensions. If unavailable, establish that context directly from project docs, source, and existing pages. A new page inherits the relevant product system unless redesign is requested.
 3. Sketch the contract from the caller outward:
    - Show how a user or caller invokes the behavior and what inputs, outputs, errors, and compatibility promises it observes.

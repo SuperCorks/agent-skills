@@ -53,6 +53,7 @@ A collection of AI agent skills for GitHub Copilot and other AI assistants.
 | [provider-cli-container](provider-cli-container) | Initialize and operate isolated, pinned provider CLI containers with project-scoped account guards |
 | [publish-artifacts](publish-artifacts) | Publish generated artifacts to an existing public Google Cloud Storage bucket and return verified URLs |
 | [remote-hosts](remote-hosts) | Connect to and operate persistent remote coding workspaces over SSH |
+| [requirements-interview](requirements-interview) | Clarify consequential requirements through focused questions, context-first synthesis, and evidence provenance |
 | [security-guidance](security-guidance) | Security review checklist for common vulnerabilities with severity and confidence reporting |
 | [serena-context](serena-context) | Use Serena for exact semantic code retrieval, references, diagnostics, and worktree-safe project switching |
 | [skills-browser](skills-browser) | Find useful Agent Skills in curated public skill repositories for a user query |

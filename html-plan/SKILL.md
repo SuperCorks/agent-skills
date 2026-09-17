@@ -27,8 +27,8 @@ Create a durable planning artifact that turns messy source context into a decisi
 
 3. Harden assumptions before drafting:
 - Clarify scope, non-goals, constraints, and authority boundaries when they affect the plan.
-- Ask as many focused questions as needed to harden assumptions and resolve meaningful unknowns.
-- If a question-asking skill or tool is available, use it when questions would materially improve the plan.
+- Use `requirements-interview` when available and unresolved decisions would materially change the plan. With substantial context, propose an evidence-grounded understanding for correction; otherwise ask the highest-impact question. Investigate factual questions before routing them to the user, and stop when further answers would not change the plan.
+- Preserve the source and status of consequential claims in the assumptions or decisions section: distinguish user decisions, observed behavior, documented or researched facts, and agent inferences. Explain the consequence if wrong and the boundary of any deliberate deferral. Use a compact table only when several claims warrant it; do not create a separate ledger artifact.
 
 4. Write a self-contained HTML artifact:
 - Prefer `docs/plans/<yyyy-mm-dd-topic>.html` inside a repo.
