@@ -4,3 +4,10 @@
 
 # Local GTM OAuth tokens (project-specific)
 gtm-manager/tokens/
+
+# Python bytecode
+__pycache__/
+*.pyc
+
+# Skills synced into the install directory by Claude apps
+/synced/
