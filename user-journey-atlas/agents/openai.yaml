@@ -1,0 +1,4 @@
+interface:
+  display_name: "User Journey Atlas"
+  short_description: "Document existing journeys with real screenshots"
+  default_prompt: "Use $user-journey-atlas to document the existing product journeys with real screenshots."

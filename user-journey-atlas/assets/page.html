@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>{{TITLE}}</title>
+  <link rel="stylesheet" href="{{PREFIX}}assets/atlas.css">
+  <script src="{{PREFIX}}assets/atlas.js" defer></script>
+</head>
+<body data-atlas-id="{{ATLAS_ID}}" data-review-notes="{{REVIEW_NOTES}}">
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">{{HEADER}}</header>
+  <main id="main">{{CONTENT}}</main>
+  {{SOURCES}}
+  <script type="application/json" data-story-catalog>{{STORY_CATALOG}}</script>
+  <dialog class="viewer" aria-labelledby="viewer-title" aria-describedby="viewer-caption">
+    <div class="viewer-panel">
+    <header class="viewer-header">
+      <div><h2 id="viewer-title"></h2><p class="viewer-position" aria-live="polite"></p></div>
+      <div class="viewer-tools">
+        <button type="button" data-zoom aria-pressed="false">Zoom in</button>
+        <button type="button" data-fullscreen aria-pressed="false">Fullscreen</button>
+        <button type="button" data-close aria-label="Close image viewer">Close</button>
+      </div>
+    </header>
+    <div class="viewer-stage"><img class="viewer-image" alt=""></div>
+    <footer class="viewer-footer">
+      <div class="viewer-navigation">
+        <button type="button" data-previous aria-label="Previous image in this story">← Previous</button>
+        <button type="button" data-next aria-label="Next image in this story">Next →</button>
+      </div>
+      <p id="viewer-caption"></p>
+      <p class="viewer-status" role="status"></p>
+    </footer>
+    </div>
+  </dialog>
+</body>
+</html>
