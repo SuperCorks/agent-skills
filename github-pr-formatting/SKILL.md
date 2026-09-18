@@ -1,6 +1,6 @@
 ---
 name: github-pr-formatting
-description: Open clean draft PRs and post correctly formatted comments/bodies without escaped newline artifacts.
+description: Open clean PRs and post correctly formatted comments/bodies without escaped newline artifacts.
 ---
 
 # GitHub PR Formatting Skill
@@ -15,8 +15,7 @@ Ensure PR titles, bodies, and comments render as proper Markdown and **never** a
 
 1. **Always create multi-line PR bodies/comments from a file** (`--body-file` / `--body-file -`).
 2. **Never pass escaped newlines inside quoted one-liners** for PR bodies (e.g. avoid `"line1\nline2"`).
-3. Prefer **draft PRs** unless explicitly asked otherwise.
-4. Use concise, structured Markdown sections:
+3. Use concise, structured Markdown sections:
    - `## Summary`
    - `## Validation`
    - `## Scope / Notes` (optional)
@@ -41,11 +40,10 @@ cat > /tmp/pr-body.md <<'EOF'
 EOF
 ```
 
-### Step 2: Create draft PR using `--body-file`
+### Step 2: Create PR using `--body-file`
 
 ```bash
 gh pr create \
-  --draft \
   --base develop \
   --head feature/my-branch \
   --title "feat(scope): concise title" \
@@ -78,7 +76,6 @@ If content is more than one line, use `--body-file`.
 - [ ] No literal `\n` in command body argument
 - [ ] Title follows conventional commits style when appropriate
 - [ ] Validation commands are listed
-- [ ] PR is draft unless user asked for ready-for-review
 
 ## Quick Anti-Patterns (Do Not Use)
 
