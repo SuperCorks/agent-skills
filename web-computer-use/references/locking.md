@@ -102,7 +102,7 @@ The following skill-level scenarios require reasoning/UI review, not assertions 
 | Context has no reliable account/profile evidence | Verify visible Default; do not infer from the repository name |
 | Default missing or two plausible visible names | Release, ask for a choice, and make no profile changes |
 | Plugin family resolves but profile is unverifiable | Reserve browser + desktop, verify/select via UI; remain on Computer Use if association is still unproven |
-| Auth page offers Keeper/passkey flow | Transition before interacting; keep secrets in Keeper and verify the resulting account |
+| Auth page offers Keeper/passkey flow | Transition before interacting; use native Computer Use with Keeper, never plugin-backed tab APIs, and verify the resulting account |
 | Keeper locked or user approval required | Prepare normal browser page, release immediately, request user takeover |
 | User resumes after other activity | Reacquire; inspect profile, account, page, and current controls before acting |
 | Explicit browser is busy | No fallback; stop at the original ten-minute deadline |
