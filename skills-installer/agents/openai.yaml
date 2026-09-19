@@ -1,0 +1,3 @@
+interface:
+  display_name: "Skills Installer"
+  short_description: "Install, update, and remove agent skills and subagents without prompts"
