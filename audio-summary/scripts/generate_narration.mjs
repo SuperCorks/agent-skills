@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { execFileSync } from "node:child_process";
-import { constants as fsConstants } from "node:fs";
+import { constants as fsConstants, realpathSync } from "node:fs";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -9,15 +9,8 @@ import { fileURLToPath } from "node:url";
 
 const DEFAULT_OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1";
 const DEFAULT_OPENROUTER_MODEL = "moonshotai/kimi-k3";
-const DEFAULT_SPEECHIFY_BASE_URL = "https://api.speechify.ai";
-const DEFAULT_SPEECHIFY_VOICE_ID = "harper_32";
-const DEFAULT_SPEECHIFY_MODEL_ID = "simba-english";
-const DEFAULT_SPEECHIFY_SPEED = 1.1;
-const DEFAULT_SPEECHIFY_LANGUAGE = "en-US";
 const DEFAULT_TIMEOUT_MS = 180_000;
 const DEFAULT_MAX_SOURCE_CHARACTERS = 500_000;
-const SPEECHIFY_MAX_INPUT_CHARACTERS = 20_000;
-const STORY_AUDIO_LEAD_IN = '<break time="0.3s" />';
 
 export const MODE_CONFIG = Object.freeze({
   short: { minWords: 90, maxWords: 160, maxTokens: 900 },
@@ -26,21 +19,21 @@ export const MODE_CONFIG = Object.freeze({
 });
 
 function usage() {
-  return `Usage: node generate_audio.mjs --thread <thread.md> --report <report.md> --output <summary.mp3> [options]
+  return `Usage: node generate_narration.mjs --thread <thread.md> --report <report.md> --output <narration.txt> [options]
 
 Options:
       --thread <path>                Relevant visible thread context
       --report <path>                Agent-authored detailed factual report
-  -o, --output <path>                Destination .mp3 file
-      --script-output <path>         Kimi narration output (defaults beside MP3)
+  -o, --output <path>                Destination narration .txt file
       --mode <level>                 short, medium, or detailed (default: medium)
       --scope <scope>                thread or last-pass (default: thread)
       --openrouter-base-url <url>    OpenRouter API base URL
-      --speechify-base-url <url>     Speechify API base URL
-      --env-file <path>              Additional .env file for provider configuration
+      --env-file <path>              Additional .env file for OpenRouter configuration
       --overwrite                    Replace existing output files
-      --dry-run                      Validate without calling either provider
+      --dry-run                      Validate without calling OpenRouter
   -h, --help                         Show this help
+
+Synthesize the narration with the generate-audio skill.
 `;
 }
 
@@ -49,11 +42,9 @@ export function parseArgs(argv) {
     thread: null,
     report: null,
     output: null,
-    scriptOutput: null,
     mode: "medium",
     scope: "thread",
     openRouterBaseUrl: null,
-    speechifyBaseUrl: null,
     envFile: null,
     overwrite: false,
     dryRun: false,
@@ -75,11 +66,9 @@ export function parseArgs(argv) {
     else if (argument === "--thread") options.thread = nextValue();
     else if (argument === "--report") options.report = nextValue();
     else if (argument === "-o" || argument === "--output") options.output = nextValue();
-    else if (argument === "--script-output") options.scriptOutput = nextValue();
     else if (argument === "--mode") options.mode = nextValue();
     else if (argument === "--scope") options.scope = nextValue();
     else if (argument === "--openrouter-base-url") options.openRouterBaseUrl = nextValue();
-    else if (argument === "--speechify-base-url") options.speechifyBaseUrl = nextValue();
     else if (argument === "--env-file") options.envFile = nextValue();
     else if (argument === "--overwrite") options.overwrite = true;
     else if (argument === "--dry-run") options.dryRun = true;
@@ -152,7 +141,7 @@ async function loadEnvironment(explicitEnvFile) {
 }
 
 function loginShellValue(name) {
-  if (!["OPENROUTER_API_KEY", "SPEECHIFY_API_KEY"].includes(name)) return "";
+  if (name !== "OPENROUTER_API_KEY") return "";
   try {
     return execFileSync(
       "/bin/zsh",
@@ -302,82 +291,6 @@ export async function callOpenRouter({ apiKey, baseUrl, request, timeoutMs }) {
   }
 }
 
-function escapeSsml(value) {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;");
-}
-
-function speechifySsmlContent(value) {
-  return escapeSsml(value)
-    .replace(/\r\n?/g, "\n")
-    .replace(/\n{2,}/g, '<break strength="weak" />')
-    .replace(/\n/g, '<break time="250ms" />');
-}
-
-export function buildSpeechifyRequest({ narration, voiceId, modelId, speed, language }) {
-  const ratePercent = Math.round((speed - 1) * 100);
-  const rate = `${ratePercent >= 0 ? "+" : ""}${ratePercent}%`;
-  return {
-    input: `<speak>${STORY_AUDIO_LEAD_IN}<prosody rate="${rate}">${speechifySsmlContent(narration)}</prosody></speak>`,
-    voice_id: voiceId,
-    model: modelId,
-    language
-  };
-}
-
-export async function synthesizeSpeechify({ apiKey, baseUrl, request, timeoutMs }) {
-  if (request.input.length > SPEECHIFY_MAX_INPUT_CHARACTERS) {
-    throw new Error(
-      `Speechify input is ${request.input.length} characters; the limit is ${SPEECHIFY_MAX_INPUT_CHARACTERS}.`
-    );
-  }
-
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    const response = await fetch(`${baseUrl}/v1/audio/stream`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        Accept: "audio/mpeg",
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(request),
-      signal: controller.signal
-    });
-
-    if (!response.ok) {
-      if (response.status === 401 || response.status === 403) {
-        throw new Error("Speechify rejected the managed Swipe News credential.");
-      }
-      if (response.status === 402 || response.status === 429) {
-        throw new Error("The managed Speechify account has no available credits.");
-      }
-      if (response.status === 404 || response.status === 422) {
-        throw new Error("Speechify could not use the managed Swipe News voice profile.");
-      }
-      throw new Error(`Speechify request failed (${response.status} ${response.statusText}).`);
-    }
-
-    const contentType = response.headers.get("content-type") || "";
-    if (!contentType.startsWith("audio/") && contentType !== "application/octet-stream") {
-      throw new Error(`Speechify returned an unexpected content type: ${contentType || "missing"}.`);
-    }
-    const audio = Buffer.from(await response.arrayBuffer());
-    if (audio.length === 0) throw new Error("Speechify returned an empty audio response.");
-    return { audio, contentType };
-  } catch (error) {
-    if (error?.name === "AbortError") {
-      throw new Error(`Speechify request timed out after ${timeoutMs}ms.`);
-    }
-    throw error;
-  } finally {
-    clearTimeout(timeout);
-  }
-}
-
 async function assertOutputAvailable(outputPath, overwrite) {
   try {
     await fs.access(outputPath, fsConstants.F_OK);
@@ -413,17 +326,10 @@ export async function main(argv = process.argv.slice(2)) {
   }
 
   const outputPath = path.resolve(options.output);
-  if (path.extname(outputPath).toLowerCase() !== ".mp3") {
-    throw new Error("--output must use the .mp3 extension.");
-  }
-  const scriptOutputPath = path.resolve(
-    options.scriptOutput || `${outputPath.slice(0, -path.extname(outputPath).length)}.txt`
-  );
-  if (scriptOutputPath === outputPath) {
-    throw new Error("--script-output must differ from --output.");
+  if (path.extname(outputPath).toLowerCase() !== ".txt") {
+    throw new Error("--output must use the .txt extension.");
   }
   await assertOutputAvailable(outputPath, options.overwrite);
-  await assertOutputAvailable(scriptOutputPath, options.overwrite);
 
   const environment = await loadEnvironment(options.envFile);
   const thread = await readSource(options.thread, "Thread context");
@@ -446,21 +352,6 @@ export async function main(argv = process.argv.slice(2)) {
     options.openRouterBaseUrl || environment.OPENROUTER_BASE_URL || DEFAULT_OPENROUTER_BASE_URL,
     "The OpenRouter base URL"
   );
-  const speechifyBaseUrl = normalizeBaseUrl(
-    options.speechifyBaseUrl || DEFAULT_SPEECHIFY_BASE_URL,
-    "The Speechify base URL"
-  );
-  const voiceId = environment.SPEECHIFY_VOICE_ID || DEFAULT_SPEECHIFY_VOICE_ID;
-  const modelId = environment.SPEECHIFY_MODEL_ID || DEFAULT_SPEECHIFY_MODEL_ID;
-  const speed = numberSetting(
-    environment.SPEECHIFY_VOICE_SPEED,
-    DEFAULT_SPEECHIFY_SPEED,
-    "SPEECHIFY_VOICE_SPEED"
-  );
-  if (speed < 0.5 || speed > 2) {
-    throw new Error("SPEECHIFY_VOICE_SPEED must be between 0.5 and 2.");
-  }
-  const language = environment.SPEECHIFY_LANGUAGE || DEFAULT_SPEECHIFY_LANGUAGE;
   const timeoutMs = numberSetting(
     environment.AUDIO_SUMMARY_TIMEOUT_MS,
     DEFAULT_TIMEOUT_MS,
@@ -487,13 +378,7 @@ export async function main(argv = process.argv.slice(2)) {
         reportCharacters: report.length,
         openRouterModel: DEFAULT_OPENROUTER_MODEL,
         openRouterEndpoint: `${openRouterBaseUrl}/chat/completions`,
-        speechifyEndpoint: `${speechifyBaseUrl}/v1/audio/stream`,
-        speechifyVoiceId: voiceId,
-        speechifyModelId: modelId,
-        speechifySpeed: speed,
-        speechifyLanguage: language,
-        outputPath,
-        scriptOutputPath
+        outputPath
       })}\n`
     );
     return;
@@ -503,10 +388,6 @@ export async function main(argv = process.argv.slice(2)) {
   if (!openRouterApiKey) {
     throw new Error("OPENROUTER_API_KEY is required for Kimi K3 narration generation.");
   }
-  const speechifyApiKey = environment.SPEECHIFY_API_KEY || loginShellValue("SPEECHIFY_API_KEY");
-  if (!speechifyApiKey) {
-    throw new Error("SPEECHIFY_API_KEY is required for Swipe News voice synthesis.");
-  }
 
   const generated = await callOpenRouter({
     apiKey: openRouterApiKey,
@@ -514,43 +395,31 @@ export async function main(argv = process.argv.slice(2)) {
     request: summaryRequest,
     timeoutMs
   });
-  await writeFileAtomic(scriptOutputPath, `${generated.narration}\n`);
-
-  const speechifyRequest = buildSpeechifyRequest({
-    narration: generated.narration,
-    voiceId,
-    modelId,
-    speed,
-    language
-  });
-  const synthesized = await synthesizeSpeechify({
-    apiKey: speechifyApiKey,
-    baseUrl: speechifyBaseUrl,
-    request: speechifyRequest,
-    timeoutMs
-  });
-  await writeFileAtomic(outputPath, synthesized.audio);
+  await writeFileAtomic(outputPath, `${generated.narration}\n`);
 
   process.stdout.write(
     `${JSON.stringify({
       outputPath,
-      scriptOutputPath,
-      bytes: synthesized.audio.length,
-      contentType: synthesized.contentType,
       narrationWords: narrationWordCount(generated.narration),
       mode: options.mode,
       scope: options.scope,
-      openRouterModel: generated.model,
-      speechifyVoiceId: voiceId,
-      speechifyModelId: modelId,
-      speechifySpeed: speed,
-      speechifyLanguage: language
+      openRouterModel: generated.model
     })}\n`
   );
 }
 
-const isEntrypoint = process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1]);
-if (isEntrypoint) {
+// import.meta.url is always a real path, while argv[1] keeps any symlink used to
+// reach the script. Comparing them unresolved makes the script exit silently.
+function isEntrypoint() {
+  if (!process.argv[1]) return false;
+  try {
+    return fileURLToPath(import.meta.url) === realpathSync(process.argv[1]);
+  } catch {
+    return false;
+  }
+}
+
+if (isEntrypoint()) {
   main().catch((error) => {
     process.stderr.write(`Audio Summary: ${error.message}\n`);
     process.exitCode = 1;

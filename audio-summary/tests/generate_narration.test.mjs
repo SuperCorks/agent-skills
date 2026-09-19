@@ -1,17 +1,18 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import fs from "node:fs/promises";
 import http from "node:http";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
 
 import {
-  buildSpeechifyRequest,
   buildSummaryRequest,
   main,
   parseArgs,
   parseEnvText
-} from "../scripts/generate_audio.mjs";
+} from "../scripts/generate_narration.mjs";
 
 test("parseArgs defaults to medium thread scope", () => {
   assert.deepEqual(
@@ -21,17 +22,15 @@ test("parseArgs defaults to medium thread scope", () => {
       "--report",
       "report.md",
       "--output",
-      "summary.mp3"
+      "narration.txt"
     ]),
     {
       thread: "thread.md",
       report: "report.md",
-      output: "summary.mp3",
-      scriptOutput: null,
+      output: "narration.txt",
       mode: "medium",
       scope: "thread",
       openRouterBaseUrl: null,
-      speechifyBaseUrl: null,
       envFile: null,
       overwrite: false,
       dryRun: false,
@@ -40,23 +39,22 @@ test("parseArgs defaults to medium thread scope", () => {
   );
 });
 
-test("parseEnvText reads both provider credentials and the Swipe News profile", () => {
+test("parseArgs rejects the synthesis options that moved to generate-audio", () => {
+  const base = ["--thread", "thread.md", "--report", "report.md", "--output", "narration.txt"];
+  assert.throws(() => parseArgs([...base, "--speechify-base-url", "http://localhost"]), /Unknown option/);
+  assert.throws(() => parseArgs([...base, "--script-output", "script.txt"]), /Unknown option/);
+});
+
+test("parseEnvText reads the OpenRouter credential", () => {
   assert.deepEqual(
     parseEnvText(`
+# narration provider
 OPENROUTER_API_KEY=openrouter-secret
-SPEECHIFY_API_KEY=speechify-secret
-SPEECHIFY_VOICE_ID=harper_32
-SPEECHIFY_MODEL_ID="simba-english"
-SPEECHIFY_VOICE_SPEED=1.1
-SPEECHIFY_LANGUAGE='en-US'
+export OPENROUTER_BASE_URL="https://openrouter.ai/api/v1"
     `),
     {
       OPENROUTER_API_KEY: "openrouter-secret",
-      SPEECHIFY_API_KEY: "speechify-secret",
-      SPEECHIFY_VOICE_ID: "harper_32",
-      SPEECHIFY_MODEL_ID: "simba-english",
-      SPEECHIFY_VOICE_SPEED: "1.1",
-      SPEECHIFY_LANGUAGE: "en-US"
+      OPENROUTER_BASE_URL: "https://openrouter.ai/api/v1"
     }
   );
 });
@@ -77,49 +75,28 @@ test("buildSummaryRequest sends thread and report to OpenRouter Kimi K3", () => 
   assert.match(request.messages[1].content, /five tests passed/);
 });
 
-test("buildSpeechifyRequest matches the managed Swipe News voice shape", () => {
-  assert.deepEqual(
-    buildSpeechifyRequest({
-      narration: "R&D < APIs.\n\nValidation passed.",
-      voiceId: "harper_32",
-      modelId: "simba-english",
-      speed: 1.1,
-      language: "en-US"
-    }),
-    {
-      input: '<speak><break time="0.3s" /><prosody rate="+10%">R&amp;D &lt; APIs.<break strength="weak" />Validation passed.</prosody></speak>',
-      voice_id: "harper_32",
-      model: "simba-english",
-      language: "en-US"
-    }
-  );
-});
-
-test("main generates narration with Kimi K3 and audio with Speechify", async (context) => {
+test("main writes Kimi K3's narration and calls no synthesis provider", async (context) => {
   const temporaryDirectory = await fs.mkdtemp(path.join(os.tmpdir(), "audio-summary-test-"));
   context.after(() => fs.rm(temporaryDirectory, { recursive: true, force: true }));
 
   const threadPath = path.join(temporaryDirectory, "thread.md");
   const reportPath = path.join(temporaryDirectory, "report.md");
-  const outputPath = path.join(temporaryDirectory, "summary.mp3");
-  const scriptPath = path.join(temporaryDirectory, "summary.txt");
+  const outputPath = path.join(temporaryDirectory, "narration.txt");
   await fs.writeFile(threadPath, "User asked for an audio summary.");
   await fs.writeFile(reportPath, "The task completed and validation passed.");
 
-  const expectedAudio = Buffer.from([0x49, 0x44, 0x33, 0x04, 0x00]);
+  const requestedUrls = [];
   let openRouterAuthorization = null;
   let openRouterRequest = null;
-  let speechifyAuthorization = null;
-  let speechifyRequest = null;
 
   const server = http.createServer((request, response) => {
     const chunks = [];
     request.on("data", (chunk) => chunks.push(chunk));
     request.on("end", () => {
-      const body = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+      requestedUrls.push(request.url);
       if (request.url === "/api/v1/chat/completions") {
         openRouterAuthorization = request.headers.authorization;
-        openRouterRequest = body;
+        openRouterRequest = JSON.parse(Buffer.concat(chunks).toString("utf8"));
         response.writeHead(200, { "content-type": "application/json" });
         response.end(
           JSON.stringify({
@@ -127,13 +104,6 @@ test("main generates narration with Kimi K3 and audio with Speechify", async (co
             choices: [{ message: { content: "The requested audio summary is complete. Validation passed." } }]
           })
         );
-        return;
-      }
-      if (request.url === "/v1/audio/stream") {
-        speechifyAuthorization = request.headers.authorization;
-        speechifyRequest = body;
-        response.writeHead(200, { "content-type": "audio/mpeg" });
-        response.end(expectedAudio);
         return;
       }
       response.writeHead(404);
@@ -144,26 +114,8 @@ test("main generates narration with Kimi K3 and audio with Speechify", async (co
   context.after(() => new Promise((resolve) => server.close(resolve)));
   const address = server.address();
 
-  const environmentNames = [
-    "OPENROUTER_API_KEY",
-    "SPEECHIFY_API_KEY",
-    "SPEECHIFY_VOICE_ID",
-    "SPEECHIFY_MODEL_ID",
-    "SPEECHIFY_VOICE_SPEED",
-    "SPEECHIFY_LANGUAGE"
-  ];
-  const originalEnvironment = Object.fromEntries(
-    environmentNames.map((name) => [name, process.env[name]])
-  );
-  Object.assign(process.env, {
-    OPENROUTER_API_KEY: "openrouter-test-key",
-    SPEECHIFY_API_KEY: "speechify-test-key",
-    SPEECHIFY_VOICE_ID: "harper_32",
-    SPEECHIFY_MODEL_ID: "simba-english",
-    SPEECHIFY_VOICE_SPEED: "1.1",
-    SPEECHIFY_LANGUAGE: "en-US"
-  });
-
+  const originalKey = process.env.OPENROUTER_API_KEY;
+  process.env.OPENROUTER_API_KEY = "openrouter-test-key";
   try {
     await main([
       "--thread",
@@ -174,28 +126,42 @@ test("main generates narration with Kimi K3 and audio with Speechify", async (co
       "short",
       "--output",
       outputPath,
-      "--script-output",
-      scriptPath,
       "--openrouter-base-url",
-      `http://127.0.0.1:${address.port}/api/v1`,
-      "--speechify-base-url",
-      `http://127.0.0.1:${address.port}`
+      `http://127.0.0.1:${address.port}/api/v1`
     ]);
   } finally {
-    for (const [name, value] of Object.entries(originalEnvironment)) {
-      if (value === undefined) delete process.env[name];
-      else process.env[name] = value;
-    }
+    if (originalKey === undefined) delete process.env.OPENROUTER_API_KEY;
+    else process.env.OPENROUTER_API_KEY = originalKey;
   }
 
   assert.equal(openRouterAuthorization, "Bearer openrouter-test-key");
   assert.equal(openRouterRequest.model, "moonshotai/kimi-k3");
-  assert.equal(speechifyAuthorization, "Bearer speechify-test-key");
-  assert.equal(speechifyRequest.voice_id, "harper_32");
-  assert.equal(speechifyRequest.model, "simba-english");
-  assert.deepEqual(await fs.readFile(outputPath), expectedAudio);
+  assert.deepEqual(requestedUrls, ["/api/v1/chat/completions"]);
   assert.equal(
-    await fs.readFile(scriptPath, "utf8"),
+    await fs.readFile(outputPath, "utf8"),
     "The requested audio summary is complete. Validation passed.\n"
   );
+});
+
+test("main requires a .txt output so narration is never mistaken for audio", async (context) => {
+  const temporaryDirectory = await fs.mkdtemp(path.join(os.tmpdir(), "audio-summary-test-"));
+  context.after(() => fs.rm(temporaryDirectory, { recursive: true, force: true }));
+
+  await assert.rejects(
+    main(["--thread", "thread.md", "--report", "report.md", "--output", path.join(temporaryDirectory, "summary.mp3")]),
+    /--output must use the \.txt extension/
+  );
+});
+
+test("the script runs when reached through a symlinked path", async (context) => {
+  const temporaryDirectory = await fs.mkdtemp(path.join(os.tmpdir(), "audio-summary-test-"));
+  context.after(() => fs.rm(temporaryDirectory, { recursive: true, force: true }));
+  const scripts = path.dirname(fileURLToPath(new URL("../scripts/generate_narration.mjs", import.meta.url)));
+  const link = path.join(temporaryDirectory, "linked-scripts");
+  await fs.symlink(scripts, link);
+
+  const output = execFileSync(process.execPath, [path.join(link, "generate_narration.mjs"), "--help"], {
+    encoding: "utf8"
+  });
+  assert.match(output, /Usage: node generate_narration\.mjs/, "the script exited without running");
 });
