@@ -4,7 +4,7 @@ import json
 import sys
 import time
 
-from . import VERSION, capture, retrieval, telemetry
+from . import VERSION, capture, diagnostics, retrieval, telemetry
 from .api import Client, array
 from .config import Config, MemoryError
 from .storage import now, read_json, write_json
@@ -15,21 +15,15 @@ def doctor(config, repo=None):
     last = read_json(config.state_dir / "last-drain.json", {})
     sessions = [read_json(path) for path in (config.state_dir / "sessions").glob("*.json")]
     native_pending = list((config.state_dir / "native-hooks").glob("*.json"))
-    hook_errors = []
-    error_file = config.state_dir / "hook-errors.jsonl"
-    if error_file.exists():
-        for line in error_file.read_text().splitlines():
-            try:
-                item = json.loads(line)
-            except ValueError:
-                continue
-            hook_errors.append({key: item.get(key) for key in ("time", "component", "error_type")})
+    hook_errors = diagnostics.load(config, diagnostics.ERRORS)
+    recent = diagnostics.summary(config, days=7)
     result = {"version": VERSION, "protocol": "ai-memory-1.28.1", "host_id": config.host_id,
               "capture_initialized": bool(boundary), "activated_at": boundary.get("activated_at") if boundary else None,
               "queued_sessions": len(list((config.state_dir / "queue").glob("*.json"))),
               "native_hook_queue": {"pending": len(native_pending), "oldest_age_seconds":
                   round(time.time() - min(path.stat().st_mtime for path in native_pending)) if native_pending else None},
               "hook_error_count": len(hook_errors), "latest_hook_error": hook_errors[-1] if hook_errors else None,
+              "diagnostics": recent, "capture_by_agent": capture_by_agent(sessions),
               "observed_native_sessions": len(sessions),
               "captured_visible_events": sum(item.get("imported_events", 0) for item in sessions),
               "last_drain": last, "losses": sorted({loss for item in sessions for loss in item.get("losses", [])}),
@@ -54,13 +48,49 @@ def doctor(config, repo=None):
         result.update({"server_readable": False, "server_error": str(error)})
     result["status"] = "ready" if all((result["capture_initialized"], result["server_readable"],
         result["registry_receipt_key_ready"], result.get("scope_exists", True))) else "degraded"
-    coverage_losses = [loss for loss in result["losses"] if loss in {
-        "unknown_rollout_requires_start_boundary", "first_seen_without_session_start_prefix_excluded",
-        "unproven_start_prefix_excluded",
-        "malformed_record_skipped", "empty_or_unsupported_visible_content"} or loss.startswith("unsupported_response_item:")]
-    if result["queued_sessions"] or native_pending or coverage_losses or result["last_hook_error"] or hook_errors:
+    # Attention means something is wrong now. All-time totals and the losses
+    # every mid-session enrollment records stay visible above, but a status
+    # that can never return to ready detects nothing.
+    reasons = []
+    if recent["errors_last_24h"]:
+        reasons.append("hook_or_drain_errors_last_24h")
+    stuck = [path for path in (config.state_dir / "queue").glob("*.json")
+             if time.time() - path.stat().st_mtime > STUCK_SECONDS]
+    if stuck:
+        reasons.append("capture_queue_older_than_30_minutes")
+    if native_pending and time.time() - min(path.stat().st_mtime for path in native_pending) > STUCK_SECONDS:
+        reasons.append("native_hook_queue_older_than_30_minutes")
+    if result["last_hook_error"]:
+        reasons.append("last_hook_error_present")
+    result["attention_reasons"] = reasons
+    if reasons and result["status"] == "ready":
         result["status"] = "attention"
     return result
+
+
+STUCK_SECONDS = 1800
+
+
+def capture_by_agent(sessions, days=7):
+    """Silent failure shows up as hooks arriving while nothing is imported."""
+    since = time.time() - days * 86400
+    agents = {}
+    for item in sessions:
+        if not isinstance(item, dict):
+            continue
+        agent = agents.setdefault(item.get("agent", "codex"), {
+            "sessions": 0, "sessions_active_last_7d": 0, "active_sessions_with_imports": 0,
+            "imported_events": 0, "last_hook_at": None, "last_import_at": None})
+        agent["sessions"] += 1
+        agent["imported_events"] += item.get("imported_events", 0)
+        for field, source in (("last_hook_at", "last_hook_at"), ("last_import_at", "last_import_at")):
+            value = item.get(source)
+            if isinstance(value, str) and (agent[field] is None or value > agent[field]):
+                agent[field] = value
+        if isinstance(item.get("last_hook_at"), str) and item["last_hook_at"] >= diagnostics.stamp(since):
+            agent["sessions_active_last_7d"] += 1
+            agent["active_sessions_with_imports"] += 1 if item.get("imported_events") else 0
+    return agents
 
 
 def parser():
@@ -77,9 +107,10 @@ def parser():
     drain = operations.add_parser("drain", help="Drain durable queue in bounded short managed runs")
     drain.add_argument("--session-id")
     drain.add_argument("--json", action="store_true")
-    for name in ("search", "query", "read-session", "read", "doctor", "report"):
-        command = commands.add_parser(name)
-        command.add_argument("--repo", required=name not in {"doctor", "report"})
+    for name in ("search", "query", "read-session", "read", "doctor", "report", "errors"):
+        command = commands.add_parser(name, help="Group recent hook and drain faults by cause, without payload text"
+                                      if name == "errors" else None)
+        command.add_argument("--repo", required=name not in {"doctor", "report", "errors"})
         command.add_argument("--json", action="store_true")
         if name in {"search", "query", "read-session", "read"}:
             command.add_argument("--include-parent", "--include-workspace", dest="include_parent", action="store_true")
@@ -90,8 +121,8 @@ def parser():
             command.add_argument("session_id")
         if name == "read":
             command.add_argument("--session", dest="session_id", required=True)
-        if name == "report":
-            command.add_argument("--days", type=int, default=14)
+        if name in {"report", "errors"}:
+            command.add_argument("--days", type=int, default=14 if name == "report" else 7)
     return root
 
 
@@ -113,6 +144,10 @@ def main(argv=None):
                 result = capture.drain(config, args.session_id)
         elif args.command == "doctor":
             result = doctor(config, args.repo)
+        elif args.command == "errors":
+            if args.days < 1 or args.days > 366:
+                raise MemoryError("days must be between1 and366")
+            result = diagnostics.summary(config, args.days)
         elif args.command == "report":
             if args.days < 1 or args.days > 366:
                 raise MemoryError("days must be between1 and366")

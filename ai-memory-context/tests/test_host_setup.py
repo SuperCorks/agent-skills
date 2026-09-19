@@ -99,6 +99,27 @@ class InstallationTests(unittest.TestCase):
         self.assertIn("SessionEnd", result["hooks"])
         self.assertEqual(result, self.setup.reconcile_hooks(result, "/skills/ai-memory-context/scripts/context_hook.py", "/usr/bin/python3"))
 
+    def test_claude_install_keeps_native_lifecycle_hooks_and_is_idempotent(self):
+        native = "'/releases/ai-memory' --data-dir '/data' hook --event stop --agent claude-code"
+        original = {"theme": "dark", "hooks": {
+            "Stop": [{"matcher": "", "hooks": [{"type": "command", "command": native},
+                                                {"type": "command", "command": "my-notifier --done"}]}],
+            "PreToolUse": [{"matcher": "", "hooks": [{"type": "command", "command": native.replace("stop", "pre-tool-use")}]}],
+        }}
+        hook = "/skills/ai-memory-context/scripts/context_hook.py"
+        result = self.setup.reconcile_claude_hooks(original, hook, "/usr/bin/python3")
+        commands = {event: [h["command"] for group in groups for h in group["hooks"]] for event, groups in result["hooks"].items()}
+        # ai-memory's own Claude hooks own lifecycle observations and the briefing: they stay.
+        self.assertIn(native, commands["Stop"])
+        self.assertIn("my-notifier --done", commands["Stop"])
+        self.assertIn("/usr/bin/python3 " + hook + " Stop --agent claude-code", commands["Stop"])
+        self.assertEqual(result["theme"], "dark")
+        # No per-tool-call process before the tool runs; capture reads the transcript afterwards.
+        self.assertFalse(any("context_hook.py" in command for command in commands["PreToolUse"]))
+        self.assertEqual({event for event, listed in commands.items() if any("context_hook.py" in c for c in listed)},
+                         set(self.setup.CLAUDE_EVENTS))
+        self.assertEqual(result, self.setup.reconcile_claude_hooks(result, hook, "/usr/bin/python3"))
+
     def test_serena_registration_is_unbound_and_does_not_modify_trust(self):
         import tomllib
         original = 'model = "example"\n[hooks.state."old-hook"]\ntrusted_hash = "unchanged"\n[mcp_servers.other]\nurl = "https://example.invalid/mcp"\n[mcp_servers.serena]\ncommand = "old"\nargs = ["--project-from-cwd"]\n[mcp_servers.graphify]\ncommand = "graphify-mcp"\n'

@@ -42,6 +42,61 @@ tool result is retained as a tool event with empty content. Do not claim that
 arbitrary structured metadata round-trips through the public reader.
 See the pinned [event storage and reader implementation](https://github.com/akitaonrails/ai-memory/blob/v1.28.1/crates/ai-memory-store/src/workstream.rs).
 
+## Claude Code capture
+
+The same fuller capture reads Claude Code transcripts. ai-memory's own Claude
+hooks stay installed and keep owning the bounded observations and the session
+briefing; the companion runs beside them as `context_hook.py <Event> --agent
+claude-code` and does transcript capture only.
+
+```sh
+python3 ~/.agents/skills/ai-memory-context/scripts/install-context.py --claude-settings ~/.claude/settings.json
+python3 ~/.agents/skills/ai-memory-context/scripts/install-context.py --claude-settings ~/.claude/settings.json --apply
+```
+
+That mode touches the named settings file and nothing else. List every Claude
+transcript root in `transcript_roots` (the default covers `~/.claude/projects`
+only; add each extra `CLAUDE_CONFIG_DIR`).
+
+- A Claude transcript has no header record. Identity is the `sessionId` every
+  record carries, and it must agree with the file's location:
+  `<sessionId>.jsonl`, or `<sessionId>/subagents/agent-*.jsonl` for a subagent
+  sidechain. A sidechain belongs to its session and is captured with it, tagged
+  `agent_id`; one older than the session's enrollment stays excluded.
+- Text, tool calls, and tool results are captured. Thinking, images, harness
+  bookkeeping records, `isMeta` text, and injected envelopes such as
+  `<system-reminder>` are not.
+- Claude writes the transcript only after the first prompt, so SessionStart
+  usually has no file and is an expected skip. A session first seen while its
+  file is under ten minutes old starts at byte zero; an older file may be a
+  resumed copy of captured history and starts at its current end.
+- There is no PreToolUse hook: capture reads the transcript, so a process per
+  tool call would add overhead for nothing. Tool durations in `report` are
+  therefore Codex-only.
+
+## Diagnosing capture
+
+```sh
+agent-memory doctor --json            # is anything wrong now, and why
+agent-memory errors --days 7 --json   # recent faults grouped by cause
+```
+
+- `hook-errors.jsonl` holds faults; `hook-skips.jsonl` holds expected refusals
+  such as a session with no persisted transcript. Both rotate at 4 MiB.
+- Each record names the static refusal message, the companion line that raised
+  it, the hook event, agent, session, and scope. It never holds payload text:
+  only this companion's `MemoryError` messages are recorded, a test requires
+  every one to be a source literal, and any other exception keeps just its type
+  and numeric status.
+- `doctor` reports `attention` only for something wrong now: a fault in the
+  last 24 hours, a queue older than 30 minutes, or a recorded hook error.
+  `attention_reasons` names which. All-time totals and enrollment losses stay
+  visible but no longer hold the status down.
+- `capture_by_agent` shows silent failure: hooks still arriving for an agent
+  while `active_sessions_with_imports` stays at zero.
+- Drain failures are logged too; `last-drain.json` alone is overwritten by the
+  next run.
+
 ## Host configuration
 
 Install only in the canonical global skills checkout, `~/.agents/skills`.

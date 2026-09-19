@@ -16,7 +16,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 from agent_memory import capture, cli, retrieval, telemetry
 from agent_memory.api import Client
 from agent_memory.api import REGISTRY_PREFIX, REGISTRY_TITLE
-from agent_memory.config import Config, MemoryError
+from agent_memory.config import CaptureSkip, Config, MemoryError
 from agent_memory.storage import read_json
 from agent_memory.transcript import scan, snapshot
 
@@ -131,11 +131,20 @@ class FakeMemory:
 SESSION = "019fa83b-b2fe-7773-a68f-2d7f53b65211"
 FORK = "019fa83b-b2fe-7773-a68f-2d7f53b65212"
 CHILD = "019fa83b-b2fe-7773-a68f-2d7f53b65213"
+CLAUDE = "5b1c2d3e-0000-4000-8000-00000000c1a0"
 
 
 def message(text, stamp="2026-09-01T00:00:01Z", role="assistant"):
     return {"type": "response_item", "timestamp": stamp, "payload": {
         "type": "message", "role": role, "content": [{"type": "output_text", "text": text}]}}
+
+
+def claude(kind, blocks, session=CLAUDE, stamp=None, **extra):
+    """One Claude Code transcript record; every record names its sessionId."""
+    return {"type": kind, "sessionId": session, "uuid": extra.pop("uuid", os.urandom(8).hex()),
+            "timestamp": stamp or datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+            "cwd": extra.pop("cwd", "/work"), "isSidechain": False,
+            "message": {"role": kind, "content": blocks}, **extra}
 
 
 class CaptureIntegrationTests(unittest.TestCase):
@@ -411,6 +420,134 @@ class CaptureIntegrationTests(unittest.TestCase):
         no_parent = self.new_file(CHILD, root=SESSION)
         with self.assertRaises(MemoryError):
             self.hook("PreToolUse", no_parent, SESSION)
+        self.assertEqual(list((self.config.state_dir / "queue").glob("*.json")), [])
+
+    def claude_file(self, session=CLAUDE, stamp=None):
+        """Claude Code project layout: <root>/<project-slug>/<sessionId>.jsonl."""
+        folder = self.native / "-work-repo"
+        folder.mkdir(exist_ok=True)
+        path = folder / (session + ".jsonl")
+        self.append({"type": "queue-operation", "operation": "enqueue", "sessionId": session,
+                     "timestamp": stamp or datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")}, path)
+        return path
+
+    def claude_hook(self, event, path, session=CLAUDE, **extra):
+        return capture.hook(self.config, event, {"session_id": session, "cwd": str(self.repo),
+                                                 "transcript_path": str(path), **extra}, spawn=False)
+
+    def test_claude_transcript_captures_visible_blocks_and_excludes_private_and_injected_ones(self):
+        capture.initialize(self.config)
+        path = self.claude_file()
+        self.append(claude("user", "please rename the wordmark"), path)
+        self.claude_hook("UserPromptSubmit", path)
+        self.append(claude("assistant", [{"type": "thinking", "thinking": "secret chain of thought", "signature": "sig"},
+                                         {"type": "text", "text": "I will edit two files."},
+                                         {"type": "tool_use", "id": "toolu_1", "name": "Bash", "input": {"command": "ls"}}]), path)
+        self.append(claude("user", [{"type": "tool_result", "tool_use_id": "toolu_1", "content": "README.md"}]), path)
+        self.append(claude("user", [{"type": "text", "text": "<system-reminder>injected</system-reminder>"}]), path)
+        self.append(claude("user", "harness caveat", isMeta=True), path)
+        self.append({"type": "attachment", "sessionId": CLAUDE, "attachment": {"type": "hook_success", "stdout": "{}"}}, path)
+        self.claude_hook("Stop", path)
+        capture.drain(self.config)
+        events = self.events()
+        self.assertEqual([(event["kind"], event["role"], event["content"]) for event in events], [
+            ("message", "user", "please rename the wordmark"),
+            ("message", "assistant", "I will edit two files."),
+            ("tool_call", "assistant", 'Bash: {"command": "ls"}'),
+            ("tool_result", "tool", "README.md")])
+        self.assertEqual({event["agent"] for event in events}, {"claude-code"})
+        self.assertNotIn("secret chain of thought", json.dumps(events))
+        state = read_json(capture.state_path(self.config, CLAUDE))
+        self.assertEqual(state["agent"], "claude-code")
+        self.assertEqual(state["losses"], ["private_record_excluded"])
+        self.assertEqual(capture.descriptor(state)["adapter"], "claude-code-v1")
+        prepares = [body for method, route, body in self.server.requests if route == "/workstream/runs"]
+        self.assertEqual({body["agent"] for body in prepares}, {"claude-code"})
+
+    def test_claude_mid_turn_messages_and_slash_command_arguments_are_the_users_words(self):
+        capture.initialize(self.config)
+        path = self.claude_file()
+        self.append(claude("user", "first prompt"), path)
+        self.claude_hook("UserPromptSubmit", path)
+        self.append({"type": "attachment", "sessionId": CLAUDE, "uuid": "q1", "timestamp": "2026-09-19T00:00:02Z",
+                     "attachment": {"type": "queued_command", "prompt": "Just at the UI level", "commandMode": "prompt"}}, path)
+        self.append({"type": "attachment", "sessionId": CLAUDE, "uuid": "q2", "timestamp": "2026-09-19T00:00:03Z",
+                     "attachment": {"type": "queued_command", "prompt": "<task-notification>build done</task-notification>"}}, path)
+        self.append(claude("user", "<command-message>review</command-message>\n<command-name>/review</command-name>\n"
+                                   "<command-args>only the auth module</command-args>"), path)
+        self.append(claude("user", "Base directory for this skill: /skills/review\n\n# injected skill body", isMeta=True), path)
+        self.claude_hook("Stop", path)
+        capture.drain(self.config)
+        events = self.events()
+        self.assertEqual([event["content"] for event in events],
+                         ["first prompt", "Just at the UI level", "/review only the auth module"])
+        self.assertEqual([event["metadata"].get("sent_mid_turn") for event in events], [None, True, None])
+        self.assertNotIn("injected skill body", json.dumps(events))
+
+    def test_claude_session_first_seen_midway_excludes_earlier_history(self):
+        capture.initialize(self.config)
+        old = "2026-01-01T00:00:00Z"
+        path = self.claude_file(stamp=old)
+        self.append(claude("user", "history from before capture", stamp=old), path)
+        self.claude_hook("PostToolUse", path)
+        self.append(claude("assistant", [{"type": "text", "text": "new work"}]), path)
+        self.claude_hook("Stop", path)
+        capture.drain(self.config)
+        self.assertEqual([event["content"] for event in self.events()], ["new work"])
+        self.assertIn("first_seen_without_session_start_prefix_excluded",
+                      read_json(capture.state_path(self.config, CLAUDE))["losses"])
+
+    def test_claude_resumed_copy_is_not_treated_as_a_fresh_session(self):
+        capture.initialize(self.config)
+        path = self.claude_file()
+        self.append(claude("user", "copied history"), path)
+        self.claude_hook("SessionStart", path, source="resume")
+        self.append(claude("user", "after resume"), path)
+        self.claude_hook("Stop", path)
+        capture.drain(self.config)
+        self.assertEqual([event["content"] for event in self.events()], ["after resume"])
+
+    def test_claude_identity_is_bound_to_file_location_and_hook_session(self):
+        capture.initialize(self.config)
+        path = self.claude_file()
+        self.append(claude("user", "hello"), path)
+        with self.assertRaises(MemoryError):  # hook names another session
+            self.claude_hook("Stop", path, session=FORK)
+        misplaced = path.with_name(FORK + ".jsonl")  # content claims CLAUDE, file says FORK
+        misplaced.write_text(path.read_text())
+        with self.assertRaises(MemoryError):
+            self.claude_hook("Stop", misplaced, session=CLAUDE)
+        self.assertEqual(list((self.config.state_dir / "queue").glob("*.json")), [])
+
+    def test_claude_subagent_sidechain_is_captured_only_when_born_after_enrollment(self):
+        capture.initialize(self.config)
+        path = self.claude_file()
+        sidechains = path.parent / CLAUDE / "subagents"
+        sidechains.mkdir(parents=True)
+        self.append(claude("user", "old sidechain prompt", stamp="2026-01-01T00:00:00Z", agentId="old", isSidechain=True),
+                    sidechains / "agent-old.jsonl")
+        self.append(claude("user", "main prompt"), path)
+        self.claude_hook("UserPromptSubmit", path)
+        time.sleep(0.01)
+        self.append(claude("assistant", [{"type": "text", "text": "subagent finding"}], agentId="new", isSidechain=True),
+                    sidechains / "agent-new.jsonl")
+        self.claude_hook("Stop", path)
+        capture.drain(self.config)
+        events = self.events()
+        self.assertEqual(sorted(event["content"] for event in events), ["main prompt", "subagent finding"])
+        self.assertEqual([event["metadata"].get("agent_id") for event in events if event["content"] == "subagent finding"], ["new"])
+        self.assertIn("sidechain_before_enrollment_excluded", read_json(capture.state_path(self.config, CLAUDE))["losses"])
+
+    def test_session_without_a_persisted_transcript_is_an_expected_skip_not_a_fault(self):
+        capture.initialize(self.config)
+        for transcript_path in (None, "", str(self.native / "rollout-never-written.jsonl")):
+            with self.assertRaises(CaptureSkip):
+                capture.hook(self.config, "SessionStart", {"session_id": SESSION, "cwd": str(self.repo),
+                                                           "transcript_path": transcript_path}, spawn=False)
+        with self.assertRaises(MemoryError) as outside:
+            capture.hook(self.config, "Stop", {"session_id": SESSION, "cwd": str(self.repo),
+                                               "transcript_path": str(self.root / "elsewhere.jsonl")}, spawn=False)
+        self.assertNotIsInstance(outside.exception, CaptureSkip)
         self.assertEqual(list((self.config.state_dir / "queue").glob("*.json")), [])
 
     def test_header_mismatch_and_unknown_scope_cannot_enqueue(self):

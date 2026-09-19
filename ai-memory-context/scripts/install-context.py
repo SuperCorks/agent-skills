@@ -55,6 +55,63 @@ def reconcile_hooks(original, hook_path, python_path):
     return result
 
 
+# Claude Code needs no PreToolUse hook: capture reads the transcript, and a
+# process per tool call would double the overhead for nothing. SubagentStop is
+# the moment a sidechain's work is complete and worth draining.
+CLAUDE_EVENTS = ("SessionStart", "UserPromptSubmit", "PostToolUse", "PreCompact", "Stop", "SubagentStop", "SessionEnd")
+
+
+def companion_command(command):
+    try:
+        return isinstance(command, str) and any(Path(part).name == "context_hook.py" for part in shlex.split(command))
+    except ValueError:
+        return False
+
+
+def reconcile_claude_hooks(original, hook_path, python_path):
+    """Add fuller capture beside ai-memory's own Claude hooks, which stay.
+
+    Those native hooks own the bounded observations and the session briefing,
+    so only this companion's entries are replaced here.
+    """
+    result = copy.deepcopy(original)
+    hooks = result.setdefault("hooks", {})
+    for event, groups in list(hooks.items()):
+        kept = []
+        for group in groups:
+            retained = [entry for entry in group.get("hooks", []) if not companion_command(entry.get("command"))]
+            if retained:
+                kept.append({**group, "hooks": retained})
+        if kept:
+            hooks[event] = kept
+        else:
+            hooks.pop(event, None)
+    for event in CLAUDE_EVENTS:
+        command = shlex.join([python_path, str(hook_path), event, "--agent", "claude-code"])
+        hooks.setdefault(event, []).append({"matcher": "", "hooks": [{"type": "command", "command": command, "timeout": 3}]})
+    return result
+
+
+def install_claude(args, hook_path):
+    """Claude-only mode: touches the named settings file and nothing else."""
+    target = args.claude_settings.expanduser()
+    if target.is_symlink():
+        target = target.resolve()
+    original = json.loads(target.read_text()) if target.exists() else {}
+    desired = json.dumps(reconcile_claude_hooks(original, str(hook_path), sys.executable), indent=2) + "\n"
+    changed = not target.exists() or target.read_text() != desired
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S.%fZ")
+    backup = args.home.expanduser().resolve() / ".local" / "state" / "agent-memory" / "install-backups" / (stamp + "-claude")
+    if args.apply and changed:
+        write_private(target, desired, backup)
+    print(json.dumps({"mode": "apply" if args.apply else "preview", "changed_paths": [str(target)] if changed else [],
+                      "events": list(CLAUDE_EVENTS), "backup_dir": str(backup) if args.apply and changed else None,
+                      "next": "Add the Claude transcript roots to transcript_roots, start a new Claude Code session "
+                              "in an allowlisted repository, then check `agent-memory doctor` and `agent-memory errors`."},
+                     indent=2))
+    return 0
+
+
 def reconcile_codex(original):
     """Section-local TOML edits preserve unrelated values, comments, and trust."""
     tomllib.loads(original)
@@ -104,12 +161,16 @@ def main():
     parser.add_argument("--home", type=Path, default=Path.home(), help="Host user's home; primarily useful for fixture tests")
     parser.add_argument("--source", type=Path, default=Path(__file__).resolve().parents[1])
     parser.add_argument("--config-template", type=Path, help="Secret-free agent-memory config JSON")
+    parser.add_argument("--claude-settings", type=Path,
+                        help="Install fuller capture into this Claude Code settings.json only; leaves Codex untouched")
     args = parser.parse_args()
     source = args.source.expanduser().resolve()
     entrypoint = source / "scripts" / "agent-memory"
     hook_path = source / "scripts" / "context_hook.py"
     if not entrypoint.is_file() or not hook_path.is_file():
         parser.error("source must contain the complete ai-memory-context companion")
+    if args.claude_settings:
+        return install_claude(args, hook_path)
     task_home = args.home.expanduser().resolve()
     config_path = task_home / ".codex" / "config.toml"
     hooks_path = task_home / ".codex" / "hooks.json"

@@ -8,9 +8,9 @@ from datetime import datetime
 from pathlib import Path
 
 from .api import ApiError, Client, register_ledger
-from .config import MemoryError
+from .config import CaptureSkip, MemoryError
 from .storage import digest, locked, now, private_dir, read_json, write_json
-from . import telemetry, transcript
+from . import diagnostics, telemetry, transcript
 
 
 def initialize(config):
@@ -44,6 +44,9 @@ def activation(config):
     return result
 
 
+CLAUDE_FRESH_SECONDS = 600
+
+
 def state_path(config, session_id):
     return config.state_dir / "sessions" / (digest(session_id) + ".json")
 
@@ -55,7 +58,8 @@ def job_path(config, session_id):
 def canonical_event(event):
     aliases = {"session-start": "SessionStart", "user-prompt-submit": "UserPromptSubmit",
                "pre-tool-use": "PreToolUse", "post-tool-use": "PostToolUse", "stop": "Stop",
-               "pre-compact": "PreCompact", "session-end": "SessionEnd", "post-tool-use-failure": "PostToolUseFailure"}
+               "pre-compact": "PreCompact", "session-end": "SessionEnd", "post-tool-use-failure": "PostToolUseFailure",
+               "subagent-stop": "SubagentStop"}
     return aliases.get(event, event)
 
 
@@ -74,6 +78,8 @@ def hook(config, event, payload, spawn=True):
     telemetry.record(config, event, payload, scope)
     boundary = activation(config)
     raw_path = payload.get("transcript_path")
+    if raw_path is None or raw_path == "":
+        raise CaptureSkip("Session has no persisted transcript; nothing to capture")
     if not isinstance(raw_path, str):
         raise MemoryError("Native hook transcript_path is required; capture cannot guess latest")
     path = transcript.allowed_path(config, raw_path)
@@ -95,7 +101,7 @@ def hook(config, event, payload, spawn=True):
             state = {"version": 1, "session_id": session_id, "scope": scope, "anchor_cwd": cwd,
                      "activated_at": boundary["activated_at"], "host_id": config.host_id,
                      "files": {}, "seen_event_ids": [], "losses": [], "imported_events": 0,
-                     "first_observed_at": now()}
+                     "first_observed_at": now(), "agent": meta["dialect"]}
             if parent_session_id:
                 state["parent_session_id"] = parent_session_id
         # Session scope is frozen. A task can move worktrees; shell tool workdirs
@@ -119,16 +125,27 @@ def hook(config, event, payload, spawn=True):
                 try:
                     created = datetime.fromisoformat(meta.get("timestamp", "").replace("Z", "+00:00"))
                     activated = datetime.fromisoformat(boundary["activated_at"].replace("Z", "+00:00"))
-                    fresh = (new_session and event == "SessionStart" and payload.get("source") == "startup"
-                             and created.tzinfo is not None and created >= activated
-                             and not any(meta.get(key) for key in ("forked_from_id", "forked_from", "parent_thread_id")))
+                    fresh = new_session and created.tzinfo is not None and created >= activated
+                    if meta["dialect"] == transcript.CLAUDE:
+                        # Claude Code writes the transcript only once the first
+                        # prompt lands, so SessionStart usually has no file yet
+                        # and the session is first seen a moment later. A young
+                        # file is a new session; an older one may be a resumed
+                        # copy of history that was already captured.
+                        age = (datetime.now(created.tzinfo) - created).total_seconds()
+                        fresh = fresh and payload.get("source") in (None, "startup") and age <= CLAUDE_FRESH_SECONDS
+                    else:
+                        fresh = (fresh and event == "SessionStart" and payload.get("source") == "startup"
+                                 and not any(meta.get(key) for key in ("forked_from_id", "forked_from", "parent_thread_id")))
                 except (TypeError, ValueError):
                     fresh = False
                 baseline = {"offset": 0, "prefix_sha256": digest(b"")} if fresh else transcript.snapshot(path)
                 cursor = baseline
-                if event != "SessionStart":
+                if fresh:
+                    pass
+                elif event != "SessionStart":
                     state["losses"] = sorted(set(state["losses"] + ["first_seen_without_session_start_prefix_excluded"]))
-                elif not fresh:
+                else:
                     state["losses"] = sorted(set(state["losses"] + ["unproven_start_prefix_excluded"]))
             state["files"][str(path)] = {"baseline": baseline, "cursor": cursor}
         state["last_hook_at"] = now()
@@ -139,7 +156,7 @@ def hook(config, event, payload, spawn=True):
         job.update({"revision": job["revision"] + 1, "queued_at": now(), "last_event": event})
         write_json(job_path(config, session_id), job)
         threshold = max(1, int(config.data.get("tool_drain_threshold", 32)))
-        should_drain = event in {"Stop", "PreCompact", "SessionEnd"} or (
+        should_drain = event in {"Stop", "PreCompact", "SessionEnd", "SubagentStop"} or (
             event in {"PostToolUse", "PostToolUseFailure"} and state["hook_count"] % threshold == 0)
     if spawn and should_drain:
         spawn_drain(config)
@@ -170,6 +187,11 @@ def discover_files(config, state, boundary):
                       for path in root.rglob("*" + session_id + "*.jsonl")]
     except ValueError:
         candidates = transcript.files(config)
+    sidechains = set()
+    if state.get("agent") == transcript.CLAUDE:
+        for known in list(found):
+            sidechains.update(path.resolve() for path in (known.parent / known.stem / "subagents").glob("agent-*.jsonl"))
+        candidates = list(candidates) + sorted(sidechains)
     for candidate in candidates:
         try:
             candidate = transcript.allowed_path(config, candidate)
@@ -177,6 +199,16 @@ def discover_files(config, state, boundary):
                 continue
         except MemoryError:
             continue
+        if str(candidate) not in state["files"] and candidate in sidechains:
+            # A sidechain born after enrollment is wholly new work. An older one
+            # predates consent to capture this session and stays excluded.
+            created = transcript.header(candidate).get("timestamp", "")
+            if created and created >= state["first_observed_at"]:
+                baseline = {"offset": 0, "prefix_sha256": digest(b"")}
+            else:
+                baseline = transcript.snapshot(candidate)
+                state["losses"] = sorted(set(state["losses"] + ["sidechain_before_enrollment_excluded"]))
+            state["files"][str(candidate)] = {"baseline": baseline, "cursor": baseline}
         if str(candidate) not in state["files"]:
             baseline = boundary["files"].get(str(candidate))
             # Archive moves retain the prefix. Match only this native session's
@@ -230,7 +262,8 @@ def descriptor(state):
     result = {"version": 1, **state["scope"], "registry_key": state["registry_key"],
               "workstream_id": state["workstream_id"], "native_session_id": state["session_id"],
               "host_id": state["host_id"], "capture_started_at": state["activated_at"],
-              "mode": "future-visible-events-only", "adapter": "codex-desktop-v1"}
+              "mode": "future-visible-events-only",
+              "adapter": "claude-code-v1" if state.get("agent") == transcript.CLAUDE else "codex-desktop-v1"}
     if state.get("parent_session_id"):
         result["parent_native_session_id"] = state["parent_session_id"]
     return result
@@ -253,7 +286,7 @@ def prepare(client, state):
     key = digest([state["scope"], state["host_id"], state["session_id"]])
     state["registry_key"] = key
     name = "desktop-" + key[:40]
-    request = {**state["scope"], "cwd": state["anchor_cwd"], "agent": "codex",
+    request = {**state["scope"], "cwd": state["anchor_cwd"], "agent": state.get("agent", transcript.CODEX),
                "repo_fingerprint": "desktop-v1:" + digest(state["scope"]),
                "worktree_fingerprint": "desktop-v1:" + key,
                "lease_owner": state["host_id"] + ":" + str(os.getpid()), "workstream": name}
@@ -295,16 +328,20 @@ def drain_one(config, client, session_id, deadline):
         revision = job["revision"]
         boundary = activation(config)
         events, cursors = [], {}
+        # Discovery records its own losses on the state, so it has to run before
+        # they are copied; otherwise the final write drops them.
+        paths = discover_files(config, state, boundary)
         seen = set(state["seen_event_ids"])
         losses = set(state["losses"])
         deferred = False
-        for path in discover_files(config, state, boundary):
+        for path in paths:
             if time.monotonic() > deadline:
                 raise MemoryError("Capture drain budget exhausted; pending work retained")
             file_state = state["files"][str(path)]
             if transcript.header(path)["id"] != session_id:
                 raise MemoryError("Transcript identity changed; capture quarantined")
-            visible, cursor, omitted = transcript.scan(path, session_id, file_state["cursor"], file_state["baseline"])
+            visible, cursor, omitted = transcript.scan(path, session_id, file_state["cursor"], file_state["baseline"],
+                                                       state.get("agent", transcript.CODEX))
             cursors[str(path)] = cursor
             losses.update(omitted)
             deferred = deferred or "partial_tail_deferred" in omitted
@@ -368,6 +405,8 @@ def drain_one(config, client, session_id, deadline):
             state["seen_event_ids"] = pending["seen_event_ids"]
             state["losses"] = pending["losses"]
             state["imported_events"] += len(events)
+            if events:
+                state["last_import_at"] = now()
             state["last_success_at"] = now()
             save_state(config, state)
             (config.state_dir / "pending" / (key + ".json")).unlink()
@@ -405,6 +444,7 @@ def drain(config, session_id=None):
             pass
         except MemoryError as error:
             native_error = str(error)
+            diagnostics.note(config, "native-drain", error, agent=transcript.CODEX)
         candidates = [job_path(config, session_id)] if session_id else sorted((config.state_dir / "queue").glob("*.json"))
         for candidate in candidates:
             job = read_json(candidate)
@@ -414,6 +454,11 @@ def drain(config, session_id=None):
                 result = drain_one(config, client, job["session_id"], deadline)
             except MemoryError as error:
                 result = {"session_id": job["session_id"], "status": "pending", "error": str(error)}
+                # last-drain.json is overwritten by the next run; the fault log
+                # keeps the history that shows whether a session is stuck.
+                enrolled = read_json(state_path(config, job["session_id"]), {})
+                diagnostics.note(config, "drain", error, payload={"session_id": job["session_id"]},
+                                 scope=enrolled.get("scope"), agent=enrolled.get("agent", transcript.CODEX))
             results.append(result)
             if time.monotonic() >= deadline:
                 break

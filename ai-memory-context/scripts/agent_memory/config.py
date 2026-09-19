@@ -9,7 +9,15 @@ from urllib.parse import urlsplit
 
 
 class MemoryError(Exception):
-    """Safe user-facing error: never include HTTP bodies or credentials."""
+    """Safe user-facing error: never include HTTP bodies or credentials.
+
+    Messages are static source literals. Diagnostics record them verbatim, so a
+    message must never interpolate a path, payload, or server response.
+    """
+
+
+class CaptureSkip(MemoryError):
+    """An expected refusal, not a fault: there is nothing here to capture."""
 
 
 def scope_key(scope):
@@ -46,7 +54,7 @@ class Config:
             if item.get("parent"):
                 self.require_scope(item["parent"])
         self.transcript_roots = [Path(p).expanduser().resolve() for p in data.get("transcript_roots", [
-            "~/.codex/sessions", "~/.codex/archived_sessions"])]
+            "~/.codex/sessions", "~/.codex/archived_sessions", "~/.claude/projects"])]
         self.timeout = min(max(float(data.get("request_timeout_seconds", 10)), 1), 60)
         self.drain_budget = min(max(float(data.get("drain_budget_seconds", 45)), 1), 300)
         if not isinstance(self.registry_key_id, str) or not self.registry_key_id or len(self.registry_key_id) > 128:

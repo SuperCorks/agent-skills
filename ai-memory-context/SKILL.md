@@ -111,8 +111,8 @@ make memory retrieval deterministic.
 Installed lifecycle hooks capture sanitized, bounded prompts and supported tool
 events. They do **not** preserve the complete native agent transcript.
 
-For native Codex Desktop capture on configured hosts, use the bundled
-`agent-memory` companion. It queues future visible user/assistant/tool records
+For native Codex Desktop and Claude Code capture on configured hosts, use the
+bundled `agent-memory` companion. It queues future visible user/assistant/tool records
 from the native rollout into ai-memory workstreams; it does not capture hidden
 reasoning. It is forward-only by default and does not backfill history. Read
 [the native desktop guide](references/native-desktop.md) before installing,
@@ -172,7 +172,8 @@ When history is missing or appears under the wrong project:
 4. Distinguish hook capture from MCP retrieval and from a managed
    `ai-memory run` or native companion ledger.
 5. Use ai-memory's non-destructive status/search/read tools first.
-6. Run `agent-memory doctor --repo /absolute/repository --json`. Queue health
+6. Run `agent-memory doctor --repo /absolute/repository --json`, then
+   `agent-memory errors --days 7 --json` to see recent faults grouped by cause. Queue health
    alone does not prove hooks are trusted or native events are arriving; use
    the native canary in the guide. Do not enable embeddings or consolidation
    merely to repair missing capture or wrong scopes.

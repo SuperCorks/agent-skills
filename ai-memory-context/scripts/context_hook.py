@@ -76,16 +76,12 @@ def scope_guard(event, payload):
     }}
 
 
-def note_failure(config, component, error):
-    """Metadata only: exception messages may contain credentials or transcript text."""
+def note_failure(config, component, error, **context):
+    """Metadata only. See agent_memory.diagnostics for what is safe to record."""
     try:
-        config.state_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
-        target = config.state_dir / "hook-errors.jsonl"
-        fd = os.open(target, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600)
-        with os.fdopen(fd, "a") as stream:
-            stream.write(json.dumps({"time": time.time(), "component": component,
-                                     "error_type": type(error).__name__}) + "\n")
-    except OSError:
+        from agent_memory import diagnostics
+        diagnostics.note(config, component, error, **context)
+    except Exception:  # noqa: BLE001 - diagnostics must never break a hook
         pass
 
 
@@ -96,8 +92,15 @@ def native_hook(config, event, payload):
     return briefing(config, query, payload["session_id"]) if event == "SessionStart" and query else {}
 
 
+def arguments(argv):
+    """`<Event>` for Codex, `<Event> --agent claude-code` for Claude Code."""
+    event = argv[1] if len(argv) >= 2 else ""
+    agent = argv[3] if len(argv) == 4 and argv[2] == "--agent" else "codex"
+    return event, agent if agent in {"codex", "claude-code"} else "codex"
+
+
 def main():
-    event = sys.argv[1] if len(sys.argv) == 2 else ""
+    event, agent = arguments(sys.argv)
     if event == "--drain-native":
         from agent_memory.config import Config, MemoryError
         from native_hooks import drain
@@ -105,7 +108,7 @@ def main():
         try:
             drain(config)
         except Exception as error:
-            note_failure(config, "native-drain", error)
+            note_failure(config, "native-drain", error, agent="codex")
             return 1
         return 0
     try:
@@ -115,7 +118,11 @@ def main():
     except (ValueError, OSError):
         print("{}")
         return 0
-    denied = scope_guard(event, payload)
+    # Claude Code already runs ai-memory's native lifecycle hook, which owns the
+    # bounded observations, the briefing, and its own tool-scope policy. Here it
+    # only needs the fuller transcript capture.
+    lifecycle = agent == "codex"
+    denied = scope_guard(event, payload) if lifecycle else None
     if denied:
         print(json.dumps(denied))
         return 0
@@ -130,7 +137,7 @@ def main():
         print("{}")
         return 0
     try:
-        config.resolve_scope(payload.get("cwd", ""))
+        scope = config.resolve_scope(payload.get("cwd", ""))
     except MemoryError:
         # Global hook definitions also run in unrelated projects. Expected scope
         # rejection is not a broken capture queue and must not flood error logs.
@@ -139,11 +146,12 @@ def main():
         try:
             hook(config, event, payload, spawn=True)
         except Exception as error:
-            note_failure(config, "capture", error)
-    try:
-        output = native_hook(config, event, payload)
-    except Exception as error:
-        note_failure(config, "native-hook", error)
+            note_failure(config, "capture", error, event=event, payload=payload, scope=scope, agent=agent)
+    if lifecycle:
+        try:
+            output = native_hook(config, event, payload)
+        except Exception as error:
+            note_failure(config, "native-hook", error, event=event, payload=payload, agent=agent)
     print(json.dumps(output))
     return 0
 
