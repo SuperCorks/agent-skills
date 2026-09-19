@@ -11,6 +11,12 @@ bounded lifecycle observations with future visible transcript events.
   meta-project. Nested tool working directories do not change task ownership.
 - One stable host ID per machine. One workstream per host/native task. Short
   completed import runs checkpoint progress without pretending the task ended.
+- A subagent thread is its own native task. Its hooks arrive under the root
+  task's `session_id` together with the child's own rollout, so capture keys
+  the child by its rollout header `id` and records the root as
+  `parent_native_session_id` in the descriptor. Nothing is filed under the
+  parent's identity, and the child's copied prefix is excluded like any fork.
+  A rollout naming a different root, or no `parent_thread_id`, fails closed.
 - No historical import by default. `capture init` establishes an EOF boundary
   for existing rollouts. New native SessionStart enrollment excludes an
   inherited fork prefix. Unknown forks without enrollment fail closed and

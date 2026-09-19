@@ -78,8 +78,15 @@ def hook(config, event, payload, spawn=True):
         raise MemoryError("Native hook transcript_path is required; capture cannot guess latest")
     path = transcript.allowed_path(config, raw_path)
     meta = transcript.header(path)
+    parent_session_id = None
     if meta["id"] != session_id:
-        raise MemoryError("Native hook session_id does not match the transcript header")
+        # A subagent thread's hooks arrive under the root task's session_id with
+        # the child's own rollout. The header is the authoritative identity: a
+        # child naming this session as its root is captured as its own session,
+        # never under the parent's. Any other mismatch still fails closed.
+        if meta.get("session_id") != session_id or not meta.get("parent_thread_id"):
+            raise MemoryError("Native hook session_id does not match the transcript header")
+        parent_session_id, session_id = session_id, meta["id"]
     key = digest(session_id)
     with locked(config.state_dir / "locks" / (key + ".lock")):
         state = read_json(state_path(config, session_id))
@@ -89,6 +96,8 @@ def hook(config, event, payload, spawn=True):
                      "activated_at": boundary["activated_at"], "host_id": config.host_id,
                      "files": {}, "seen_event_ids": [], "losses": [], "imported_events": 0,
                      "first_observed_at": now()}
+            if parent_session_id:
+                state["parent_session_id"] = parent_session_id
         # Session scope is frozen. A task can move worktrees; shell tool workdirs
         # and later markers never silently move already-captured history.
         config.require_scope(state["scope"])
@@ -218,10 +227,13 @@ def checkpoint(cwd):
 
 
 def descriptor(state):
-    return {"version": 1, **state["scope"], "registry_key": state["registry_key"],
-            "workstream_id": state["workstream_id"], "native_session_id": state["session_id"],
-            "host_id": state["host_id"], "capture_started_at": state["activated_at"],
-            "mode": "future-visible-events-only", "adapter": "codex-desktop-v1"}
+    result = {"version": 1, **state["scope"], "registry_key": state["registry_key"],
+              "workstream_id": state["workstream_id"], "native_session_id": state["session_id"],
+              "host_id": state["host_id"], "capture_started_at": state["activated_at"],
+              "mode": "future-visible-events-only", "adapter": "codex-desktop-v1"}
+    if state.get("parent_session_id"):
+        result["parent_native_session_id"] = state["parent_session_id"]
+    return result
 
 
 def save_state(config, state):

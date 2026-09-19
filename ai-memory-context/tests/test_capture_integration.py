@@ -130,6 +130,7 @@ class FakeMemory:
 
 SESSION = "019fa83b-b2fe-7773-a68f-2d7f53b65211"
 FORK = "019fa83b-b2fe-7773-a68f-2d7f53b65212"
+CHILD = "019fa83b-b2fe-7773-a68f-2d7f53b65213"
 
 
 def message(text, stamp="2026-09-01T00:00:01Z", role="assistant"):
@@ -165,11 +166,17 @@ class CaptureIntegrationTests(unittest.TestCase):
         self.server.close()
         self.temp.cleanup()
 
-    def new_file(self, session, suffix="", fork=None):
+    def new_file(self, session, suffix="", fork=None, root=None, parent=None):
         path = self.native / ("rollout-" + session + suffix + ".jsonl")
         payload = {"id": session, "cwd": str(self.repo), "timestamp": datetime.now(timezone.utc).isoformat()}
         if fork:
             payload["forked_from_id"] = fork
+        # Subagent rollouts name the root task as session_id and their spawner
+        # as parent_thread_id; root threads carry neither distinction.
+        if root:
+            payload["session_id"] = root
+        if parent:
+            payload["parent_thread_id"] = parent
         self.append({"type": "session_meta", "payload": payload}, path)
         return path
 
@@ -365,6 +372,46 @@ class CaptureIntegrationTests(unittest.TestCase):
         result = capture.drain(self.config)
         self.assertEqual(result["status"], "pending")
         self.assertEqual(self.events(), [])
+
+    def test_subagent_thread_is_captured_as_its_own_session_without_parent_history(self):
+        capture.initialize(self.config)
+        child = self.new_file(CHILD, fork=SESSION, root=SESSION, parent=SESSION)
+        self.append(message("parent history copied into the fork"), child)
+        # The child's tool hooks carry the root task's session_id, not its own.
+        queued = self.hook("PreToolUse", child, SESSION)
+        self.assertEqual(queued["session_id"], CHILD)
+        self.append(message("subagent new work"), child)
+        self.hook("PostToolUse", child, SESSION)
+        capture.drain(self.config)
+        events = self.events()
+        self.assertEqual([event["content"] for event in events], ["subagent new work"])
+        self.assertEqual({event["native_session_id"] for event in events}, {CHILD})
+        state = read_json(capture.state_path(self.config, CHILD))
+        self.assertEqual(state["parent_session_id"], SESSION)
+        self.assertIn("first_seen_without_session_start_prefix_excluded", state["losses"])
+        self.assertEqual(capture.descriptor(state)["parent_native_session_id"], SESSION)
+        # Nothing was filed under the parent's identity.
+        self.assertIsNone(read_json(capture.state_path(self.config, SESSION)))
+
+    def test_root_thread_descriptor_has_no_parent_link(self):
+        capture.initialize(self.config)
+        self.append(message("root work"))
+        self.hook()
+        capture.drain(self.config)
+        state = read_json(capture.state_path(self.config, SESSION))
+        self.assertNotIn("parent_session_id", state)
+        self.assertNotIn("parent_native_session_id", capture.descriptor(state))
+
+    def test_transcript_claiming_another_root_or_lacking_a_parent_cannot_enqueue(self):
+        capture.initialize(self.config)
+        other_root = self.new_file(CHILD, root=FORK, parent=FORK)
+        with self.assertRaises(MemoryError):
+            self.hook("PreToolUse", other_root, SESSION)
+        other_root.unlink()
+        no_parent = self.new_file(CHILD, root=SESSION)
+        with self.assertRaises(MemoryError):
+            self.hook("PreToolUse", no_parent, SESSION)
+        self.assertEqual(list((self.config.state_dir / "queue").glob("*.json")), [])
 
     def test_header_mismatch_and_unknown_scope_cannot_enqueue(self):
         capture.initialize(self.config)
