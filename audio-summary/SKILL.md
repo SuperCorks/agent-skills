@@ -9,10 +9,10 @@ Create a public audio recap with this fixed pipeline:
 
 1. Prepare relevant visible thread context and a detailed factual report of the agent's work.
 2. Use OpenRouter Kimi K3 to turn those inputs into mode-appropriate spoken narration.
-3. Use Speechify with the same managed voice profile as Swipe News to synthesize the MP3.
+3. Synthesize the MP3 with the `generate-audio` skill, which uses the local Voxtral model and falls back to Speechify.
 4. Publish the MP3 with the `publish-artifacts` skill and return its verified public link.
 
-Do not silently replace either provider with the agent's own narration or another TTS service.
+Do not replace Kimi's narration with the agent's own, and do not synthesize with any tool other than `generate-audio`.
 
 ## Interpret the Request
 
@@ -43,39 +43,41 @@ Do not pre-compress the detailed report to the requested audio length. Kimi K3 o
 
 Because the finished audio is public, remove sensitive source material before either provider call. If a safe public report cannot preserve the user's intent, pause and explain why.
 
-## Generate the Narration and MP3
+## Generate the Narration
 
 Run the bundled script from this skill's directory:
 
 ```bash
-node scripts/generate_audio.mjs \
+node scripts/generate_narration.mjs \
   --thread /absolute/path/to/thread-context.md \
   --report /absolute/path/to/agent-detailed-report.md \
   --mode medium \
   --scope thread \
-  --output /absolute/path/to/audio-summary-medium-2026-08-25.mp3
+  --output /absolute/path/to/audio-summary-medium-2026-08-25.txt
 ```
 
-Use `--scope last-pass` for the latest-work scope. The script writes Kimi's narration beside the MP3 as a `.txt` file unless `--script-output` specifies another path.
+Use `--scope last-pass` for the latest-work scope. The script writes Kimi's narration to the `.txt` output and prints its word count.
 
-The provider configuration is intentionally aligned with Swipe News:
+The narration provider is intentionally aligned with Swipe News: OpenRouter model `moonshotai/kimi-k3`. `OPENROUTER_API_KEY` belongs to the OpenRouter account `admin@hoptech.ca`. The helper reads it from the current environment, `AUDIO_SUMMARY_ENV_FILE`, or Simon's TLDR Audio `.env.local` fallback without printing credentials.
 
-- OpenRouter model: `moonshotai/kimi-k3`
-- Speechify voice: `SPEECHIFY_VOICE_ID` (`harper_32` in the current Swipe News profile)
-- Speechify model: `SPEECHIFY_MODEL_ID` (`simba-english`)
-- Speechify speed: `SPEECHIFY_VOICE_SPEED` (`1.1`)
-- Speechify language: `SPEECHIFY_LANGUAGE` (`en-US`)
+Use `--dry-run` to validate inputs, mode, and the endpoint without calling OpenRouter. Live generation consumes OpenRouter credits, so follow the active environment's confirmation policy immediately before the paid call.
 
-Credential ownership:
+If Kimi fails, stop: do not synthesize audio from anything else.
 
-- `OPENROUTER_API_KEY` belongs to the OpenRouter account `admin@hoptech.ca`.
-- `SPEECHIFY_API_KEY` belongs to the Speechify account `simoncorcos.ing@gmail.com`.
+## Synthesize the MP3
 
-The helper reads `OPENROUTER_API_KEY`, `SPEECHIFY_API_KEY`, and the Speechify profile from the current environment, `AUDIO_SUMMARY_ENV_FILE`, or Simon's TLDR Audio `.env.local` fallback without printing credentials.
+Load and follow the `generate-audio` skill, passing the narration file and an `.mp3` output beside it. Pass `--speed 1.1` so the recap keeps the same pace whichever provider runs:
 
-Use `--dry-run` to validate inputs, mode, endpoints, and resolved non-secret provider settings without calling either provider. Live generation consumes OpenRouter and Speechify credits, so follow the active environment's confirmation policy immediately before the paid calls.
+```bash
+node /path/to/generate-audio/scripts/generate_audio.mjs \
+  --text-file /absolute/path/to/audio-summary-medium-2026-08-25.txt \
+  --output /absolute/path/to/audio-summary-medium-2026-08-25.mp3 \
+  --speed 1.1
+```
 
-If Kimi fails, do not call Speechify. If Speechify fails, keep Kimi's local narration for diagnosis but do not publish or claim an audio link. Keep all provider errors credential-free.
+That skill owns provider selection, installation, and the paid-call policy. In short: run its `--dry-run` first, and only a plan reporting `"paidCall": true` (Speechify) needs confirmation. The local model is free but slow, taking roughly 1 to 2 minutes for `short`, 3 to 4 for `medium`, and 6 to 10 for `detailed`, so run `medium` and `detailed` synthesis in the background.
+
+If synthesis fails, keep Kimi's narration for diagnosis but do not publish or claim an audio link. Keep all provider errors credential-free.
 
 ## Publish and Return the Link
 
@@ -87,7 +89,7 @@ Unless the user provides a destination, publish only the MP3 under:
 artifacts/YYYY-MM-DD/audio-summaries/
 ```
 
-Return the public audio link first, followed by a brief note naming the scope and detail mode. Mention anonymous verification. If publishing fails, return the local MP3 path and the publishing error; do not claim that a public link exists.
+Return the public audio link first, followed by a brief note naming the scope, the detail mode, and the synthesis provider that ran. If `generate-audio` reported a `fallbackReason`, include it. Mention anonymous verification. If publishing fails, return the local MP3 path and the publishing error; do not claim that a public link exists.
 
 Example requests this skill should handle:
 

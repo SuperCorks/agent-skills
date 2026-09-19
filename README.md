@@ -18,7 +18,7 @@ A collection of AI agent skills for GitHub Copilot and other AI assistants.
 | [architect-planning](architect-planning) | Problem framing and decision-complete implementation planning before code changes |
 | [asana-reader](asana-reader) | Read Asana tasks by URL, ID, or name search with multi-account support |
 | [asana-writer](asana-writer) | Create and update Asana work items and project organization with multi-account support |
-| [audio-summary](audio-summary) | Create and publish narrated summaries of the current task or latest output |
+| [audio-summary](audio-summary) | Create and publish narrated summaries of the current task or latest output (synthesis via generate-audio) |
 | [boulevard](boulevard) | Query Boulevard APIs, discover availability, book sandbox appointments, and compare or sync services/packages |
 | [browser-profile-sync](browser-profile-sync) | Merge Chromium bookmarks and mirror local cookie databases across Chrome, Brave, and Comet on macOS |
 | [browserbase](browserbase) | Browserbase browser automation, Fetch/Search, remote auth contexts, UI QA, debugging, tracing, and platform workflows |
@@ -34,6 +34,7 @@ A collection of AI agent skills for GitHub Copilot and other AI assistants.
 | [domain-modeling](domain-modeling) | Clarify canonical domain vocabulary, concepts, invariants, and boundaries, with durable ADR updates when warranted |
 | [feature-dev](feature-dev) | Staged workflow for robust feature development from discovery through delivery |
 | [frontend-design](frontend-design) | Build and review accessible web interfaces that inherit existing design systems and page patterns, with exploration for new products or requested redesigns |
+| [generate-audio](generate-audio) | Turn text into spoken MP3 or WAV audio with local Voxtral TTS, falling back to Speechify |
 | [git-workflow-gates](git-workflow-gates) | Branch-state checks and post-documentation PR gate workflow for multi-repo workspaces |
 | [github-pr-formatting](github-pr-formatting) | Open clean draft PRs and post correctly formatted comments/bodies |
 | [godaddy](godaddy) | Manage GoDaddy domains and DNS records with multi-account API credentials |
