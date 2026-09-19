@@ -141,8 +141,13 @@ def main():
     except MemoryError:
         # Global hook definitions also run in unrelated projects. Expected scope
         # rejection is not a broken capture queue and must not flood error logs.
-        pass
-    else:
+        # A session already enrolled keeps capturing after its shell leaves the repo.
+        try:
+            from agent_memory.capture import enrolled_scope
+            scope = enrolled_scope(config, payload.get("session_id"))
+        except Exception:  # noqa: BLE001 - an unreadable state file means "not enrolled", never a broken hook
+            scope = None
+    if scope is not None:
         try:
             hook(config, event, payload, spawn=True)
         except Exception as error:

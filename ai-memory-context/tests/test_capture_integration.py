@@ -484,6 +484,21 @@ class CaptureIntegrationTests(unittest.TestCase):
         self.assertEqual([event["metadata"].get("sent_mid_turn") for event in events], [None, True, None])
         self.assertNotIn("injected skill body", json.dumps(events))
 
+    def test_enrolled_session_keeps_capturing_after_its_shell_leaves_the_repository(self):
+        capture.initialize(self.config)
+        path = self.claude_file()
+        self.append(claude("user", "start in the repo"), path)
+        self.claude_hook("UserPromptSubmit", path)
+        elsewhere = self.root / "unmarked"
+        elsewhere.mkdir()
+        self.append(claude("assistant", [{"type": "text", "text": "work after cd"}]), path)
+        capture.hook(self.config, "Stop", {"session_id": CLAUDE, "cwd": str(elsewhere), "transcript_path": str(path)}, spawn=False)
+        capture.drain(self.config)
+        self.assertEqual([event["content"] for event in self.events()], ["start in the repo", "work after cd"])
+        self.assertEqual(read_json(capture.state_path(self.config, CLAUDE))["scope"], {"workspace": "work/team", "project": "app"})
+        with self.assertRaises(MemoryError):  # never enrolled: an unmarked directory is still refused
+            capture.hook(self.config, "Stop", {"session_id": FORK, "cwd": str(elsewhere), "transcript_path": str(path)}, spawn=False)
+
     def test_claude_session_first_seen_midway_excludes_earlier_history(self):
         capture.initialize(self.config)
         old = "2026-01-01T00:00:00Z"

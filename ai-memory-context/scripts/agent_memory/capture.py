@@ -51,6 +51,11 @@ def state_path(config, session_id):
     return config.state_dir / "sessions" / (digest(session_id) + ".json")
 
 
+def enrolled_scope(config, session_id):
+    state = read_json(state_path(config, session_id)) if isinstance(session_id, str) and session_id else None
+    return state.get("scope") if state else None
+
+
 def job_path(config, session_id):
     return config.state_dir / "queue" / (digest(session_id) + ".json")
 
@@ -74,7 +79,15 @@ def hook(config, event, payload, spawn=True):
     cwd = payload.get("cwd")
     if not isinstance(session_id, str) or not session_id or len(session_id) > 512 or not isinstance(cwd, str):
         raise MemoryError("Native hook session_id and top-level cwd are required")
-    scope = config.resolve_scope(cwd)
+    try:
+        scope = config.resolve_scope(cwd)
+    except MemoryError:
+        # Claude Code reports the shell's current directory, which follows `cd`.
+        # An enrolled session keeps its frozen scope wherever its shell wanders;
+        # an unknown session in an unmarked directory is still refused.
+        scope = enrolled_scope(config, session_id)
+        if scope is None:
+            raise
     telemetry.record(config, event, payload, scope)
     boundary = activation(config)
     raw_path = payload.get("transcript_path")

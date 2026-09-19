@@ -70,6 +70,10 @@ only; add each extra `CLAUDE_CONFIG_DIR`).
   usually has no file and is an expected skip. A session first seen while its
   file is under ten minutes old starts at byte zero; an older file may be a
   resumed copy of captured history and starts at its current end.
+- Claude reports the shell's current directory, which follows `cd`, where Codex
+  reports a fixed top-level one. An enrolled session therefore keeps its frozen
+  scope when later hooks arrive from an unmarked directory; a session that was
+  never enrolled is still refused there.
 - There is no PreToolUse hook: capture reads the transcript, so a process per
   tool call would add overhead for nothing. Tool durations in `report` are
   therefore Codex-only.
