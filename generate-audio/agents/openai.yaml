@@ -1,0 +1,4 @@
+interface:
+  display_name: "Generate Audio"
+  short_description: "Speak text with local Voxtral, Speechify as fallback"
+  default_prompt: "Use $generate-audio to turn this text into an MP3."
