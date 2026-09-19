@@ -29,6 +29,10 @@ DEFAULT_CODEX_TERRA_REASONING = os.environ.get(
     "AGENT_ORCHESTRATOR_CODEX_TERRA_REASONING",
     CODEX_REASONING_OVERRIDE or "high",
 )
+DEFAULT_CODEX_ASTRA_REASONING = os.environ.get(
+    "AGENT_ORCHESTRATOR_CODEX_ASTRA_REASONING",
+    CODEX_REASONING_OVERRIDE or "medium",
+)
 DEFAULT_CLAUDE_MODEL = os.environ.get("AGENT_ORCHESTRATOR_CLAUDE_MODEL", "claude-opus-5")
 DEFAULT_CLAUDE_REASONING = os.environ.get("AGENT_ORCHESTRATOR_CLAUDE_REASONING", "xhigh")
 DEFAULT_CLAUDE_FABLE_REASONING = os.environ.get("AGENT_ORCHESTRATOR_CLAUDE_FABLE_REASONING", "high")
@@ -42,11 +46,13 @@ OPENCODE_AUTH_PROVIDER = os.environ.get("AGENT_ORCHESTRATOR_OPENCODE_AUTH_PROVID
 CLAUDE_FABLE_MODELS = {"fable", "claude-fable-5"}
 CODEX_SOL_MODELS = {"gpt-5.6-sol"}
 CODEX_TERRA_MODELS = {"gpt-5.6-terra"}
+CODEX_ASTRA_MODELS = {"gpt-6-astra"}
 OPENCODE_KIMI_K3_MODELS = {"openrouter/moonshotai/kimi-k3"}
 MODEL_ALIASES = {
     "codex": {
         "sol": "gpt-5.6-sol",
         "terra": "gpt-5.6-terra",
+        "astra": "gpt-6-astra",
     },
     "claude": {
         "opus": "claude-opus-5",
@@ -166,6 +172,8 @@ def default_reasoning(engine: str, model: str | None = None) -> str:
         return DEFAULT_CODEX_SOL_REASONING
     if selected_model.lower() in CODEX_TERRA_MODELS:
         return DEFAULT_CODEX_TERRA_REASONING
+    if selected_model.lower() in CODEX_ASTRA_MODELS:
+        return DEFAULT_CODEX_ASTRA_REASONING
     return DEFAULT_CODEX_REASONING
 
 

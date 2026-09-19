@@ -1,0 +1,7 @@
+interface:
+  display_name: "Agent Conductor"
+  short_description: "Plan and conduct sub-agent workers from a frontier master thread"
+  default_prompt: "Use $agent-conductor to plan this task and conduct sub-agents through the heavy work while this thread stays the master."
+
+policy:
+  allow_implicit_invocation: false

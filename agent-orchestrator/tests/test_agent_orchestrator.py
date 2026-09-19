@@ -1,4 +1,5 @@
 import importlib.util
+import os
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -9,6 +10,16 @@ SPEC = importlib.util.spec_from_file_location("agent_orchestrator", SCRIPT_PATH)
 assert SPEC and SPEC.loader
 agent_orchestrator = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(agent_orchestrator)
+
+
+def load_module_with_env(**env: str):
+    """Re-import the script with patched environment variables."""
+    spec = importlib.util.spec_from_file_location("agent_orchestrator_env", SCRIPT_PATH)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    with mock.patch.dict(os.environ, env, clear=False):
+        spec.loader.exec_module(module)
+    return module
 
 
 class RuntimeDefaultsTests(unittest.TestCase):
@@ -47,6 +58,7 @@ class ModelAliasTests(unittest.TestCase):
         cases = [
             ("codex", "sol", "gpt-5.6-sol"),
             ("codex", "terra", "gpt-5.6-terra"),
+            ("codex", "astra", "gpt-6-astra"),
             ("claude", "opus", "claude-opus-5"),
             ("claude", "fable", "claude-fable-5"),
             ("opencode", "grok", "openrouter/x-ai/grok-4.5"),
@@ -59,6 +71,108 @@ class ModelAliasTests(unittest.TestCase):
                     agent_orchestrator.resolve_model(engine, alias.upper()),
                     expected,
                 )
+
+
+class CodexAstraDefaultsTests(unittest.TestCase):
+    def build_codex_command(self, *extra_args: str) -> list[str]:
+        parser = agent_orchestrator.build_parser()
+        args = parser.parse_args(
+            [
+                "run",
+                "--engine",
+                "codex",
+                "--prompt",
+                "Test prompt",
+                *extra_args,
+            ]
+        )
+        return agent_orchestrator.build_command(
+            args,
+            Path("/tmp/project"),
+            "Test prompt",
+            None,
+        )
+
+    def test_astra_alias_resolves_to_gpt_6_astra(self) -> None:
+        self.assertEqual(agent_orchestrator.resolve_model("codex", "astra"), "gpt-6-astra")
+
+    def test_astra_alias_is_case_insensitive(self) -> None:
+        self.assertEqual(agent_orchestrator.resolve_model("codex", "AsTrA"), "gpt-6-astra")
+
+    def test_astra_defaults_to_medium_reasoning(self) -> None:
+        with mock.patch.object(agent_orchestrator, "DEFAULT_CODEX_ASTRA_REASONING", "medium"):
+            command = self.build_codex_command("--model", "astra")
+
+            self.assertEqual(
+                agent_orchestrator.default_reasoning("codex", "gpt-6-astra"),
+                "medium",
+            )
+
+        self.assertEqual(command[command.index("--model") + 1], "gpt-6-astra")
+        self.assertEqual(
+            command[command.index("-c") + 1],
+            'model_reasoning_effort="medium"',
+        )
+
+    def test_astra_matching_is_case_insensitive_for_reasoning(self) -> None:
+        with mock.patch.object(agent_orchestrator, "DEFAULT_CODEX_ASTRA_REASONING", "medium"):
+            self.assertEqual(
+                agent_orchestrator.default_reasoning("codex", "GPT-6-ASTRA"),
+                "medium",
+            )
+
+    def test_builtin_astra_default_is_medium(self) -> None:
+        if os.environ.get("AGENT_ORCHESTRATOR_CODEX_ASTRA_REASONING") or os.environ.get(
+            "AGENT_ORCHESTRATOR_CODEX_REASONING"
+        ):
+            self.skipTest("local Codex reasoning environment override is set")
+        module = load_module_with_env()
+
+        self.assertEqual(module.DEFAULT_CODEX_ASTRA_REASONING, "medium")
+        self.assertEqual(module.default_reasoning("codex", "astra"), "medium")
+
+    def test_model_specific_env_overrides_astra_default(self) -> None:
+        module = load_module_with_env(AGENT_ORCHESTRATOR_CODEX_ASTRA_REASONING="high")
+
+        self.assertEqual(module.DEFAULT_CODEX_ASTRA_REASONING, "high")
+        self.assertEqual(module.default_reasoning("codex", "astra"), "high")
+
+    def test_model_specific_env_beats_global_codex_override(self) -> None:
+        module = load_module_with_env(
+            AGENT_ORCHESTRATOR_CODEX_REASONING="low",
+            AGENT_ORCHESTRATOR_CODEX_ASTRA_REASONING="high",
+        )
+
+        self.assertEqual(module.default_reasoning("codex", "astra"), "high")
+
+    def test_global_codex_env_override_applies_without_model_specific_value(self) -> None:
+        module = load_module_with_env(AGENT_ORCHESTRATOR_CODEX_REASONING="max")
+
+        self.assertEqual(module.default_reasoning("codex", "astra"), "max")
+
+    def test_explicit_reasoning_overrides_astra_default(self) -> None:
+        with mock.patch.object(agent_orchestrator, "DEFAULT_CODEX_ASTRA_REASONING", "medium"):
+            command = self.build_codex_command("--model", "astra", "--reasoning", "xhigh")
+
+        self.assertEqual(command[command.index("--model") + 1], "gpt-6-astra")
+        self.assertEqual(
+            command[command.index("-c") + 1],
+            'model_reasoning_effort="xhigh"',
+        )
+
+    def test_astra_selection_does_not_change_sol_default(self) -> None:
+        with (
+            mock.patch.object(agent_orchestrator, "DEFAULT_CODEX_MODEL", "gpt-5.6-sol"),
+            mock.patch.object(agent_orchestrator, "DEFAULT_CODEX_SOL_REASONING", "xhigh"),
+            mock.patch.object(agent_orchestrator, "DEFAULT_CODEX_ASTRA_REASONING", "medium"),
+        ):
+            command = self.build_codex_command()
+
+        self.assertEqual(command[command.index("--model") + 1], "gpt-5.6-sol")
+        self.assertEqual(
+            command[command.index("-c") + 1],
+            'model_reasoning_effort="xhigh"',
+        )
 
 
 class ClaudeModelDefaultsTests(unittest.TestCase):
