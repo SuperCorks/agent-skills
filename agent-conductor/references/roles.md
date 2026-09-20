@@ -4,12 +4,12 @@ Every worker is a sub-agent definition installed from the `supercorks/subagents`
 
 | Role | Claude Code type | Codex `agent_type` | Model, effort | Writes | Never |
 | --- | --- | --- | --- | --- | --- |
-| implement | `conductor-implementer` | `conductor_implementer` | Opus 4.8 / Sol, xhigh | code within its scope, its report | commits unless the packet's policy says so; worktrees; sub-agents |
-| review | `conductor-reviewer` | `conductor_reviewer` | Opus 4.8 / Sol, xhigh | `tasks/<id>-<slug>.review.md`, `accepted`/`rejected` event | code changes |
-| explore | `conductor-explorer` | `conductor_explorer` | Opus 4.8 / Sol, xhigh | a brief at the path you give it | edits |
+| implement | `conductor-implementer` | `conductor_implementer` | Opus 5 / Sol, high | code within its scope, its report | commits unless the packet's policy says so; worktrees; sub-agents |
+| review | `conductor-reviewer` | `conductor_reviewer` | Opus 5 / Sol, high | `tasks/<id>-<slug>.review.md`, `accepted`/`rejected` event | code changes |
+| explore | `conductor-explorer` | `conductor_explorer` | Opus 5 / Sol, high | a brief at the path you give it | edits |
 | monitor | `conductor-monitor` | `conductor_monitor` | Sonnet / Luna, medium | `progress`/`blocked`/`done` events for an external process (CI, deploy, long build) | code changes, retries beyond its packet |
 | computer-use | via `agent-orchestrator` (`--model astra`) | `conductor_computer_use` | GPT-6 Astra, medium | its report, browser/desktop actions within scope | purchases, deletions, or credential handling outside `web-computer-use` rules |
-| integrate | `conductor-implementer` | `conductor_implementer` | Opus 4.8 / Sol, xhigh | merged working branch, its report | force pushes |
+| integrate | `conductor-implementer` | `conductor_implementer` | Opus 5 / Sol, high | merged working branch, its report | force pushes |
 
 ## Prompts
 

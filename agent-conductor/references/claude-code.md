@@ -4,9 +4,9 @@ Use these exact mechanisms. Names are the tools Claude Code exposes to you; if o
 
 ## Preflight checks
 
-- **Worker definitions**: `ls ~/.claude/agents ~/.claude_*/agents .claude/agents 2>/dev/null | grep -i conductor`. You need `Conductor Implementer`, `Conductor Reviewer`, `Conductor Explorer`, `Conductor Monitor`, and `Conductor Computer Use`. Their frontmatter pins `model: claude-opus-4-8` and `effort: xhigh` (monitor: `sonnet`, `medium`), which is the only way to guarantee effort per worker: the Agent tool has no per-launch effort parameter and would otherwise inherit the session's.
+- **Worker definitions**: `ls ~/.claude/agents ~/.claude_*/agents .claude/agents 2>/dev/null | grep -i conductor`. You need `Conductor Implementer`, `Conductor Reviewer`, `Conductor Explorer`, `Conductor Monitor`, and `Conductor Computer Use`. Their frontmatter pins `model: claude-opus-5` and `effort: high` (monitor: `sonnet`, `medium`), which is the only way to guarantee effort per worker: the Agent tool has no per-launch effort parameter and would otherwise inherit the session's.
 - **Fast mode**: fast mode is a session toggle (`/fast`) and a worker inherits it at spawn. You cannot toggle it yourself. If the session is in fast mode, ask the user to turn it off before you dispatch anything.
-- **Effort**: if the definitions are missing and cannot be installed, the session itself must be at `xhigh` (`/effort xhigh`) so inherited effort matches; say so to the user.
+- **Effort**: if the definitions are missing and cannot be installed, the session itself must be at `high` (`/effort high`) so inherited effort matches; say so to the user.
 
 ## Launch a worker
 
@@ -15,7 +15,7 @@ Always background, always the definition's `subagent_type`, prompt only the pack
 ```
 Agent(
   subagent_type: "conductor-implementer",
-  model: "claude-opus-4-8",
+  model: "claude-opus-5",
   run_in_background: true,
   description: "Task 03 implement",
   prompt: "Read /Users/.../runs/<run-id>/tasks/03-<slug>.md and follow it exactly."

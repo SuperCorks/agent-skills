@@ -13,7 +13,7 @@ Use these exact tools. They exist when `[features] multi_agent = true` in `~/.co
 spawn_agent(
   agent_type: "conductor_implementer",
   model: "gpt-5.6-sol",
-  reasoning_effort: "xhigh",
+  reasoning_effort: "high",
   fork_context: false,
   message: "Read /Users/.../runs/<run-id>/tasks/03-<slug>.md and follow it exactly."
 )

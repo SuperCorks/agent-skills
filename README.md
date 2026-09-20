@@ -12,7 +12,7 @@ A collection of AI agent skills for GitHub Copilot and other AI assistants.
 | Skill | Description |
 |-------|-------------|
 | [address-pr-comments](address-pr-comments) | Address PR review comments from automated and human reviewers |
-| [agent-conductor](agent-conductor) | Conduct a task from a Fable or GPT-6 Astra master thread: plan, dispatch Opus 4.8 / Sol workers, wait on events, verify through reviewers |
+| [agent-conductor](agent-conductor) | Conduct a task from a Fable or GPT-6 Astra master thread: plan, dispatch Opus 5 / Sol workers, wait on events, verify through reviewers |
 | [agent-orchestrator](agent-orchestrator) | Launch awaited Codex, Claude, and OpenCode worker runs with setup, auth checks, and captured handoffs |
 | [agent-thread-reader](agent-thread-reader) | Read local Codex, Copilot, and Claude Code agent thread/session history |
 | [ai-memory-context](ai-memory-context) | Configure and use ai-memory for cross-session decisions, rationale, handoffs, and project continuity |
