@@ -62,6 +62,7 @@ A collection of AI agent skills for GitHub Copilot and other AI assistants.
 | [skills-installer](skills-installer) | Install, update, list, or remove skills and subagents with the installer CLI in non-interactive mode |
 | [slack-reader](slack-reader) | Read Slack messages by permalink URL, including thread replies and resolved user mentions |
 | [test-engineer](test-engineer) | Baseline-first testing workflow for correctness and regression safety |
+| [typesafe-ai](typesafe-ai) | Build AI-powered software with TypeSafe typed judgments, probabilities, and composable decision primitives |
 | [vidapp](vidapp) | Query VidApp analytics, purchases, watch history, user tags, collections, and OpenAPI docs |
 | [vimeo-ott](vimeo-ott) | Query Vimeo OTT products, customers, videos, live events, browse rows, and analytics |
 | [web-computer-use](web-computer-use) | Coordinate named Chrome/Brave plugin connections, Keeper authentication, and browser reservations, with an optional robot status extension and task timers |
