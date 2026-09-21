@@ -74,6 +74,24 @@ HIGH_AUTONOMY = (
     "still apply."
 )
 DEFAULT_MAX_WORKERS = 3
+# Claude runs share one usage window across the master and every worker; fewer
+# parallel workers make a mid-run usage-limit stall less likely.
+DEFAULT_MAX_WORKERS_BY_HARNESS = {"claude": 2}
+REVIEW_LEVELS = ("none", "light", "full")
+DEFAULT_REVIEW_BY_ROLE = {
+    "explore": "none",
+    "monitor": "none",
+    "review": "none",
+    "implement": "light",
+    "computer-use": "light",
+    "integrate": "full",
+}
+REVIEW_DESCRIPTIONS = {
+    "none": "no reviewer; the task is accepted when you report done, so your report is the evidence",
+    "light": "a reviewer reads your diff and report and re-runs only fast, targeted checks, "
+    "relying on the command output in your report for slow suites",
+    "full": "a reviewer re-runs every verification command and inspects the whole change",
+}
 TERMINAL_RUN_STATUSES = ("done", "aborted")
 EVENT_LINE_RE = re.compile(r"^(?P<ts>\S+) \[(?P<where>[^\]]*)\] (?P<kind>[A-Z0-9_-]+): (?P<message>.*)$")
 
@@ -419,6 +437,7 @@ def render_packet(
     script = str(script_path())
     task_id = task["id"]
     policy = task["commit_policy"]
+    review = task.get("review") or "full"
 
     objective_text = objective.strip() if objective and objective.strip() else "(master: fill in)"
     if files and files.strip():
@@ -450,6 +469,7 @@ Depends on: {depends}
 Plan: {plan} (read Goal, Definition of done, Constraints, and Autonomy first)
 Working directory: {workdir}
 Commit policy: {policy} (none = do not commit; commit = commit on the current branch when acceptance criteria pass; commit-and-push = also push)
+Review: {review} ({REVIEW_DESCRIPTIONS[review]})
 Conductor script: {script}
 Run id: {run_id}
 
@@ -475,6 +495,13 @@ Do not edit anything outside this scope. Preserve unrelated changes.
 Run before reporting done:
 {verify_block}
 
+## Self-check before reporting done
+Review your own change the way a strict reviewer would, and fix what you find:
+- Every changed file is inside your scope; nothing unrelated, generated, or temporary is left behind.
+- No stale references remain to anything you removed or renamed: tests, imports, docs, config, fixtures.
+- Docs and user-facing text you touched describe the actual behavior.
+- Each acceptance criterion is backed by a command you ran or behavior you observed, not by reasoning.
+
 ## Protocol
 1. First: `python3 {script} event --run {run_id} --task {task_id} --kind started --message "<one line on your approach>"`
 2. On each milestone (at most every ~10 minutes): `... --kind progress --message "<what is done>"`
@@ -489,6 +516,7 @@ Write {task['report']} with exactly these sections:
 ## Summary
 ## Files changed
 ## Commands run and results
+(each command, its exit status, and the last lines of its output; a light review relies on these for slow suites)
 ## Acceptance criteria
 (copy the checklist above and tick each criterion you verified: `- [x]`)
 ## Deviations from the packet
@@ -535,7 +563,9 @@ def cmd_init(args: argparse.Namespace) -> int:
         "harness": args.harness,
         "goal": args.goal,
         "status": "planning",
-        "max_workers": args.max_workers,
+        "max_workers": args.max_workers
+        if args.max_workers is not None
+        else DEFAULT_MAX_WORKERS_BY_HARNESS.get(args.harness, DEFAULT_MAX_WORKERS),
         "finished": None,
         "summary": None,
     }
@@ -636,6 +666,7 @@ def cmd_task_add(args: argparse.Namespace) -> int:
             "packet": str(packet),
             "report": str(report),
             "commit_policy": args.commit_policy,
+            "review": args.review or DEFAULT_REVIEW_BY_ROLE.get(args.role, "full"),
             "attempts": 0,
             "started": None,
             "finished": None,
@@ -676,6 +707,8 @@ def sync_packet_header(task: dict[str, Any], run: dict[str, Any]) -> None:
             lines[index] = f"Depends on: {depends}"
         elif line.startswith("Working directory: "):
             lines[index] = f"Working directory: {workdir}"
+        elif line.startswith("Review: ") and task.get("review"):
+            lines[index] = f"Review: {task['review']} ({REVIEW_DESCRIPTIONS[task['review']]})"
         elif line.startswith("Commit policy: "):
             rest = line.split(" (", 1)
             suffix = f" ({rest[1]}" if len(rest) == 2 else ""
@@ -693,11 +726,16 @@ def cmd_task_set(args: argparse.Namespace) -> int:
         raise ConductorError(
             f"invalid commit policy '{args.commit_policy}'; expected one of: {', '.join(COMMIT_POLICIES)}"
         )
+    if args.review and args.review not in REVIEW_LEVELS:
+        raise ConductorError(
+            f"invalid review level '{args.review}'; expected one of: {', '.join(REVIEW_LEVELS)}"
+        )
     if not any(
-        [args.status, args.agent, args.reviewer, args.worktree, args.commit_policy]
+        [args.status, args.agent, args.reviewer, args.worktree, args.commit_policy, args.review]
     ) and args.depends_on is None:
         raise ConductorError(
-            "nothing to set: pass --status, --agent, --reviewer, --depends-on, --worktree or --commit-policy"
+            "nothing to set: pass --status, --agent, --reviewer, --depends-on, --worktree, "
+            "--commit-policy or --review"
         )
 
     with run_lock(directory):
@@ -736,9 +774,12 @@ def cmd_task_set(args: argparse.Namespace) -> int:
         if args.commit_policy:
             changes.append(f"commit_policy {task['commit_policy']} -> {args.commit_policy}")
             task["commit_policy"] = args.commit_policy
+        if args.review:
+            changes.append(f"review {task.get('review') or 'full'} -> {args.review}")
+            task["review"] = args.review
         message = "; ".join(changes)
         save_registry(directory, registry)
-        if args.worktree or args.commit_policy or args.depends_on is not None:
+        if args.worktree or args.commit_policy or args.review or args.depends_on is not None:
             sync_packet_header(task, _run)
         append_event(directory, "task_updated", message, actor(args), task)
 
@@ -895,17 +936,23 @@ def cmd_event(args: argparse.Namespace) -> int:
             f"invalid kind '{args.kind}'; expected one of: {', '.join(EVENT_KINDS)}"
         )
     by = actor(args)
+    auto_accept = False
     with run_lock(directory):
         task = None
         if args.task:
             registry = load_registry(directory)
             task = find_task(registry, args.task)
             apply_event_side_effects(task, args.kind, args.message)
+            auto_accept = args.kind == "done" and task.get("review") == "none"
+            if auto_accept:
+                task["status"] = "accepted"
             save_registry(directory, registry)
             if args.kind == "started" and _run.get("status") == "planning":
                 _run["status"] = "running"
                 write_json(directory / "run.json", _run)
         record = append_event(directory, args.kind, args.message, by, task)
+        if args.task and auto_accept:
+            append_event(directory, "accepted", "auto-accepted: review none", "conductor", task)
 
     emit(
         args,
@@ -1430,7 +1477,10 @@ def build_parser() -> argparse.ArgumentParser:
     p_init.add_argument("--goal", required=True, help="one-line goal for the run")
     p_init.add_argument("--harness", choices=HARNESSES, default="claude", help="master harness")
     p_init.add_argument(
-        "--max-workers", type=int, default=DEFAULT_MAX_WORKERS, help="max concurrent workers"
+        "--max-workers",
+        type=int,
+        default=None,
+        help=f"max concurrent workers (default: 2 for claude, {DEFAULT_MAX_WORKERS} otherwise)",
     )
     p_init.add_argument(
         "--autonomy",
@@ -1462,6 +1512,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p_add.add_argument("--worktree", help="absolute path the worker should work in")
     p_add.add_argument(
+        "--review",
+        choices=REVIEW_LEVELS,
+        help="review level (default by role: explore/monitor none, implement/computer-use light, integrate full)",
+    )
+    p_add.add_argument(
         "--verify", action="append", default=[], help="verification command (repeatable)"
     )
     add_common(p_add)
@@ -1475,6 +1530,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_set.add_argument("--depends-on", help="replace dependencies: comma-separated ids, or 'none'")
     p_set.add_argument("--worktree", help="absolute worktree path")
     p_set.add_argument("--commit-policy", help=f"one of: {', '.join(COMMIT_POLICIES)}")
+    p_set.add_argument("--review", help=f"one of: {', '.join(REVIEW_LEVELS)}")
     add_common(p_set)
     p_set.set_defaults(func=cmd_task_set)
 

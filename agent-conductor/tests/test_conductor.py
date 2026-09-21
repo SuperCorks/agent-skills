@@ -385,12 +385,12 @@ class StatusTests(ConductorTestCase):
         code, out, _err = self.cli("status", "--run", run_id)
         self.assertEqual(code, 0)
         self.assertIn("Ready to dispatch: 01", out)
-        self.assertIn("Running: 0/3", out)
+        self.assertIn("Running: 0/2", out)
 
         self.cli("event", "--run", run_id, "--task", "01", "--kind", "started", "--message", "go")
         code, out, _err = self.cli("status", "--run", run_id)
         self.assertIn("Ready to dispatch: none", out)
-        self.assertIn("Running: 1/3", out)
+        self.assertIn("Running: 1/2", out)
 
         self.cli("event", "--run", run_id, "--task", "01", "--kind", "done", "--message", "done here")
         code, out, _err = self.cli("status", "--run", run_id)
@@ -419,7 +419,7 @@ class StatusTests(ConductorTestCase):
         self.assertEqual(data["run"]["id"], run_id)
         self.assertEqual(data["ready_to_dispatch"], ["01"])
         self.assertEqual(data["counts"], {"pending": 1})
-        self.assertEqual(data["max_workers"], 3)
+        self.assertEqual(data["max_workers"], 2)
 
 
 class WatchTests(ConductorTestCase):
@@ -903,6 +903,69 @@ class ElapsedTests(ConductorTestCase):
         run_path.write_text(json.dumps(run))
         data = conductor.build_status(self.run_dir(run_id), run)
         self.assertEqual(data["elapsed"], "1h05m")
+
+
+class ReviewLevelTests(ConductorTestCase):
+    def add(self, run_id: str, title: str, role: str, *extra: str) -> dict:
+        code, out, err = self.cli(
+            "task", "add", "--run", run_id, "--title", title, "--role", role, "--json", *extra
+        )
+        self.assertEqual(code, 0, err)
+        return json.loads(out)["task"]
+
+    def test_defaults_by_role_and_packet_header(self) -> None:
+        run_id = self.init_run()
+        expected = {"explore": "none", "implement": "light", "integrate": "full", "computer-use": "light"}
+        for role, level in expected.items():
+            task = self.add(run_id, role, role)
+            self.assertEqual(task["review"], level, role)
+            body = Path(task["packet"]).read_text()
+            self.assertIn(f"Review: {level} (", body)
+        body = Path(self.task(run_id, "02")["packet"]).read_text()
+        self.assertIn("## Self-check before reporting done", body)
+        self.assertIn("No stale references remain", body)
+        self.assertIn("exit status, and the last lines of its output", body)
+
+    def test_explicit_review_and_task_set_rewrites_header(self) -> None:
+        run_id = self.init_run()
+        task = self.add(run_id, "Risky", "implement", "--review", "full")
+        self.assertEqual(task["review"], "full")
+        code, _out, err = self.cli("task", "set", "--run", run_id, "--task", "01", "--review", "none")
+        self.assertEqual(code, 0, err)
+        self.assertIn("Review: none (", Path(task["packet"]).read_text())
+        code, _out, err = self.cli("task", "set", "--run", run_id, "--task", "01", "--review", "bogus")
+        self.assertEqual(code, 1)
+        self.assertIn("invalid review level", err)
+
+    def test_review_none_is_accepted_on_done(self) -> None:
+        run_id = self.init_run()
+        self.add(run_id, "Map it", "explore")
+        self.add(run_id, "Build it", "implement", "--depends-on", "01")
+        self.cli("event", "--run", run_id, "--task", "01", "--kind", "started", "--message", "go")
+        self.cli("event", "--run", run_id, "--task", "01", "--kind", "done", "--message", "brief written")
+        self.assertEqual(self.task(run_id, "01")["status"], "accepted")
+        log = (self.run_dir(run_id) / "events.log").read_text()
+        self.assertIn("ACCEPTED: auto-accepted: review none", log)
+        _code, out, _err = self.cli("status", "--run", run_id, "--json")
+        data = json.loads(out)
+        self.assertEqual(data["ready_to_dispatch"], ["02"])
+        self.assertEqual(data["awaiting_review"], [])
+
+    def test_light_review_still_waits_for_a_reviewer(self) -> None:
+        run_id = self.init_run()
+        self.add(run_id, "Build it", "implement")
+        self.cli("event", "--run", run_id, "--task", "01", "--kind", "started", "--message", "go")
+        self.cli("event", "--run", run_id, "--task", "01", "--kind", "done", "--message", "ok")
+        self.assertEqual(self.task(run_id, "01")["status"], "done")
+
+    def test_max_workers_default_depends_on_harness(self) -> None:
+        claude = self.init_run()
+        self.assertEqual(json.loads((self.run_dir(claude) / "run.json").read_text())["max_workers"], 2)
+        codex = self.init_run(harness="codex")
+        self.assertEqual(json.loads((self.run_dir(codex) / "run.json").read_text())["max_workers"], 3)
+        explicit = self.init_run(harness="claude", max_workers=4)
+        self.assertEqual(json.loads((self.run_dir(explicit) / "run.json").read_text())["max_workers"], 4)
+
 
 if __name__ == "__main__":
     unittest.main()

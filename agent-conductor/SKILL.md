@@ -37,8 +37,10 @@ Worker roles, models, and prompts are in [references/roles.md](references/roles.
 4. Initialize the run from the repository root:
 
    ```bash
-   python3 <script> init --cwd "$PWD" --goal "<one sentence>" --harness <claude|codex> --max-workers 3 --json
+   python3 <script> init --cwd "$PWD" --goal "<one sentence>" --harness <claude|codex> --json
    ```
+
+   `max_workers` defaults to 2 on Claude, where the master and every worker share one usage window, and 3 elsewhere. Raise it with `--max-workers` only for independent slices on a run that can afford the usage.
 
    Add `--autonomy "<the user's stated level>"` only when the initial prompt limits autonomy; otherwise the plan gets the high-autonomy default.
 
@@ -56,6 +58,12 @@ Apply the usual approval gate: present the plan summary and wait for the user's 
 
 Definition of done must be observable (tests, commands, or user-visible behavior), because reviewers verify against it.
 
+**Size tasks for wall-clock time.** Every task pays a worker cold start, a review, and a handoff, and a dependent waits for all three. Aim for tasks of roughly 30 to 90 minutes of worker time:
+
+- Give one worker a serial chain (schema, then service, then UI) as one task with ordered steps, instead of three dependent tasks.
+- Split only slices that can run in parallel on disjoint files, or where a checkpoint is truly needed before the next step (for example, a design decision the user must see).
+- Do not create separate tasks for docs or small follow-ups of an implementation slice; put them in that slice's acceptance criteria.
+
 ### 2. Dispatch
 
 For every task:
@@ -66,8 +74,10 @@ For every task:
    python3 <script> task add --run <id> --title "<t>" --role implement \
      --objective "<what and why, with the relevant paths>" --files "<owned paths>" \
      --acceptance "<observable criterion>" --acceptance "<...>" \
-     --verify "<lint/test/build command>" --commit-policy none --depends-on 01
+     --verify "<lint/test/build command>" --commit-policy none --depends-on 01 [--review none|light|full]
    ```
+
+   Review defaults by role: `explore` and `monitor` get `none`, `implement` and `computer-use` get `light`, `integrate` gets `full`. Pass `--review full` for risky slices: migrations or data deletion, auth and permissions, payments, public API contracts, and production configuration. Pass `--review none` for read-only or trivially verifiable work.
 
    Read the rendered packet once and edit it only if a section still says "(master: fill in)".
 2. Parallel implementers get their own worktree so they never touch the same checkout: `python3 <script> worktree add --run <id> --task <n>`. Serial tasks and single-task runs work in the main checkout. Tasks that edit overlapping files are serialized, never parallel.
@@ -84,7 +94,7 @@ Use the harness reference's event channel. Do not poll or sleep in a loop, and d
 After an actionable message or completion, run `python3 <script> status --run <id>` and process every newly actionable result. Treat a message and a final notification for the same result as one transition; do not dispatch duplicate reviewers or dependents.
 
 - `blocked`: read the last message and the report. Resolve it with information the worker lacks, steer the same worker with a message, or split the task. If the resolution changes what the worker must do, `task amend` the packet first and point the message at it. Escalate to the user only when the decision is theirs, and notify them (reference).
-- `done`: dispatch a reviewer for that task (step 4). Launch dependents only after review acceptance, even if `status` lists them as ready earlier.
+- `done`: dispatch a reviewer for that task (step 4); `review none` tasks arrive already `accepted`. Launch dependents only after review acceptance, even if `status` lists them as ready earlier.
 - `failed`: read the report; re-dispatch with a sharper packet at most once, then replan.
 - `accepted` or `rejected`: advance dependents or send corrections immediately (step 4), even while unrelated workers continue.
 - If no worker is active, reconcile any assigned task with the native agent state once. Dispatch ready work, recover a missing report from that worker, finish the run, or surface the actual blocker; never wait on an empty worker set.
@@ -92,7 +102,13 @@ After an actionable message or completion, run `python3 <script> status --run <i
 
 ### 4. Verify through reviewers
 
-Every `done` task gets a reviewer worker (same model tier) with the prompt `Review task <n> of run <id>: read <packet path> and <report path>, then follow the reviewer role.` The reviewer runs the verification commands, inspects the diff in the task's working directory, and ends with `event --kind accepted` or `event --kind rejected --message "<reasons>"`. It never fixes code.
+The packet's `Review:` line sets how much verification the task gets:
+
+- `none`: the script accepts the task when the worker reports `done`; dependents are ready immediately. Read the brief or report yourself when you use it.
+- `light`: a reviewer reads the diff and report against the acceptance criteria and re-runs only fast, targeted checks, relying on the report's command output for slow suites.
+- `full`: a reviewer re-runs every verification command and inspects the whole change. The integration task is always `full`, so the complete suite runs once, at the end.
+
+Every `done` task with `light` or `full` review gets a reviewer worker (same model tier) with the prompt `Review task <n> of run <id>: read <packet path> and <report path>, then follow the reviewer role.` The reviewer ends with `event --kind accepted` or `event --kind rejected --message "<reasons>"`. It never fixes code.
 
 - `accepted`: dispatch dependents.
 - `rejected`: send the reasons to the original worker (resume it) with `Address the review at <review path>, then re-run the protocol.` Two rejections on one task mean the packet or plan is wrong: replan that slice instead of retrying.
@@ -115,8 +131,8 @@ Spot-check at most one accepted task per run yourself by reading its report, not
 
 | Need | Command |
 | --- | --- |
-| New task and packet | `task add --title T --role R [--objective-file F] [--files A,B] [--acceptance C]... [--verify CMD]... [--depends-on 01,02] [--commit-policy none\|commit\|commit-and-push]` |
-| Assign or record | `task set --task N [--status S] [--agent ID] [--reviewer ID] [--depends-on 01,02\|none] [--worktree P] [--commit-policy P]` |
+| New task and packet | `task add --title T --role R [--objective-file F] [--files A,B] [--acceptance C]... [--verify CMD]... [--depends-on 01,02] [--commit-policy none\|commit\|commit-and-push] [--review none\|light\|full]` |
+| Assign or record | `task set --task N [--status S] [--agent ID] [--reviewer ID] [--depends-on 01,02\|none] [--worktree P] [--commit-policy P] [--review L]` |
 | Change a packet after dispatch | `task amend --task N [--text "..." \| --text-file F] [--acceptance "..."]...` (adds a binding `Master amendment` section) |
 | Record a decision | `plan log --message "..."` |
 | Dashboard | `status` |

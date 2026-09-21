@@ -26,4 +26,4 @@ Write the report, review, or brief before recording its actionable event. In Cod
 
 ## Packet quality checklist
 
-Before launching, confirm the packet has: a concrete objective with paths; owned files that do not overlap any other running task; acceptance criteria a reviewer can verify by running something or observing something; the project's real verification commands (read `package.json`, `Makefile`, or the repo instructions once, do not guess); an explicit commit policy; and the working directory that matches the recorded worktree.
+Before launching, confirm the packet has: a concrete objective with paths; owned files that do not overlap any other running task; acceptance criteria a reviewer can verify by running something or observing something; the project's real verification commands (read `package.json`, `Makefile`, or the repo instructions once, do not guess); an explicit commit policy; the working directory that matches the recorded worktree; and a review level that matches the risk (`none` for read-only work, `light` by default for implementation, `full` for risky slices and integration).
