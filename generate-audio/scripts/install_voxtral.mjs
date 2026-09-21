@@ -157,7 +157,7 @@ async function smokeTest(runtime) {
       jobPath,
       JSON.stringify({
         model: { repo: VOXTRAL_MODEL_REPO, revision: VOXTRAL_MODEL_REVISION },
-        voice: "neutral_female",
+        voice: "casual_male",
         maxFrames: 1500,
         chunks: [{ text: SMOKE_TEXT, output: path.join(directory, "smoke.wav") }]
       })
