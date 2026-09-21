@@ -436,16 +436,27 @@ class WatchTests(ConductorTestCase):
     def test_from_start_replays_and_until_idle_exits(self) -> None:
         run_id = self.init_run()
         self.cli("task", "add", "--run", run_id, "--title", "Build", "--role", "implement")
+        self.cli("task", "add", "--run", run_id, "--title", "Docs", "--role", "implement")
         self.cli("event", "--run", run_id, "--task", "01", "--kind", "started", "--message", "starting")
         self.cli("event", "--run", run_id, "--task", "01", "--kind", "done", "--message", "all green")
+        self.cli("event", "--run", run_id, "--task", "01", "--kind", "accepted", "--message", "verified")
+        self.cli("event", "--run", run_id, "--task", "02", "--kind", "started", "--message", "starting")
+        self.cli("event", "--run", run_id, "--task", "02", "--kind", "failed", "--message", "no access")
 
         result = self.watch("--run", run_id, "--from-start", "--poll-seconds", "0.1", "--until", "idle")
         self.assertEqual(result.returncode, 0, result.stderr)
         lines = [line for line in result.stdout.splitlines() if line.strip()]
-        self.assertEqual(len(lines), 1, result.stdout)
-        self.assertIn("[01 implement] DONE: all green", lines[0])
-        self.assertNotIn("STARTED", result.stdout)
-        self.assertNotIn("TASK_ADDED", result.stdout)
+        self.assertEqual(len(lines), 2, result.stdout)
+        self.assertIn("[02 implement] FAILED: no access", lines[0])
+        self.assertTrue(lines[1].startswith("IDLE:"), lines[1])
+        for hidden in ("STARTED", "TASK_ADDED", "DONE", "ACCEPTED"):
+            self.assertNotIn(hidden, result.stdout)
+
+    def test_idle_counts_review_and_correction_as_in_flight(self) -> None:
+        for status in ("assigned", "running", "done", "rejected"):
+            self.assertFalse(conductor.tasks_idle([{"status": status}]), status)
+        for status in ("pending", "blocked", "failed", "accepted"):
+            self.assertTrue(conductor.tasks_idle([{"status": status}]), status)
 
     def test_all_replays_every_kind_and_reports_finished_run(self) -> None:
         run_id = self.init_run()
@@ -675,9 +686,6 @@ class HelperTests(unittest.TestCase):
         self.assertEqual(conductor.collapse("a\nb\n  c"), "a b c")
 
 
-if __name__ == "__main__":
-    unittest.main()
-
 
 class PacketHeaderSyncTests(WorktreeTests):
     def test_worktree_add_and_remove_rewrite_packet_working_directory(self) -> None:
@@ -734,3 +742,167 @@ class RunStatusTests(ConductorTestCase):
         self.cli("finish", "--run", run_id, "--status", "done")
         self.cli("event", "--run", run_id, "--task", "01", "--kind", "started", "--message", "again")
         self.assertEqual(json.loads(run_json.read_text())["status"], "done")
+
+
+class AmendmentAndPlanLogTests(ConductorTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.run_id = self.init_run()
+        self.cli("task", "add", "--run", self.run_id, "--title", "One", "--role", "implement",
+                 "--acceptance", "first criterion")
+        self.cli("task", "add", "--run", self.run_id, "--title", "Two", "--role", "implement")
+
+    def test_task_set_depends_on_and_reviewer(self) -> None:
+        code, _out, err = self.cli(
+            "task", "set", "--run", self.run_id, "--task", "02", "--depends-on", "01",
+            "--reviewer", "rev-1",
+        )
+        self.assertEqual(code, 0, err)
+        task = self.task(self.run_id, "02")
+        self.assertEqual(task["depends_on"], ["01"])
+        self.assertEqual(task["reviewer"], "rev-1")
+        self.assertIn("Depends on: 01", Path(task["packet"]).read_text())
+
+        code, _out, _err = self.cli("task", "set", "--run", self.run_id, "--task", "02", "--depends-on", "none")
+        self.assertEqual(code, 0)
+        self.assertEqual(self.task(self.run_id, "02")["depends_on"], [])
+        self.assertIn("Depends on: none", Path(self.task(self.run_id, "02")["packet"]).read_text())
+
+        code, _out, err = self.cli("task", "set", "--run", self.run_id, "--task", "02", "--depends-on", "02")
+        self.assertEqual(code, 1)
+        self.assertIn("cannot depend on itself", err)
+        code, _out, err = self.cli("task", "set", "--run", self.run_id, "--task", "02", "--depends-on", "07")
+        self.assertEqual(code, 1)
+        self.assertIn("unknown task '07'", err)
+
+    def test_reviewer_does_not_overwrite_agent_and_shows_in_status(self) -> None:
+        self.cli("task", "set", "--run", self.run_id, "--task", "01", "--agent", "impl-1")
+        self.cli("task", "set", "--run", self.run_id, "--task", "01", "--reviewer", "rev-1")
+        task = self.task(self.run_id, "01")
+        self.assertEqual((task["agent"], task["reviewer"]), ("impl-1", "rev-1"))
+        _code, out, _err = self.cli("status", "--run", self.run_id)
+        self.assertIn("REVIEWER", out)
+        self.assertIn("rev-1", out)
+
+    def test_task_amend_adds_binding_section_and_criteria(self) -> None:
+        code, _out, err = self.cli(
+            "task", "amend", "--run", self.run_id, "--task", "01",
+            "--text", "Also remove the settings toggle.", "--acceptance", "toggle is gone",
+        )
+        self.assertEqual(code, 0, err)
+        body = Path(self.task(self.run_id, "01")["packet"]).read_text()
+        self.assertIn("## Master amendment (", body)
+        self.assertIn("Also remove the settings toggle.", body)
+        self.assertLess(body.index("## Master amendment"), body.index("## Verification"))
+        criteria = body[body.index("## Acceptance criteria"):body.index("## Constraints")]
+        self.assertIn("- [ ] first criterion", criteria)
+        self.assertIn("- [ ] toggle is gone (added ", criteria)
+        self.assertIn("AMENDED:", (self.run_dir(self.run_id) / "events.log").read_text())
+
+        code, _out, err = self.cli("task", "amend", "--run", self.run_id, "--task", "01")
+        self.assertEqual(code, 1)
+        self.assertIn("nothing to amend", err)
+
+    def test_plan_log_appends_to_decisions_log(self) -> None:
+        code, _out, err = self.cli("plan", "log", "--run", self.run_id, "--message", "Serialize 01 and 02")
+        self.assertEqual(code, 0, err)
+        plan = (self.run_dir(self.run_id) / "plan.md").read_text()
+        section = plan[plan.index("## Decisions log"):]
+        self.assertIn("run created", section)
+        self.assertIn("Serialize 01 and 02", section)
+        self.assertLess(section.index("run created"), section.index("Serialize 01 and 02"))
+        self.assertIn("DECISION: Serialize 01 and 02", (self.run_dir(self.run_id) / "events.log").read_text())
+
+
+class AutonomyTests(ConductorTestCase):
+    def test_plan_defaults_to_high_autonomy_and_packet_points_at_it(self) -> None:
+        run_id = self.init_run()
+        plan = (self.run_dir(run_id) / "plan.md").read_text()
+        self.assertIn("## Autonomy", plan)
+        self.assertIn("High (default)", plan)
+        _code, out, _err = self.cli(
+            "task", "add", "--run", run_id, "--title", "One", "--role", "implement", "--json"
+        )
+        body = Path(json.loads(out)["task"]["packet"]).read_text()
+        self.assertIn("Constraints, and Autonomy first", body)
+        self.assertIn("Follow the plan's Autonomy section", body)
+
+    def test_autonomy_can_be_set_at_init(self) -> None:
+        run_id = self.init_run(autonomy="Ask before any external write.")
+        plan = (self.run_dir(run_id) / "plan.md").read_text()
+        self.assertIn("Ask before any external write.", plan)
+        self.assertNotIn("High (default)", plan)
+
+
+class CheckinTests(ConductorTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.run_id = self.init_run()
+        self.cli("task", "add", "--run", self.run_id, "--title", "One", "--role", "implement")
+
+    def checkin(self, *extra: str) -> dict:
+        code, out, err = self.cli("checkin", "--run", self.run_id, "--json", *extra)
+        self.assertEqual(code, 0, err)
+        return json.loads(out)
+
+    def test_act_when_work_is_ready_then_ok_while_progressing(self) -> None:
+        data = self.checkin()
+        self.assertEqual(data["verdict"], "ACT")
+        self.assertIn("ready to dispatch: 01", data["reason"])
+        self.assertTrue(data["next_cron"])
+
+        self.cli("task", "set", "--run", self.run_id, "--task", "01", "--status", "assigned", "--agent", "w")
+        self.cli("event", "--run", self.run_id, "--task", "01", "--kind", "started", "--message", "go")
+        data = self.checkin()
+        self.assertEqual(data["verdict"], "OK")
+        self.assertEqual(data["quiet_checkins"], 0)
+
+    def test_done_task_asks_for_review(self) -> None:
+        self.cli("event", "--run", self.run_id, "--task", "01", "--kind", "started", "--message", "go")
+        self.cli("event", "--run", self.run_id, "--task", "01", "--kind", "done", "--message", "ok")
+        data = self.checkin()
+        self.assertEqual(data["verdict"], "ACT")
+        self.assertIn("awaiting review", data["reason"])
+
+    def test_stops_after_consecutive_quiet_checkins(self) -> None:
+        self.cli("event", "--run", self.run_id, "--task", "01", "--kind", "started", "--message", "go")
+        # The first check-in sees the started event; the next three see nothing new.
+        verdicts = [self.checkin()["verdict"] for _ in range(4)]
+        self.assertEqual(verdicts, ["OK", "OK", "OK", "STOP"])
+        final = self.checkin()
+        self.assertEqual(final["verdict"], "STOP")
+        self.assertIsNone(final["next_cron"])
+
+        self.cli("event", "--run", self.run_id, "--task", "01", "--kind", "progress", "--message", "moving")
+        self.assertEqual(self.checkin()["verdict"], "OK")
+
+    def test_stop_when_run_is_finished(self) -> None:
+        self.cli("finish", "--run", self.run_id, "--status", "done")
+        data = self.checkin()
+        self.assertEqual(data["verdict"], "STOP")
+        self.assertIsNone(data["next_cron"])
+        _code, out, _err = self.cli("checkin", "--run", self.run_id)
+        self.assertTrue(out.startswith("STOP:"))
+        self.assertNotIn("NEXT:", out)
+
+    def test_next_cron_is_one_shot_and_avoids_round_minutes(self) -> None:
+        from datetime import datetime, timezone
+        base = datetime(2026, 9, 21, 13, 35, tzinfo=timezone.utc)
+        self.assertEqual(conductor.next_checkin_cron(25, base), "1 14 21 9 *")
+        self.assertEqual(conductor.next_checkin_cron(20, base), "55 13 21 9 *")
+
+
+class ElapsedTests(ConductorTestCase):
+    def test_elapsed_stops_at_finish(self) -> None:
+        run_id = self.init_run()
+        run_path = self.run_dir(run_id) / "run.json"
+        run = json.loads(run_path.read_text())
+        run["created"] = "2026-09-21T10:00:00+00:00"
+        run["finished"] = "2026-09-21T11:05:00+00:00"
+        run["status"] = "done"
+        run_path.write_text(json.dumps(run))
+        data = conductor.build_status(self.run_dir(run_id), run)
+        self.assertEqual(data["elapsed"], "1h05m")
+
+if __name__ == "__main__":
+    unittest.main()

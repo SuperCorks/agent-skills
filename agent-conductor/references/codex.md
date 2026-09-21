@@ -5,7 +5,7 @@ Use native inter-agent communication to advance the run in the current turn. Fil
 ## Preflight checks
 
 - **Agent tools**: identify the exposed spawn, message, follow-up, wait, and status tools. The Desktop examples below use `collaboration.*`. Call those tools directly, not inside `functions.exec`. If the harness exposes another API, use its documented equivalents. If no native agent wait is available, report that limitation; do not silently replace it with a scheduled automation.
-- **Worker definitions**: inspect `~/.codex/agents/` and `.codex/agents/` for `conductor_implementer`, `conductor_reviewer`, `conductor_explorer`, `conductor_monitor`, and `conductor_computer_use`. Confirm their models and reasoning match the roles below. Fix stale definitions through the install workflow before launching; do not assume explicit spawn settings can override a conflicting definition.
+- **Worker definitions**: inspect `~/.codex/agents/` and `.codex/agents/` for `conductor_implementer`, `conductor_reviewer`, `conductor_explorer`, `conductor_monitor`, and `conductor_computer_use`. Installed definitions may carry no `model` or `model_reasoning_effort` keys; that is expected, because every spawn below passes both explicitly. Reinstall only when a definition is missing or pins a model or reasoning level that conflicts with the roles below.
 - **Fast mode**: check the current session's fast-mode state and applicable `service_tier` setting. If fast mode is explicitly enabled, ask the user to turn it off before dispatch. Do not edit their runtime config yourself or assume an unfamiliar tier name means fast mode.
 
 ## Launch a worker
@@ -32,12 +32,12 @@ Use your actual canonical agent path in place of `/root` when conducting from a 
 - Computer use: `conductor_computer_use`, `gpt-6-astra` at medium.
 - Integration: `conductor_implementer`, Sol at high.
 
-Record the returned id or canonical path with `task set --task <id> --status assigned --agent <agent>`. Keep at most `max_workers` active workers and respect the runtime's actual capacity.
+Record the returned id or canonical path with `task set --task <id> --status assigned --agent <agent>`, and a reviewer with `task set --task <id> --reviewer <agent>`. Keep at most `max_workers` active workers and respect the runtime's actual capacity.
 
 ## Stay in the native event loop
 
 1. **Drain actionable results first.** On a native message or final-status notification, run `status` once, read only the changed reports or reviews, and process all available transitions. Dispatch a reviewer for `done`, dependents for `accepted`, or corrections for `rejected` immediately. Unrelated running workers do not hold up these handoffs. Deduplicate a message and final notification for the same result using the task registry and current assignment.
-2. **Wait only when the next action depends on an active worker.** With the Desktop API, call `collaboration.wait_agent({timeout_ms: 60000})`. It waits on the team's mailbox and wakes early for agent updates or user input; its schema has no `targets` argument. Use a longer timeout only when allowed by both the exposed tool and the current session instructions. The timeout is a ceiling, not a delay before processing messages.
+2. **Wait only when the next action depends on an active worker.** With the Desktop API, call `collaboration.wait_agent({timeout_ms: 120000})`. It waits on the team's mailbox and wakes early for agent updates or user input; its schema has no `targets` argument. If the exposed tool rejects that value, use the largest it accepts. Use a longer timeout only when allowed by both the exposed tool and the current session instructions. The timeout is a ceiling, not a delay before processing messages.
 3. **Consume the delivered message.** A wait may only identify which agent has an update; process the native message or final notification delivered with it. If a notification lacks enough state, use a compact native agent-status snapshot and the changed report. Do not read worker transcripts.
 4. **Continue in this turn.** After a timeout with no update, return to the native wait without a shell sleep, repeated registry reads, or unchanged progress messages. After an update, repeat step 1. A native wait with early event wakeup is not timer polling. Only run a status recovery check when a packet milestone/deadline is overdue or native state disagrees with the registry.
 5. **Never wait on zero active workers.** Reconcile an apparently assigned/running task with native agent state once. If its worker finished without a report, follow up with that worker for the missing result. Otherwise dispatch ready work, finish, or surface the actual blocker. Do not send a final response merely because all workers were dispatched or a batch has finished; finish when the requested run is complete, the user asks to stop, or further progress truly requires unavailable input or capability.
@@ -54,7 +54,7 @@ Create a scheduled check only when the user actually requests scheduled work or 
 
 With the Desktop API:
 
-- Steer a running worker: `collaboration.send_message({target: "<agent>", message: "<direction and packet or review path>"})`. It queues a message; it does not start an idle worker.
+- Steer a running worker: `collaboration.send_message({target: "<agent>", message: "<direction and packet or review path>"})`. It queues a message; it does not start an idle worker. When the direction changes scope or acceptance criteria, `task amend` the packet first and point the message at it, so the reviewer checks the same contract.
 - Resume an idle/finished worker: `collaboration.followup_task({target: "<agent>", message: "Address the review at <review path>, then re-run your packet protocol and notify the parent."})`. This starts a new turn when idle. Sending a message alone is insufficient.
 - Redirect work immediately only when necessary: `collaboration.interrupt_agent({target: "<agent>"})`, then `followup_task` with the new instructions.
 - Inspect lifecycle state when reconciling capacity or a missing result: `collaboration.list_agents({})`. Do not poll it. Do not invent `close_agent` if none is exposed, and do not infer active capacity from the UI's historical Done count. If your CLI exposes a close operation and says completed agents retain capacity, close them according to that schema after recording their reports.

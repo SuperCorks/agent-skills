@@ -29,7 +29,7 @@ import shutil
 import subprocess
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Iterator, Optional
 
@@ -58,7 +58,21 @@ EVENT_KINDS = (
 )
 COMMIT_POLICIES = ("none", "commit", "commit-and-push")
 HARNESSES = ("claude", "codex", "other")
-DEFAULT_WATCH_KINDS = ("blocked", "done", "failed", "accepted", "rejected")
+DEFAULT_WATCH_KINDS = ("blocked", "failed")
+# Task statuses that mean the run still has something in flight: a worker is on it, a
+# reviewer is checking it (done), or its worker is addressing a review (rejected).
+ACTIVE_TASK_STATUSES = ("assigned", "running", "done", "rejected")
+DEFAULT_CHECKIN_MINUTES = 25
+DEFAULT_STALE_MINUTES = 45
+DEFAULT_MAX_QUIET_CHECKINS = 3
+HIGH_AUTONOMY = (
+    "High (default). Proceed without asking whenever an action is implied by the goal or is "
+    "reversible, including creating, changing, or deleting data in local, sandbox, demo, test, "
+    "or staging environments. Ask first only for irreversible changes to production data or "
+    "shared systems, spending or committing money, messages sent to other people on the "
+    "user's behalf, and decisions that change the goal or scope. Tool-level confirmations "
+    "still apply."
+)
 DEFAULT_MAX_WORKERS = 3
 TERMINAL_RUN_STATUSES = ("done", "aborted")
 EVENT_LINE_RE = re.compile(r"^(?P<ts>\S+) \[(?P<where>[^\]]*)\] (?P<kind>[A-Z0-9_-]+): (?P<message>.*)$")
@@ -373,6 +387,9 @@ PLAN_TEMPLATE = """# Plan: {goal}
 ## Constraints
 - (master: fill in: files or areas off limits, conventions, budgets, tools)
 
+## Autonomy
+{autonomy}
+
 ## Approach
 (master: fill in the sequencing and why it is safe to parallelise)
 
@@ -430,7 +447,7 @@ return that final result immediately. Do not wait for an acknowledgement or a ti
 Run: {run_id}
 Role: {task['role']}
 Depends on: {depends}
-Plan: {plan} (read Goal, Definition of done, and Constraints first)
+Plan: {plan} (read Goal, Definition of done, Constraints, and Autonomy first)
 Working directory: {workdir}
 Commit policy: {policy} (none = do not commit; commit = commit on the current branch when acceptance criteria pass; commit-and-push = also push)
 Conductor script: {script}
@@ -451,6 +468,8 @@ Do not edit anything outside this scope. Preserve unrelated changes.
 - Do not create git worktrees, background processes, or sub-agents of your own unless this packet says so.
 - Never switch to fast mode. Do not change models or reasoning settings.
 - If the packet and the code disagree in a way that changes the plan, report `blocked` instead of improvising.
+- Follow the plan's Autonomy section: do not stop to ask for approval of anything it pre-approves.
+- Sections headed `Master amendment` are binding and override earlier text they contradict.
 
 ## Verification
 Run before reporting done:
@@ -523,7 +542,11 @@ def cmd_init(args: argparse.Namespace) -> int:
     with run_lock(directory):
         write_json(directory / "run.json", run)
         write_json(directory / "tasks.json", {"tasks": []})
-        write_text(directory / "plan.md", PLAN_TEMPLATE.format(goal=args.goal, created=created))
+        autonomy = collapse(args.autonomy) if args.autonomy and args.autonomy.strip() else HIGH_AUTONOMY
+        write_text(
+            directory / "plan.md",
+            PLAN_TEMPLATE.format(goal=args.goal, created=created, autonomy=autonomy),
+        )
         for name in ("events.jsonl", "events.log"):
             path = directory / name
             if not path.exists():
@@ -608,6 +631,7 @@ def cmd_task_add(args: argparse.Namespace) -> int:
             "status": "pending",
             "depends_on": depends,
             "agent": None,
+            "reviewer": None,
             "worktree": worktree,
             "packet": str(packet),
             "report": str(report),
@@ -640,14 +664,17 @@ def cmd_task_add(args: argparse.Namespace) -> int:
 
 
 def sync_packet_header(task: dict[str, Any], run: dict[str, Any]) -> None:
-    """Rewrite the packet's Working directory and Commit policy lines from the registry."""
+    """Rewrite the packet's Depends on, Working directory and Commit policy lines from the registry."""
     packet = Path(task["packet"])
     if not packet.is_file():
         return
     workdir = task.get("worktree") or run["cwd"]
+    depends = ", ".join(task.get("depends_on") or []) or "none"
     lines = packet.read_text(encoding="utf-8").split("\n")
     for index, line in enumerate(lines):
-        if line.startswith("Working directory: "):
+        if line.startswith("Depends on: "):
+            lines[index] = f"Depends on: {depends}"
+        elif line.startswith("Working directory: "):
             lines[index] = f"Working directory: {workdir}"
         elif line.startswith("Commit policy: "):
             rest = line.split(" (", 1)
@@ -666,8 +693,12 @@ def cmd_task_set(args: argparse.Namespace) -> int:
         raise ConductorError(
             f"invalid commit policy '{args.commit_policy}'; expected one of: {', '.join(COMMIT_POLICIES)}"
         )
-    if not any([args.status, args.agent, args.worktree, args.commit_policy]):
-        raise ConductorError("nothing to set: pass --status, --agent, --worktree or --commit-policy")
+    if not any(
+        [args.status, args.agent, args.reviewer, args.worktree, args.commit_policy]
+    ) and args.depends_on is None:
+        raise ConductorError(
+            "nothing to set: pass --status, --agent, --reviewer, --depends-on, --worktree or --commit-policy"
+        )
 
     with run_lock(directory):
         registry = load_registry(directory)
@@ -679,6 +710,25 @@ def cmd_task_set(args: argparse.Namespace) -> int:
         if args.agent:
             changes.append(f"agent {task['agent'] or 'none'} -> {args.agent}")
             task["agent"] = args.agent
+        if args.reviewer:
+            changes.append(f"reviewer {task.get('reviewer') or 'none'} -> {args.reviewer}")
+            task["reviewer"] = args.reviewer
+        if args.depends_on is not None:
+            raw = args.depends_on.strip()
+            depends = [] if raw.lower() in ("", "none") else [
+                part.strip() for part in raw.split(",") if part.strip()
+            ]
+            known = {t["id"] for t in registry["tasks"]}
+            for dep in depends:
+                if dep == task["id"]:
+                    raise ConductorError(f"task {task['id']} cannot depend on itself")
+                if dep not in known:
+                    raise ConductorError(
+                        f"--depends-on refers to unknown task '{dep}'; known: " + ", ".join(sorted(known))
+                    )
+            old = ",".join(task["depends_on"]) or "none"
+            changes.append(f"depends_on {old} -> {','.join(depends) or 'none'}")
+            task["depends_on"] = depends
         if args.worktree:
             new_worktree = str(Path(args.worktree).expanduser().absolute())
             changes.append(f"worktree {task['worktree'] or 'none'} -> {new_worktree}")
@@ -688,7 +738,7 @@ def cmd_task_set(args: argparse.Namespace) -> int:
             task["commit_policy"] = args.commit_policy
         message = "; ".join(changes)
         save_registry(directory, registry)
-        if args.worktree or args.commit_policy:
+        if args.worktree or args.commit_policy or args.depends_on is not None:
             sync_packet_header(task, _run)
         append_event(directory, "task_updated", message, actor(args), task)
 
@@ -724,6 +774,95 @@ def cmd_task_list(args: argparse.Namespace) -> int:
         for t in registry["tasks"]
     ] or ["(no tasks)"]
     emit(args, {"run_id": run_id, "tasks": registry["tasks"]}, lines)
+    return 0
+
+
+def read_text_arg(text: Optional[str], text_file: Optional[str], flag: str) -> Optional[str]:
+    if text_file:
+        path = Path(text_file).expanduser()
+        if not path.is_file():
+            raise ConductorError(f"{flag}-file not found: {path}")
+        return path.read_text(encoding="utf-8")
+    return text
+
+
+def insert_before_heading(body: str, heading: str, block: str) -> str:
+    """Insert block just before the first line equal to heading (append if absent)."""
+    lines = body.split("\n")
+    for index, line in enumerate(lines):
+        if line.strip() == heading:
+            return "\n".join(lines[:index] + block.rstrip("\n").split("\n") + [""] + lines[index:])
+    return body.rstrip("\n") + "\n\n" + block.rstrip("\n") + "\n"
+
+
+def append_to_section(body: str, heading: str, new_lines: list[str]) -> str:
+    """Append lines at the end of a '## ' section, before the next '## ' heading."""
+    lines = body.split("\n")
+    start = next((i for i, line in enumerate(lines) if line.strip() == heading), None)
+    if start is None:
+        return body.rstrip("\n") + "\n\n" + heading + "\n" + "\n".join(new_lines) + "\n"
+    end = len(lines)
+    for index in range(start + 1, len(lines)):
+        if lines[index].startswith("## "):
+            end = index
+            break
+    insert_at = end
+    while insert_at > start + 1 and not lines[insert_at - 1].strip():
+        insert_at -= 1
+    return "\n".join(lines[:insert_at] + new_lines + lines[insert_at:])
+
+
+def cmd_task_amend(args: argparse.Namespace) -> int:
+    run_id, directory, _run = resolve_run(args)
+    text = read_text_arg(args.text, args.text_file, "--text")
+    criteria = [item.strip() for item in (args.acceptance or []) if item.strip()]
+    if not (text and text.strip()) and not criteria:
+        raise ConductorError("nothing to amend: pass --text, --text-file or --acceptance")
+
+    with run_lock(directory):
+        registry = load_registry(directory)
+        task = find_task(registry, args.task)
+        packet = Path(task["packet"])
+        if not packet.is_file():
+            raise ConductorError(f"packet not found: {packet}")
+        body = packet.read_text(encoding="utf-8")
+        stamp = now_iso()
+        if criteria:
+            body = append_to_section(
+                body, "## Acceptance criteria", [f"- [ ] {item} (added {stamp[:10]})" for item in criteria]
+            )
+        if text and text.strip():
+            block = f"## Master amendment ({stamp})\n{text.strip()}\n"
+            body = insert_before_heading(body, "## Verification", block)
+        write_text(packet, body)
+        summary = []
+        if text and text.strip():
+            summary.append(truncate(collapse(text), 120))
+        if criteria:
+            summary.append(f"+{len(criteria)} acceptance criteria")
+        append_event(directory, "amended", "; ".join(summary), actor(args), task)
+
+    emit(
+        args,
+        {"run_id": run_id, "task": task["id"], "packet": str(packet), "added_criteria": criteria},
+        [f"amended task {task['id']} packet: {packet}"],
+    )
+    return 0
+
+
+def cmd_plan_log(args: argparse.Namespace) -> int:
+    run_id, directory, _run = resolve_run(args)
+    message = collapse(args.message)
+    if not message:
+        raise ConductorError("--message is empty")
+    with run_lock(directory):
+        plan = directory / "plan.md"
+        body = plan.read_text(encoding="utf-8") if plan.is_file() else ""
+        stamp = now_iso()
+        body = append_to_section(body, "## Decisions log", [f"- {stamp} {message}"])
+        write_text(plan, body)
+        append_event(directory, "decision", message, actor(args))
+    emit(args, {"run_id": run_id, "logged": message}, [f"logged decision in {plan}"])
     return 0
 
 
@@ -807,10 +946,13 @@ def build_status(directory: Path, run: dict[str, Any]) -> dict[str, Any]:
         {"id": t["id"], "last_event": t.get("last_event")} for t in tasks if t["status"] == "blocked"
     ]
     awaiting = [t["id"] for t in tasks if t["status"] == "done"]
+    rejected = [t["id"] for t in tasks if t["status"] == "rejected"]
+    failed = [t["id"] for t in tasks if t["status"] == "failed"]
     running = [t["id"] for t in tasks if t["status"] == "running"]
 
     created = parse_iso(run.get("created"))
-    elapsed = (datetime.now(timezone.utc) - created).total_seconds() if created else None
+    end = parse_iso(run.get("finished")) or datetime.now(timezone.utc)
+    elapsed = (end - created).total_seconds() if created else None
     return {
         "run": run,
         "elapsed": humanize(elapsed),
@@ -819,6 +961,8 @@ def build_status(directory: Path, run: dict[str, Any]) -> dict[str, Any]:
         "ready_to_dispatch": ready,
         "open_blockers": blocked,
         "awaiting_review": awaiting,
+        "rejected": rejected,
+        "failed": failed,
         "running": running,
         "max_workers": run.get("max_workers", DEFAULT_MAX_WORKERS),
     }
@@ -840,13 +984,16 @@ def cmd_status(args: argparse.Namespace) -> int:
     if not rows:
         lines.append("(no tasks yet)")
     else:
-        header = f"{'ID':<3} {'ROLE':<12} {'STATUS':<9} {'AGENT':<14} {'ATT':<3} {'AGE':<7} LAST EVENT"
+        header = (
+            f"{'ID':<3} {'ROLE':<12} {'STATUS':<9} {'AGENT':<14} {'REVIEWER':<12} {'ATT':<3} {'AGE':<7} LAST EVENT"
+        )
         lines.append(header)
         shown = rows[:25]
         for task in shown:
             lines.append(
                 f"{task['id']:<3} {task['role']:<12} {task['status']:<9} "
-                f"{truncate(task['agent'] or '-', 14):<14} {task['attempts']:<3} "
+                f"{truncate(task['agent'] or '-', 14):<14} {truncate(task.get('reviewer') or '-', 12):<12} "
+                f"{task['attempts']:<3} "
                 f"{task['last_event_age']:<7} {truncate(task['last_event'] or '-', 60)}"
             )
         if len(rows) > len(shown):
@@ -866,6 +1013,11 @@ def cmd_status(args: argparse.Namespace) -> int:
     for line in lines:
         print(line)
     return 0
+
+
+def tasks_idle(tasks: list[dict[str, Any]]) -> bool:
+    """True when no task is being worked, reviewed, or corrected."""
+    return not any(t.get("status") in ACTIVE_TASK_STATUSES for t in tasks)
 
 
 def cmd_watch(args: argparse.Namespace) -> int:
@@ -901,7 +1053,7 @@ def cmd_watch(args: argparse.Namespace) -> int:
                 tasks = json.load(handle).get("tasks", [])
         except (OSError, json.JSONDecodeError):
             return False
-        return not any(t.get("status") in ("running", "assigned") for t in tasks)
+        return tasks_idle(tasks)
 
     try:
         with open(log_path, "r", encoding="utf-8") as handle:
@@ -919,11 +1071,11 @@ def cmd_watch(args: argparse.Namespace) -> int:
                     line = line.rstrip("\n")
                     match = EVENT_LINE_RE.match(line)
                     kind = match.group("kind").lower() if match else ""
-                    if kinds is not None and kind not in kinds:
-                        continue
-                    print(line, flush=True)
-                    if args.until == "idle" and idle():
-                        return 0
+                    if kinds is None or kind in kinds:
+                        print(line, flush=True)
+                if progressed and args.until == "idle" and idle():
+                    print("IDLE: nothing in flight; dispatch, integrate, or finish", flush=True)
+                    return 0
                 status = run_status()
                 if status in TERMINAL_RUN_STATUSES:
                     print(f"RUN {status}", flush=True)
@@ -1026,6 +1178,109 @@ def cmd_check(args: argparse.Namespace) -> int:
         print(f"FAIL {item}")
     print("CHECK PASS" if ok else "CHECK FAIL")
     return 0 if ok else 1
+
+
+def next_checkin_cron(minutes: int, now: Optional[datetime] = None) -> str:
+    """One-shot local-time cron for now + minutes, nudged off the :00 and :30 marks."""
+    when = (now or datetime.now().astimezone()) + timedelta(minutes=minutes)
+    if when.minute in (0, 30):
+        when += timedelta(minutes=1)
+    return f"{when.minute} {when.hour} {when.day} {when.month} *"
+
+
+def cmd_checkin(args: argparse.Namespace) -> int:
+    """Fallback check-in verdict: STOP, ACT, or OK, plus the next one-shot cron."""
+    run_id, directory, run = resolve_run(args)
+    with run_lock(directory):
+        run = load_json(directory / "run.json")
+        events = read_events(directory)
+        last_checkin = max(
+            (index for index, event in enumerate(events) if event.get("kind") == "checkin"),
+            default=None,
+        )
+        since = events[last_checkin + 1 :] if last_checkin is not None else events
+        progressed = any(event.get("kind") != "checkin" for event in since)
+        quiet = 0 if progressed else int(run.get("quiet_checkins") or 0) + 1
+
+        data = build_status(directory, run)
+        tasks = data["tasks"]
+        stale_seconds = args.stale_minutes * 60
+        stale = []
+        for task in tasks:
+            if task["status"] not in ("assigned", "running"):
+                continue
+            stamp = parse_iso(task.get("last_event_ts"))
+            if stamp and (datetime.now(timezone.utc) - stamp).total_seconds() > stale_seconds:
+                stale.append(task["id"])
+
+        actions = []
+        if data["open_blockers"]:
+            actions.append("blocked: " + ", ".join(item["id"] for item in data["open_blockers"]))
+        if data["failed"]:
+            actions.append("failed: " + ", ".join(data["failed"]))
+        if data["awaiting_review"]:
+            actions.append(
+                "awaiting review (dispatch a reviewer if none is recorded): "
+                + ", ".join(data["awaiting_review"])
+            )
+        if data["rejected"]:
+            actions.append(
+                "rejected (confirm the worker is correcting it): " + ", ".join(data["rejected"])
+            )
+        running_now = [t["id"] for t in tasks if t["status"] in ("assigned", "running")]
+        free = max(0, int(data["max_workers"]) - len(running_now))
+        if data["ready_to_dispatch"] and free:
+            actions.append("ready to dispatch: " + ", ".join(data["ready_to_dispatch"]))
+        if stale:
+            actions.append(
+                f"no events for over {args.stale_minutes} min (ask once for status): " + ", ".join(stale)
+            )
+        if tasks and tasks_idle(tasks) and not data["ready_to_dispatch"] and not data["open_blockers"]:
+            actions.append("nothing in flight: integrate, run check, or finish")
+
+        terminal = run.get("status") in TERMINAL_RUN_STATUSES
+        if terminal:
+            verdict = "STOP"
+            reason = f"run is {run.get('status')}: do not schedule another check-in"
+        elif quiet >= args.max_quiet:
+            verdict = "STOP"
+            reason = (
+                f"no progress across {quiet} check-ins: do not schedule another; "
+                "tell the user once what is stuck"
+            )
+        elif actions:
+            verdict = "ACT"
+            reason = "; ".join(actions)
+        else:
+            verdict = "OK"
+            reason = "workers are progressing; nothing to do"
+
+        run["quiet_checkins"] = quiet
+        write_json(directory / "run.json", run)
+        append_event(directory, "checkin", f"{verdict}: {reason}", actor(args))
+
+    next_cron = None if verdict == "STOP" else next_checkin_cron(args.interval_minutes)
+    lines = [f"{verdict}: {reason}"]
+    if verdict == "STOP" and not terminal and actions:
+        lines.append("open items: " + "; ".join(actions))
+    if next_cron:
+        lines.append(
+            "NEXT: after handling this, schedule one one-shot check-in (recurring: false) "
+            f"with cron \"{next_cron}\" (local time, in {args.interval_minutes} min)"
+        )
+    emit(
+        args,
+        {
+            "run_id": run_id,
+            "verdict": verdict,
+            "reason": reason,
+            "actions": actions,
+            "quiet_checkins": quiet,
+            "next_cron": next_cron,
+        },
+        lines,
+    )
+    return 0
 
 
 def cmd_finish(args: argparse.Namespace) -> int:
@@ -1177,6 +1432,10 @@ def build_parser() -> argparse.ArgumentParser:
     p_init.add_argument(
         "--max-workers", type=int, default=DEFAULT_MAX_WORKERS, help="max concurrent workers"
     )
+    p_init.add_argument(
+        "--autonomy",
+        help="text for the plan's Autonomy section (default: high autonomy, ask only when necessary)",
+    )
     add_common(p_init, with_run=False)
     p_init.set_defaults(func=cmd_init)
 
@@ -1212,6 +1471,8 @@ def build_parser() -> argparse.ArgumentParser:
     p_set.add_argument("--task", required=True, help="task id, e.g. 01")
     p_set.add_argument("--status", help=f"one of: {', '.join(TASK_STATUSES)}")
     p_set.add_argument("--agent", help="name of the agent assigned to the task")
+    p_set.add_argument("--reviewer", help="name of the reviewer agent for the task")
+    p_set.add_argument("--depends-on", help="replace dependencies: comma-separated ids, or 'none'")
     p_set.add_argument("--worktree", help="absolute worktree path")
     p_set.add_argument("--commit-policy", help=f"one of: {', '.join(COMMIT_POLICIES)}")
     add_common(p_set)
@@ -1225,6 +1486,25 @@ def build_parser() -> argparse.ArgumentParser:
     p_list = task_sub.add_parser("list", help="list tasks (one line each)")
     add_common(p_list)
     p_list.set_defaults(func=cmd_task_list)
+
+    p_amend = task_sub.add_parser(
+        "amend", help="add a binding master amendment and/or acceptance criteria to a packet"
+    )
+    p_amend.add_argument("--task", required=True, help="task id")
+    p_amend.add_argument("--text", help="amendment text (becomes a '## Master amendment' section)")
+    p_amend.add_argument("--text-file", help="read the amendment text from this file")
+    p_amend.add_argument(
+        "--acceptance", action="append", default=[], help="acceptance criterion to add (repeatable)"
+    )
+    add_common(p_amend)
+    p_amend.set_defaults(func=cmd_task_amend)
+
+    p_plan = sub.add_parser("plan", help="update the run plan")
+    plan_sub = p_plan.add_subparsers(dest="plan_command", required=True, metavar="<subcommand>")
+    p_log = plan_sub.add_parser("log", help="append a dated line to the plan's Decisions log")
+    p_log.add_argument("--message", required=True, help="the decision, one line")
+    add_common(p_log)
+    p_log.set_defaults(func=cmd_plan_log)
 
     p_event = sub.add_parser("event", help="append a worker event (also updates task status)")
     p_event.add_argument("--task", help="task id; omit for a run-level event")
@@ -1249,7 +1529,10 @@ def build_parser() -> argparse.ArgumentParser:
         "--until",
         choices=("idle", "finished", "never"),
         default="idle",
-        help="idle: stop when nothing is running; finished: stop when the run ends; never: run forever",
+        help=(
+            "idle: stop when no task is assigned, running, awaiting review, or being corrected; "
+            "finished: stop when the run ends; never: run forever"
+        ),
     )
     add_common(p_watch)
     p_watch.set_defaults(func=cmd_watch)
@@ -1257,6 +1540,27 @@ def build_parser() -> argparse.ArgumentParser:
     p_check = sub.add_parser("check", help="plan-alignment gate (exit 1 on FAIL)")
     add_common(p_check)
     p_check.set_defaults(func=cmd_check)
+
+    p_checkin = sub.add_parser(
+        "checkin", help="fallback check-in verdict (STOP/ACT/OK) and the next one-shot cron"
+    )
+    p_checkin.add_argument(
+        "--interval-minutes", type=int, default=DEFAULT_CHECKIN_MINUTES, help="minutes to the next check-in"
+    )
+    p_checkin.add_argument(
+        "--stale-minutes",
+        type=int,
+        default=DEFAULT_STALE_MINUTES,
+        help="flag assigned/running tasks with no event for this long",
+    )
+    p_checkin.add_argument(
+        "--max-quiet",
+        type=int,
+        default=DEFAULT_MAX_QUIET_CHECKINS,
+        help="STOP after this many consecutive check-ins without any new event",
+    )
+    add_common(p_checkin)
+    p_checkin.set_defaults(func=cmd_checkin)
 
     p_finish = sub.add_parser("finish", help="close the run")
     p_finish.add_argument("--status", required=True, choices=("done", "aborted"))

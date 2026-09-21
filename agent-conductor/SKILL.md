@@ -24,6 +24,8 @@ Worker roles, models, and prompts are in [references/roles.md](references/roles.
 | Master stays light | You read `status`, packets, reports, and review verdicts. You never read worker transcripts, raw logs, or large files. If a read would exceed about 200 lines, delegate it to an explorer worker that returns a brief. |
 | Reports and wakeups | Workers write their report and `conductor.py event`, then notify the master through the harness. File writes alone do not wake Codex. Steering goes through the native message-to-agent tool, referencing the packet path. |
 | Git | Workers commit only when their packet's commit policy says so. Pull requests go through the `git-workflow-gates` skill when the user asked for one. |
+| Autonomy | Default to high autonomy: proceed without asking whenever you can, and ask only for irreversible production changes, money, messages sent as the user, or scope decisions. Use a different level only when the user's initial prompt sets one; record it with `init --autonomy`. Workers follow the plan's Autonomy section. |
+| State through the script | Change tasks, dependencies, packets, and the Decisions log only through `conductor.py` (cheat sheet below). Never edit `tasks.json` or packets by hand. |
 
 ## Lifecycle
 
@@ -37,6 +39,8 @@ Worker roles, models, and prompts are in [references/roles.md](references/roles.
    ```bash
    python3 <script> init --cwd "$PWD" --goal "<one sentence>" --harness <claude|codex> --max-workers 3 --json
    ```
+
+   Add `--autonomy "<the user's stated level>"` only when the initial prompt limits autonomy; otherwise the plan gets the high-autonomy default.
 
    Keep the run id and the plan path in your context. Everything else is re-derivable from `status`.
 
@@ -67,7 +71,7 @@ For every task:
 
    Read the rendered packet once and edit it only if a section still says "(master: fill in)".
 2. Parallel implementers get their own worktree so they never touch the same checkout: `python3 <script> worktree add --run <id> --task <n>`. Serial tasks and single-task runs work in the main checkout. Tasks that edit overlapping files are serialized, never parallel.
-3. Launch the worker using your harness reference and live tool schema, prompt: `Read <packet path> and follow it exactly.` Include any parent address and notification instruction required by that reference. Record the agent: `python3 <script> task set --run <id> --task <n> --status assigned --agent <name-or-id>`.
+3. Launch the worker using your harness reference and live tool schema, prompt: `Read <packet path> and follow it exactly.` Include any parent address and notification instruction required by that reference. Record the agent: `python3 <script> task set --run <id> --task <n> --status assigned --agent <name-or-id>`. Record a reviewer with `--reviewer`, never `--agent`, so the registry keeps who did the work.
 4. Keep at most `max_workers` workers running. Use `status` to see what is ready when one finishes.
 
 ### 3. Wait on agents, then advance immediately
@@ -79,7 +83,7 @@ Use the harness reference's event channel. Do not poll or sleep in a loop, and d
 
 After an actionable message or completion, run `python3 <script> status --run <id>` and process every newly actionable result. Treat a message and a final notification for the same result as one transition; do not dispatch duplicate reviewers or dependents.
 
-- `blocked`: read the last message and the report. Resolve it with information the worker lacks, steer the same worker with a message, or split the task. Escalate to the user only when the decision is theirs, and notify them (reference).
+- `blocked`: read the last message and the report. Resolve it with information the worker lacks, steer the same worker with a message, or split the task. If the resolution changes what the worker must do, `task amend` the packet first and point the message at it. Escalate to the user only when the decision is theirs, and notify them (reference).
 - `done`: dispatch a reviewer for that task (step 4). Launch dependents only after review acceptance, even if `status` lists them as ready earlier.
 - `failed`: read the report; re-dispatch with a sharper packet at most once, then replan.
 - `accepted` or `rejected`: advance dependents or send corrections immediately (step 4), even while unrelated workers continue.
@@ -93,6 +97,8 @@ Every `done` task gets a reviewer worker (same model tier) with the prompt `Revi
 - `accepted`: dispatch dependents.
 - `rejected`: send the reasons to the original worker (resume it) with `Address the review at <review path>, then re-run the protocol.` Two rejections on one task mean the packet or plan is wrong: replan that slice instead of retrying.
 
+Record each reviewer with `task set --reviewer <id>`. Reusing a reviewer for its task's re-review after a rejection is fine; the integration task always gets a fresh reviewer that did not review its inputs.
+
 Spot-check at most one accepted task per run yourself by reading its report, not its diff.
 
 ### 5. Integrate and close
@@ -103,9 +109,25 @@ Spot-check at most one accepted task per run yourself by reading its report, not
 4. Clean up: `worktree remove --task <n> --delete-branch` for each integrated worktree; remove any run-specific fallback check-in that was actually created; close workers only if your harness exposes that operation and requires it to release capacity.
 5. `python3 <script> finish --run <id> --status done --summary "<two sentences>"`, notify the user, and write the final report: what shipped, verification evidence from the reviewer verdicts, deviations from the plan, and follow-ups. On abandonment use `--status aborted` and say what is left.
 
+## Conductor CLI
+
+`python3 <script> <command> --run <id> ...` (add `--json` for machine-readable output):
+
+| Need | Command |
+| --- | --- |
+| New task and packet | `task add --title T --role R [--objective-file F] [--files A,B] [--acceptance C]... [--verify CMD]... [--depends-on 01,02] [--commit-policy none\|commit\|commit-and-push]` |
+| Assign or record | `task set --task N [--status S] [--agent ID] [--reviewer ID] [--depends-on 01,02\|none] [--worktree P] [--commit-policy P]` |
+| Change a packet after dispatch | `task amend --task N [--text "..." \| --text-file F] [--acceptance "..."]...` (adds a binding `Master amendment` section) |
+| Record a decision | `plan log --message "..."` |
+| Dashboard | `status` |
+| Claude event watcher | `watch --until idle` (prints only `blocked` and `failed`, then `IDLE` when nothing is in flight) |
+| Fallback check-in (Claude) | `checkin` (prints `STOP`, `ACT`, or `OK` and the next one-shot cron) |
+| Parallel checkout | `worktree add --task N`, `worktree remove --task N --delete-branch`, `worktree list` |
+| Close | `check`, then `finish --status done\|aborted --summary "..."` |
+
 ## Replanning
 
-Stop and revise the plan, not the packet, when a worker reports the plan's assumptions are wrong, when two tasks keep colliding on the same files, or when a slice was rejected twice. Record the change in the plan's Decisions log, add or retire tasks in the registry, and tell the user in one paragraph if the change alters scope or timeline.
+Stop and revise the plan, not the packet, when a worker reports the plan's assumptions are wrong, when two tasks keep colliding on the same files, or when a slice was rejected twice. Record the change with `plan log`, add tasks with `task add`, rewire order with `task set --depends-on`, and put new instructions into affected packets with `task amend`. Tell the user in one paragraph if the change alters scope or timeline.
 
 ## Computer use
 
