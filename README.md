@@ -66,7 +66,7 @@ A collection of AI agent skills for GitHub Copilot and other AI assistants.
 | [typesafe-ai](typesafe-ai) | Build AI-powered software with TypeSafe typed judgments, probabilities, and composable decision primitives |
 | [vidapp](vidapp) | Query VidApp analytics, purchases, watch history, user tags, collections, and OpenAPI docs |
 | [vimeo-ott](vimeo-ott) | Query Vimeo OTT products, customers, videos, live events, browse rows, and analytics |
-| [web-computer-use](web-computer-use) | Coordinate named Chrome/Brave plugin connections, Keeper authentication, and browser reservations, with an optional robot status extension and task timers |
+| [web-computer-use](web-computer-use) | Coordinate BrowserSkill (`bsk`) for Claude sessions, named Chrome/Brave plugin connections, Keeper authentication, and browser reservations, with an optional robot status extension and task timers |
 | [work-breakdown](work-breakdown) | Turn approved plans into vertical, independently verifiable work items with dependencies and acceptance criteria |
 
 ## Installation
