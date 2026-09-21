@@ -365,6 +365,7 @@ test("--dry-run reports the plan without calling a provider or writing audio", a
     { GENERATE_AUDIO_HOME: home }
   );
   assert.equal(installed.result.provider, "voxtral");
+  assert.equal(installed.result.voice, "casual_male", "casual_male is the default voice");
   assert.equal(installed.result.paidCall, false);
   assert.equal(installed.result.runtimePath, home);
   assert.equal(installed.result.words, 120);

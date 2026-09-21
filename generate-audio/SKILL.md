@@ -27,7 +27,7 @@ Pass `--text "..."` instead of `--text-file` for a short inline string. The outp
 Options:
 
 - `--provider auto|voxtral|speechify`: `auto` is the default. `voxtral` never falls back and never spends credits. `speechify` skips Voxtral.
-- `--voice <name>`: Voxtral voice preset, default `neutral_female` (or `GENERATE_AUDIO_VOICE`). English: `casual_female`, `casual_male`, `cheerful_female`, `neutral_female`, `neutral_male`. Also `fr_`, `de_`, `es_`, `it_`, `pt_`, `nl_` with `female`/`male`, plus `ar_male`, `hi_female`, `hi_male`. Speechify ignores this and uses its managed voice profile.
+- `--voice <name>`: Voxtral voice preset, default `casual_male` (or `GENERATE_AUDIO_VOICE`). English: `casual_female`, `casual_male`, `cheerful_female`, `neutral_female`, `neutral_male`. Also `fr_`, `de_`, `es_`, `it_`, `pt_`, `nl_` with `female`/`male`, plus `ar_male`, `hi_female`, `hi_male`. Speechify ignores this and uses its managed voice profile.
 - `--speed <0.5-2>`: Playback speed. Without it Voxtral speaks at `1` and Speechify uses the managed profile speed (`1.1`).
 - `--overwrite`: Replace an existing output file.
 - `--dry-run`: Report the plan without generating audio or calling any provider.
@@ -35,7 +35,7 @@ Options:
 The script prints one JSON line:
 
 ```json
-{"outputPath":"/abs/narration.mp3","bytes":444231,"requestedProvider":"auto","provider":"voxtral","fallbackReason":null,"voice":"neutral_female","speed":1,"words":100,"chunks":1,"audioSeconds":37,"elapsedSeconds":66.6}
+{"outputPath":"/abs/narration.mp3","bytes":444231,"requestedProvider":"auto","provider":"voxtral","fallbackReason":null,"voice":"casual_male","speed":1,"words":100,"chunks":1,"audioSeconds":37,"elapsedSeconds":66.6}
 ```
 
 Always tell the user which `provider` ran. When `fallbackReason` is set, say so: it means paid Speechify credits were used instead of the local model.

@@ -9,7 +9,7 @@ Usage: voxtral_worker.py <job.json>
 Job file:
     {
       "model": {"repo": "...", "revision": "..."},
-      "voice": "neutral_female",
+      "voice": "casual_male",
       "maxFrames": 1500,
       "chunks": [{"text": "...", "output": "/abs/path/chunk_000.wav"}]
     }
