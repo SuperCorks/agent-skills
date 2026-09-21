@@ -412,6 +412,18 @@ def render_packet(
     criteria_block = "\n".join(f"- [ ] {item}" for item in criteria)
     checks = verify or ["(master: fill in the project's lint/test/build commands)"]
     verify_block = "\n".join(f"- {item}" for item in checks)
+    delivery = ""
+    if run["harness"] == "codex":
+        delivery = """
+### Codex result delivery
+File events persist state; they do not wake the master. After writing the report or review
+and recording a `blocked`, `done`, `failed`, `accepted`, or `rejected` event, notify your
+parent through the available native inter-agent message tool (for example,
+`collaboration.send_message`). Use the parent agent path supplied in your launch message;
+include the run id, task id, event kind, and report or review path. Send once per result,
+then end your worker turn with the same concise result. If native messaging is unavailable,
+return that final result immediately. Do not wait for an acknowledgement or a timer.
+"""
 
     return f"""# Task {task_id}: {task['title']}
 
@@ -447,10 +459,11 @@ Run before reporting done:
 ## Protocol
 1. First: `python3 {script} event --run {run_id} --task {task_id} --kind started --message "<one line on your approach>"`
 2. On each milestone (at most every ~10 minutes): `... --kind progress --message "<what is done>"`
-3. If you cannot proceed: `... --kind blocked --message "<exactly what you need>"`, then write the report and stop.
+3. If you cannot proceed: write the report, then `... --kind blocked --message "<exactly what you need>"` and stop.
 4. When all acceptance criteria pass: write the report (below), then `... --kind done --message "<one-line result>"`.
 5. If you must give up: write the report, then `... --kind failed --message "<why>"`.
 Do not run any other conductor subcommand; do not edit plan.md, tasks.json, or other tasks' files.
+{delivery}
 
 ## Report
 Write {task['report']} with exactly these sections:

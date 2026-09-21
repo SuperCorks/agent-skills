@@ -1,47 +1,70 @@
 # Codex reference for the master
 
-Use these exact tools. They exist when `[features] multi_agent = true` in `~/.codex/config.toml`.
+Use native inter-agent communication to advance the run in the current turn. Files preserve evidence across interruptions; they are not a notification transport. The live tool schemas are authoritative: Codex Desktop and CLI versions expose different agent APIs. Do not combine arguments from different versions.
 
 ## Preflight checks
 
-- **Worker definitions**: `ls ~/.codex/agents .codex/agents 2>/dev/null | grep -i conductor`. You need `Conductor Implementer.toml`, `Conductor Reviewer.toml`, `Conductor Explorer.toml`, `Conductor Monitor.toml`, and `Conductor Computer Use.toml`; their `name` fields are `conductor_implementer`, `conductor_reviewer`, `conductor_explorer`, `conductor_monitor`, `conductor_computer_use`. They pin `model` and `model_reasoning_effort`, and you also pass both explicitly on every spawn so a stale definition cannot downgrade a worker.
-- **Fast mode**: `grep -E '^service_tier' ~/.codex/config.toml`. Anything other than absent or `"default"` (for example `"fast"`) means stop and ask the user to reset it before you dispatch; do not edit their config yourself. Spawned agents inherit the tier.
+- **Agent tools**: identify the exposed spawn, message, follow-up, wait, and status tools. The Desktop examples below use `collaboration.*`. Call those tools directly, not inside `functions.exec`. If the harness exposes another API, use its documented equivalents. If no native agent wait is available, report that limitation; do not silently replace it with a scheduled automation.
+- **Worker definitions**: inspect `~/.codex/agents/` and `.codex/agents/` for `conductor_implementer`, `conductor_reviewer`, `conductor_explorer`, `conductor_monitor`, and `conductor_computer_use`. Confirm their models and reasoning match the roles below. Fix stale definitions through the install workflow before launching; do not assume explicit spawn settings can override a conflicting definition.
+- **Fast mode**: check the current session's fast-mode state and applicable `service_tier` setting. If fast mode is explicitly enabled, ask the user to turn it off before dispatch. Do not edit their runtime config yourself or assume an unfamiliar tier name means fast mode.
 
 ## Launch a worker
 
-```
-spawn_agent(
+With the Desktop `collaboration` tools:
+
+```text
+collaboration.spawn_agent({
+  task_name: "implement_widget",
   agent_type: "conductor_implementer",
   model: "gpt-5.6-sol",
   reasoning_effort: "high",
-  fork_context: false,
-  message: "Read /Users/.../runs/<run-id>/tasks/03-<slug>.md and follow it exactly."
-)
+  fork_turns: "none",
+  message: "Read <packet path> and follow it exactly. Your parent is /root. After writing your report and recording an actionable event, notify /root through collaboration.send_message with the run, task, result kind, and report path; then return your final result."
+})
 ```
 
-- `fork_context: false` always. The packet carries everything the worker needs; forking your context spends tokens and leaks your plan-level reasoning.
-- Reviewer: `agent_type: "conductor_reviewer"`, same model and effort, message `Review task 03 of run <run-id>: read <packet path> and <report path>, then follow the reviewer role.`
-- Explorer: `agent_type: "conductor_explorer"`, same model and effort.
-- Monitor: `agent_type: "conductor_monitor"`, `model: "gpt-5.6-luna"`, `reasoning_effort: "medium"`.
-- Computer use: `agent_type: "conductor_computer_use"`, `model: "gpt-6-astra"`, `reasoning_effort: "medium"`.
+Use your actual canonical agent path in place of `/root` when conducting from a nested agent. The parent address is delivery metadata; keep the task instructions in the packet. Include this notification instruction for every role, including reviewers and explorers that receive different pointer prompts.
 
-The result contains the agent id. Record it: `task set --task 03 --status assigned --agent <id>`.
+- Start with no inherited conversation. Here that is `fork_turns: "none"`; use `fork_context: false` only if the exposed spawn schema actually defines it. Do not pass both.
+- Reviewer: `conductor_reviewer`, Sol at high, prompt `Review task <id> of run <run-id>: read <packet path> and <report path>, then follow the reviewer role.` Append the parent and notification instruction; send the verdict and review path after recording `accepted` or `rejected`.
+- Explorer: `conductor_explorer`, Sol at high; notify with the completed brief path.
+- Monitor: `conductor_monitor`, `gpt-5.6-luna` at medium, for an external process such as CI or deployment. Do not dedicate a monitor to watching other subagents.
+- Computer use: `conductor_computer_use`, `gpt-6-astra` at medium.
+- Integration: `conductor_implementer`, Sol at high.
 
-## Wait cheaply
+Record the returned id or canonical path with `task set --task <id> --status assigned --agent <agent>`. Keep at most `max_workers` active workers and respect the runtime's actual capacity.
 
-1. **Final-status notifications**: when a spawned agent finishes, Codex delivers a notification with its final message. You do not need to poll for it.
-2. **Long waits** when you are genuinely blocked on the next critical-path result: `wait_agent(targets: [<ids>], timeout_ms: 3600000)` with the longest timeout the tool allows (one hour), passing every running id so whichever finishes first wakes you. Never call it with a short timeout in a loop.
-3. **Event watcher**: run `python3 <script> watch --run <run-id> --until idle` as a background shell command whose output you check only when a notification wakes you; each line is one actionable event. If your environment cannot deliver background output, skip this and rely on 1 and 2 plus `status`.
-4. **Fallback check-in** for runs expected to outlast a single wait: create a heartbeat automation with `automation_update` (`mode: "create"`, `kind: "heartbeat"`, a 20 to 30 minute interval, `model` set to your own model, `status: "ACTIVE"`) whose prompt is: `Conductor check-in for run <run-id>: run status, act on blockers and done tasks, otherwise do nothing.` Pause it (`status: "PAUSED"`) at finish. If `automation_update` is not available in this environment (plain CLI), rely on `wait_agent` instead.
-5. Then **end your turn**. Do not sleep in a loop and do not call `status` repeatedly.
+## Stay in the native event loop
 
-## Steer, resume, stop
+1. **Drain actionable results first.** On a native message or final-status notification, run `status` once, read only the changed reports or reviews, and process all available transitions. Dispatch a reviewer for `done`, dependents for `accepted`, or corrections for `rejected` immediately. Unrelated running workers do not hold up these handoffs. Deduplicate a message and final notification for the same result using the task registry and current assignment.
+2. **Wait only when the next action depends on an active worker.** With the Desktop API, call `collaboration.wait_agent({timeout_ms: 60000})`. It waits on the team's mailbox and wakes early for agent updates or user input; its schema has no `targets` argument. Use a longer timeout only when allowed by both the exposed tool and the current session instructions. The timeout is a ceiling, not a delay before processing messages.
+3. **Consume the delivered message.** A wait may only identify which agent has an update; process the native message or final notification delivered with it. If a notification lacks enough state, use a compact native agent-status snapshot and the changed report. Do not read worker transcripts.
+4. **Continue in this turn.** After a timeout with no update, return to the native wait without a shell sleep, repeated registry reads, or unchanged progress messages. After an update, repeat step 1. A native wait with early event wakeup is not timer polling. Only run a status recovery check when a packet milestone/deadline is overdue or native state disagrees with the registry.
+5. **Never wait on zero active workers.** Reconcile an apparently assigned/running task with native agent state once. If its worker finished without a report, follow up with that worker for the missing result. Otherwise dispatch ready work, finish, or surface the actual blocker. Do not send a final response merely because all workers were dispatched or a batch has finished; finish when the requested run is complete, the user asks to stop, or further progress truly requires unavailable input or capability.
 
-- Steer a running worker: `send_input(target: "<id>", message: "...", interrupt: false)`. Use `interrupt: true` only to redirect it immediately (for example a blocker you just resolved).
-- Resume a finished worker for a rejected review: `resume_agent(id: "<id>")` if it was closed, then `send_input` with `Address the review at <review path>, then re-run the protocol in your packet.`
-- Completed agents still count toward the concurrency limit until closed: `close_agent(target: "<id>")` once its report has been reviewed. Keep `max_workers` in step with that limit.
-- Notify the user only for blockers that need their decision and at the end, through the normal assistant reply; the configured `notify` hook already relays turn completion.
+If the current CLI exposes a wait that takes agent ids, include all relevant active workers so the first result wakes you, using that tool's actual schema. Do not invent a hybrid such as `wait_agent(targets: [...])` for the Desktop mailbox tool.
+
+### No timer-based worker handoffs
+
+Do not run `conductor.py watch`, a shell `sleep`, or a heartbeat automation to wait for native Codex subagents. A background command session is not an agent-message subscription, and ending the master turn can leave completed work unprocessed until the next user message or scheduled wakeup. A 20–30 minute check-in must never be the mechanism that starts a review or dependent task.
+
+Create a scheduled check only when the user actually requests scheduled work or a later external follow-up. Use the current automation tool schema; do not add one merely because a conductor run is long. When taking over a run with an old conductor heartbeat, establish native tracking and process pending results first, then pause that run's obsolete handoff heartbeat. Preserve separately requested external monitoring.
+
+## Steer, resume, recover
+
+With the Desktop API:
+
+- Steer a running worker: `collaboration.send_message({target: "<agent>", message: "<direction and packet or review path>"})`. It queues a message; it does not start an idle worker.
+- Resume an idle/finished worker: `collaboration.followup_task({target: "<agent>", message: "Address the review at <review path>, then re-run your packet protocol and notify the parent."})`. This starts a new turn when idle. Sending a message alone is insufficient.
+- Redirect work immediately only when necessary: `collaboration.interrupt_agent({target: "<agent>"})`, then `followup_task` with the new instructions.
+- Inspect lifecycle state when reconciling capacity or a missing result: `collaboration.list_agents({})`. Do not poll it. Do not invent `close_agent` if none is exposed, and do not infer active capacity from the UI's historical Done count. If your CLI exposes a close operation and says completed agents retain capacity, close them according to that schema after recording their reports.
+
+A worker silent past its expected milestone gets one concise native status request. If it remains unresponsive past a reasonable recovery deadline, inspect native state and interrupt or replace it only after establishing that the old worker cannot continue writing the same files. A wait timeout by itself is not evidence of a failed worker.
+
+Progress messages from the user steer the current run; answer briefly and continue the event loop unless they explicitly pause or stop it. Ask for missing input only when it prevents further authorized work, after dispatching any independent work that can still proceed.
 
 ## What you may read
 
-`status` output, packets, reports, review files, explorer briefs, and `check` output. Nothing else from workers.
+Native messages and final notifications, compact agent status, conductor `status`, packets, reports, review files, explorer briefs, and `check` output. No worker transcripts or raw logs.
+
+[Official subagent documentation](https://learn.chatgpt.com/docs/agent-configuration/subagents) describes native spawning, follow-up, waiting, and lifecycle controls. Exact tool names and arguments must come from the running harness.
