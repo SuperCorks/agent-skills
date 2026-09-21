@@ -13,6 +13,8 @@ Prefer, in order:
 
 Do not report a preference as a defect. Tie findings to task completion, accessibility, consistency, responsiveness, product intent, or an established design rule.
 
+Separate observed usability failures from hypotheses about users. Use available research, support feedback, or analytics when relevant, but do not invent evidence or infer causation from a metric alone. State what observation or research would resolve a consequential hypothesis; lack of user research alone does not block an otherwise verifiable change.
+
 ## Review
 
 Establish the expected behavior, target user, incumbent design system, and scope. Inspect the changed surface beside nearby patterns. When possible, test desktop and narrow/mobile widths plus the primary pointer and keyboard paths, including focus, overlays, dismissal, validation, and state feedback. Report only evidenced findings from the gates below.
@@ -27,6 +29,12 @@ For material UI changes, use the task's design context and acceptance criteria. 
 - Navigation, labels, grouping, and progressive disclosure reduce avoidable cognitive load.
 - Destructive actions are distinguishable and appropriately confirmed.
 - Empty and error states explain what happened and what the user can do next.
+
+### Complete user journeys and recovery
+
+- Trace the affected user goal from its realistic entry point through prerequisites and handoffs to a recognizable outcome; a working control alone does not prove the task can be completed. Scale the path to the change rather than auditing unrelated flows.
+- Check applicable validation, failure, retry, cancellation, and back-navigation paths. Users can correct errors without avoidably losing entered work or repeating completed steps, and retries do not duplicate consequential actions. Use safe fixtures for actions with real-world effects.
+- Compare changed navigation, terminology, action placement, and interaction behavior with the established workflow. Flag regressions with concrete evidence of task disruption or a violated product rule; keep authorized redesigns within their intended scope.
 
 ### Semantics and accessibility
 
@@ -65,6 +73,7 @@ For material UI changes, use the task's design context and acceptance criteria. 
 ### Visual system and craft
 
 - Typography, spacing, color, radii, iconography, imagery, and motion form a coherent hierarchy and use established tokens.
+- Token usage matches semantic purpose and permitted scope across applicable states and themes. Verify aliases when necessary; equal current values do not justify substituting a border token for a surface token or a status token for an action token. Respect the project's token model and documented exceptions.
 - Equivalent components remain consistent across states.
 - Decoration clarifies rather than obscures content or interaction.
 - The result feels specific to the product rather than assembled from unrelated template defaults.

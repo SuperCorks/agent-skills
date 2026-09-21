@@ -31,6 +31,7 @@ A collection of AI agent skills for GitHub Copilot and other AI assistants.
 | [codebase-simplification-audit](codebase-simplification-audit) | Audit a codebase or bounded subsystem for material structural simplifications without changing it |
 | [decision-rationale-research](decision-rationale-research) | Research why a technical or product decision was made and report evidence, competing explanations, and confidence |
 | [describe-image](describe-image) | Generate a short text description of an image file using AI |
+| [design-system-audit](design-system-audit) | Audit design-system foundations, component usage, documentation, and design/code drift with prioritized evidence |
 | [docs-maintainer](docs-maintainer) | Update user-facing documentation to match implemented behavior |
 | [domain-modeling](domain-modeling) | Clarify canonical domain vocabulary, concepts, invariants, and boundaries, with durable ADR updates when warranted |
 | [feature-dev](feature-dev) | Staged workflow for robust feature development from discovery through delivery |

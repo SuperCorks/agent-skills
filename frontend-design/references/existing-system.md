@@ -29,6 +29,8 @@ Read actual definitions and representative call sites or stories before relying 
 
 If the app has shared CSS but no token system, reuse its classes and patterns. Keep a missing token or primitive visible as a gap; do not turn a feature into an unrequested design-system migration. If visual evidence cannot be obtained, continue source discovery and name what remains unverified.
 
+Choose tokens by their documented role and permitted scope, not just their current value. Trace aliases and relevant theme overrides when meaning is unclear: a border token does not become a surface token because both currently resolve to the same color. Follow the project's existing token model and deliberate exceptions; do not introduce token layers merely to satisfy a preferred architecture.
+
 ## Record the design context before implementation
 
 For material UI work, add a concise record to the existing task plan or notes using the [per-task template](design-context-template.md#per-task-context): mode, governing sources and scope, comparable pages, reuse mapping, layout/behavior rules, necessary extensions, and observable acceptance criteria. Include verified paths or source links so another implementer or reviewer can follow them.

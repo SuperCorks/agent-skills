@@ -33,6 +33,7 @@ Use this skill to run a strict, evidence-based code quality review.
    - Compare observable behavior with the stated requirements and acceptance criteria.
    - Label these findings `Spec`; do not turn unstated preferences into requirements.
    - For UI changes, use `frontend-design` to review against applicable design criteria, source references, and rendered evidence. If context is missing or the skill is unavailable, establish the governing rules and comparable patterns directly from docs, code, and relevant pages. Respect authorized redesigns; report material design-criterion violations as `Spec` blockers and missing required visual evidence as a validation gap, not an invented defect. A source-only review must leave visual consistency explicitly unverified.
+   - Include the affected user journey, relevant error/retry recovery, established workflow consistency, and semantic token usage in that UI review. Distinguish observed defects from UX hypotheses requiring research; do not make a full design-system audit or new user research a routine merge prerequisite.
 4. Review engineering standards separately:
    - Check correctness, security, compatibility, maintainability, complexity, consistency, and targeted coverage.
    - Label these findings `Standards` and tie them to repository conventions or concrete risk.

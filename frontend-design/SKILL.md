@@ -14,6 +14,7 @@ Create interfaces that are useful, specific to their subject, visually intention
 - **Explore** when the brief opens the visual direction, such as a new product or an explicitly requested redesign: read [references/designing.md](references/designing.md). Preserve any constraints the brief retains.
 - For planning, use the applicable mode to gather design context and define future verification. Read-only discovery for a plan is not a review deliverable; do not assign a pass/fail verdict to unimplemented UI.
 - Critique, accessibility check, UX audit, or review-only request: read [references/reviewing.md](references/reviewing.md) and keep the work read-only.
+- For a system-wide foundations or design/code drift audit, use `design-system-audit` when available. Routine UI work needs only the relevant discovery below, not a full system audit.
 - Scale discovery to the change: a small edit needs its affected component and closest usage, not a fresh app inventory.
 - Implementation followed by QA: use the relevant mode while building and the reviewing reference for the final pass.
 
