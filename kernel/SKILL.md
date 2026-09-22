@@ -78,7 +78,7 @@ portfolio reassignment. Continue using the task's UUID `id` in API paths and req
 
 ## Capabilities
 
-Kernel has two fixed access presets. A Read only key can read workspace data, organizations, projects, tags, ordinary and Standing tasks, task comments, work notes, activity, attachments, Habits and occurrences, schedules, work sessions, time entries, visible synced calendar events, Inbox sources and rules, and sanitized suggestion and analysis history. A Full work key adds the supported mutations below. A valid key without an operation's scope returns `403`.
+Kernel has two fixed access presets. A Read only key can read workspace data, organizations, projects, tags, ordinary and Standing tasks, task comments, work notes, activity, attachments, Habits and occurrences, schedules, work sessions, time entries, visible synced calendar events, the key creator's private meeting notes, Inbox sources and rules, and sanitized suggestion and analysis history. A Full work key adds the supported mutations below. A valid key without an operation's scope returns `403`.
 
 - **Tasks:** list, create, inspect, update, complete, bulk-update, start work on, and conditionally delete ordinary tasks; search task options; inspect activity and comments; create comments; create, read, edit, and delete work notes; list, upload, download, and remove attachments; undo supported task deletions.
 - **Standing tasks and Habits:** list and inspect both. Full work keys can create, update, archive, restore, or conditionally delete Standing tasks; create, update, pause, resume, or archive Habits; inspect occurrences; and skip occurrences.
@@ -86,6 +86,7 @@ Kernel has two fixed access presets. A Read only key can read workspace data, or
 - **Portfolio:** list organizations, projects, and tags; create, update, archive, and restore them and manage organization images where supported.
 - **Scheduling:** inspect scheduling settings and scheduled blocks; create planned tasks, relocate planner items, edit, snooze, or intentionally remove blocks, preview schedules, update settings, and request rebuilds. Add a ready or active task to today's priorities, or remove it, so the scheduler places it before every other task until workspace-local midnight; task reads report the position as `todayPriorityRank`.
 - **Calendars:** read normalized planner-visible events; RSVP, associate meeting billing, create reviewable meeting time, and start, pause, or stop meeting tracking.
+- **Meeting notes:** read and replace the private "My notes" memo on one event occurrence through `GET/PATCH /calendar-events/{eventId}/notes`. It is the key creator's own note, so use it for that person's meeting preparation or memo instead of creating an agenda task or work note. PATCH `{notes, version}` replaces the whole memo: read it first, preserve existing content, and use version `0` only when none exists. A `409` means the memo changed or an uncertain write already landed; re-read before retrying.
 - **Inbox:** discover connected Gmail and Slack sources, inspect routing/exclusion rules, read sanitized suggestion history, inspect analysis outcomes including zero-suggestion decisions, and manage source rules.
 - **Realtime:** open the authenticated server-sent event stream for workspace invalidations and reload authoritative state after change events.
 
