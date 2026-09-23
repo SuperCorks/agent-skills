@@ -18,7 +18,7 @@ Worker roles, models, and prompts are in [references/roles.md](references/roles.
 
 | Rule | Detail |
 | --- | --- |
-| Models | Implementation, review, exploration, and integration workers run Claude Opus 5 or GPT-5.6 Sol at `high`. Computer-use workers run GPT-6 Astra at `medium`. Only the long-task monitor role may use Sonnet or GPT-5.6 Luna. |
+| Models | Implementation, review, exploration, and integration workers run Claude Opus 5 or GPT-5.6 Sol at `high`. Computer-use workers run GPT-6 Astra at `medium`. Only the long-task monitor role may use Sonnet or GPT-6 Luna. |
 | Never fast mode | Check before the first dispatch and refuse to launch workers while the session is in fast mode. Workers inherit it at spawn. |
 | Same harness | Workers are native sub-agents of the harness you run in. The one cross-harness case is a Claude master needing GPT-6 Astra: use the `agent-orchestrator` skill with model alias `astra`. Never shell out to `claude` or `codex` yourself. |
 | Master stays light | You read `status`, packets, reports, and review verdicts. You never read worker transcripts, raw logs, or large files. If a read would exceed about 200 lines, delegate it to an explorer worker that returns a brief. |

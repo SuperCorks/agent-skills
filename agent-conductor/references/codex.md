@@ -28,7 +28,7 @@ Use your actual canonical agent path in place of `/root` when conducting from a 
 - Start with no inherited conversation. Here that is `fork_turns: "none"`; use `fork_context: false` only if the exposed spawn schema actually defines it. Do not pass both.
 - Reviewer: `conductor_reviewer`, Sol at high, prompt `Review task <id> of run <run-id>: read <packet path> and <report path>, then follow the reviewer role.` Append the parent and notification instruction; send the verdict and review path after recording `accepted` or `rejected`.
 - Explorer: `conductor_explorer`, Sol at high; notify with the completed brief path.
-- Monitor: `conductor_monitor`, `gpt-5.6-luna` at medium, for an external process such as CI or deployment. Do not dedicate a monitor to watching other subagents.
+- Monitor: `conductor_monitor`, `gpt-6-luna` at medium, for an external process such as CI or deployment. Do not dedicate a monitor to watching other subagents.
 - Computer use: `conductor_computer_use`, `gpt-6-astra` at medium.
 - Integration: `conductor_implementer`, Sol at high.
 

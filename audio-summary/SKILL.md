@@ -50,7 +50,7 @@ Pick the narrator from the harness you are running in. OpenRouter is only the fa
 | Running in | Narrator |
 | --- | --- |
 | Claude Code | A sub-agent on Claude Sonnet (`sonnet`) at `xhigh` effort |
-| Codex | A sub-agent on GPT-5.6 Luna (`gpt-5.6-luna`) at extra-high (`xhigh`) reasoning |
+| Codex | A sub-agent on GPT-6 Luna (`gpt-6-luna`) at extra-high (`xhigh`) reasoning |
 | Any other harness, or the sub-agent cannot be used | OpenRouter Kimi K2.5, through the bundled script |
 
 ### With a sub-agent
