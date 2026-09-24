@@ -66,6 +66,11 @@ When working in the Kernel source repository, the corresponding checked-in sourc
 
 Consult the live OpenAPI contract for exact payloads rather than relying on remembered fields.
 
+This skill summarizes common workflows; it is not a complete list of the API. When a capability,
+field, or endpoint you need is not described here, read the Markdown guide and search the OpenAPI
+contract before concluding that Kernel cannot do it. Kernel adds endpoints regularly, such as
+organization and project files, page tabs, and LLM.txt, and documents them there first.
+
 ## Linking to tasks
 
 Use the task's returned `key` for user-facing links: `[TT-266](https://app.krnl.work/t/TT-266)`.
@@ -89,6 +94,8 @@ Kernel has two fixed access presets. A Read only key can read workspace data, or
 - **Meeting notes:** read and replace the private "My notes" memo on one event occurrence through `GET/PATCH /calendar-events/{eventId}/notes`. It is the key creator's own note, so use it for that person's meeting preparation or memo instead of creating an agenda task or work note. PATCH `{notes, version}` replaces the whole memo: read it first, preserve existing content, and use version `0` only when none exists. A `409` means the memo changed or an uncertain write already landed; re-read before retrying.
 - **Inbox:** discover connected Gmail and Slack sources, inspect routing/exclusion rules, read sanitized suggestion history, inspect analysis outcomes including zero-suggestion decisions, and manage source rules.
 - **Realtime:** open the authenticated server-sent event stream for workspace invalidations and reload authoritative state after change events.
+
+This list is not exhaustive. If what you need is missing, check the guide and OpenAPI contract in [Documentation and contract](#documentation-and-contract) before telling the user it is unsupported.
 
 The Agent API deliberately cannot administer API keys, OAuth grants, provider connections or synchronization, provider-owned calendar events, monetary billing, raw Inbox message content, unrestricted analysis internals, or live suggestion-review decisions. Do not use signed-in/internal routes, direct database access, or provider gateways to bypass those boundaries.
 
