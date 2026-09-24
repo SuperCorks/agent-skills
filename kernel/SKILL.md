@@ -20,6 +20,7 @@ Host-global, workspace, or project `AGENTS.md` instructions can select these ind
 kernel:
   task_lifecycle: ask
   work_summaries: ask
+  github_prs: ask
 ```
 
 This is an example selection, not a skill default or application configuration. Resolve each
@@ -27,11 +28,11 @@ setting from the most specific applicable `AGENTS.md` that supplies it; a missin
 to `off`. Direct user instructions override a preset for the requested action. The skill defines
 the behavior; `AGENTS.md` selects it.
 
-| Preset | `task_lifecycle` | `work_summaries` |
-| --- | --- | --- |
-| `off` | Do not initiate or offer task completion. | Do not prepare, offer, or save a Kernel work summary. |
-| `ask` | Propose marking the task Done and obtain approval before updating it. | Show the exact Markdown and Kernel task destination; save after approval. |
-| `yolo` | Mark the task Done without asking when its full scope is complete. | Prepare and save the summary without asking. |
+| Preset | `task_lifecycle` | `work_summaries` | `github_prs` |
+| --- | --- | --- | --- |
+| `off` | Do not initiate or offer task completion. | Do not prepare, offer, or save a Kernel work summary. | Do not initiate or offer pull request links. |
+| `ask` | Propose marking the task Done and obtain approval before updating it. | Show the exact Markdown and Kernel task destination; save after approval. | Show the pull request URL and Kernel task destination; link after approval. |
+| `yolo` | Mark the task Done without asking when its full scope is complete. | Prepare and save the summary without asking. | Link each pull request you open for the task without asking. |
 
 - Lifecycle automation covers only Done/completed. Doing, Blocked, Ready, Backlog, and reopening
   require a direct user request under every preset; do not initiate or offer those transitions.
@@ -40,8 +41,11 @@ the behavior; `AGENTS.md` selects it.
   work: a blocker, stop, or handoff. Routine questions, polling, or pauses with no new work do not
   produce summaries. Describe completed work, evidence, and any remaining work or blocker; do not
   imply completion merely because you are pausing. Do not save the same summary again on resume.
-- Settings and approvals are independent. Summary approval does not authorize completion, and
-  completion approval does not authorize a summary. `yolo` supplies standing authorization only
+- Pull request automation covers only linking a pull request you opened or pushed for the current
+  Kernel task. Unlinking, or linking a pull request you did not author in this work, requires a
+  direct user request under every preset.
+- Settings and approvals are independent. Summary approval does not authorize completion,
+  completion approval does not authorize a summary, and neither authorizes a pull request link. `yolo` supplies standing authorization only
   for that setting; it does not authorize description, date, time-record, or unrelated changes.
 - Summary `off` does not suppress ordinary conversation answers or a directly requested summary.
   Do not query association or work-note endpoints solely to offer management that is off.
@@ -85,7 +89,7 @@ portfolio reassignment. Continue using the task's UUID `id` in API paths and req
 
 Kernel has two fixed access presets. A Read only key can read workspace data, organizations, projects, tags, ordinary and Standing tasks, task comments, work notes, activity, attachments, Habits and occurrences, schedules, work sessions, time entries, visible synced calendar events, the key creator's private meeting notes, Inbox sources and rules, and sanitized suggestion and analysis history. A Full work key adds the supported mutations below. A valid key without an operation's scope returns `403`.
 
-- **Tasks:** list, create, inspect, update, complete, bulk-update, start work on, and conditionally delete ordinary tasks; search task options; inspect activity and comments; create comments; create, read, edit, and delete work notes; list, upload, download, and remove attachments; undo supported task deletions.
+- **Tasks:** list, create, inspect, update, complete, bulk-update, start work on, and conditionally delete ordinary tasks; search task options; inspect activity and comments; create comments; create, read, edit, and delete work notes; list, upload, download, and remove attachments; list, link, and unlink GitHub pull requests; undo supported task deletions.
 - **Standing tasks and Habits:** list and inspect both. Full work keys can create, update, archive, restore, or conditionally delete Standing tasks; create, update, pause, resume, or archive Habits; inspect occurrences; and skip occurrences.
 - **Time:** list work sessions and time entries; stop or undo-stop sessions; create, update, approve, split, merge, export, and delete time entries.
 - **Portfolio:** list organizations, projects, and tags; create, update, archive, and restore them and manage organization images where supported.
@@ -123,6 +127,23 @@ to the selected preset before writing. On `409`, reread and reassess the task ra
 completion to changed scope blindly. For directly requested non-completion transitions, consult the
 current contract for `PATCH /tasks/{taskId}` with `{version, lifecycle}` and any requested fields.
 Do not start a work session or change time records as a shortcut to setting lifecycle.
+
+## GitHub pull request links
+
+Apply `github_prs` after opening or pushing a pull request for work associated with a Kernel task.
+Resolve the destination with the association procedure above; link only ordinary tasks.
+
+- `GET /integrations/github/tasks/{taskId}/pull-requests` first. Kernel automatically links pull
+  requests that mention the task key, so skip the write when the pull request is already listed.
+- `POST /integrations/github/tasks/{taskId}/pull-requests` with `{url}` in the
+  `https://github.com/{owner}/{repo}/pull/{number}` form and an Idempotency-Key. Linking is
+  idempotent and returns the existing link.
+- Unlink through `DELETE /integrations/github/tasks/{taskId}/pull-requests/{linkId}` only when
+  directly requested. Unlinking suppresses automatic re-linking; linking the URL again clears it.
+- On `github_repository_not_connected` or `github_app_not_configured`, report that the GitHub App
+  must be installed or refreshed in the signed-in Kernel UI; do not retry or work around it.
+- Linking never changes task lifecycle. Pull request state, including merged, is not by itself
+  evidence that the task is complete; apply `task_lifecycle` separately.
 
 ## Inbox analysis diagnosis
 
