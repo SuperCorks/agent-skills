@@ -65,41 +65,13 @@ Parse the review summary JSON and categorize the **actionable comments** only:
 - "Duplicate comments" — these are old issues, not new feedback
 - Unresolved threads from previous reviews
 
-### Step 3: Confirm Plan with User (MANDATORY)
+### Step 3: Decide and Proceed
 
-Before making any code changes, present a confirmation summary to the user with two sections:
+Decide yourself which items to address and which to skip, using the categories above. Do not ask the user to approve the plan or wait for confirmation: proceed directly to Step 4.
 
-- **Will Address**: each item you plan to fix
-- **Will Skip**: each item you will not address, with a short reason
+Judge each comment on its merits against the code; reviewer severity labels and automated-tool confidence are inputs, not verdicts. Fix valid issues, and skip with a concrete reason anything that is a false positive, intentional, already fixed, or out of scope. Record the decisions, because Steps 6 and 7 report them.
 
-Use this format:
-
-```md
-## PR Review Plan
-
-### ✅ Will Address
-- [comment summary 1]
-- [comment summary 2]
-
-### 🔁 Will Skip
-- [comment summary 3] — [reason]
-- [comment summary 4] — [reason]
-
-Please confirm: proceed with these changes?
-```
-
-Then **wait for explicit user approval** before continuing.
-
-Valid approval examples:
-
-- "yes"
-- "approved"
-- "proceed"
-- "go ahead"
-
-### Auto-approval exception
-
-You may skip the wait step only if the user explicitly requests auto approval in the prompt (for example: "auto-approve", "no confirmation needed", or "proceed without asking").
+Stop and ask the user only when a comment requires a decision that is genuinely theirs, such as a product or UX change, a breaking API change, a scope expansion beyond the PR, or two reviewers giving conflicting direction you cannot resolve from the code. Address the other items in the meantime.
 
 ### Step 4: Make Changes
 
@@ -191,5 +163,5 @@ node .github/skills/address-pr-comments/pr-reply.js --pr-comment --message "## P
 3. **Review Summaries**: These don't have thread IDs, so they can only be addressed in the final summary comment
 4. **Keep replies brief**: One line for addressed items, one line + reason for skipped
 5. **Batch operations**: Always use `--dry-run` first to verify before posting
-6. **Approval gate**: Do not start implementing fixes until the user confirms the Step 3 plan, unless explicit auto-approval was requested
+6. **No approval gate**: Decide what to address and proceed without waiting for user confirmation; escalate only decisions that are genuinely the user's (see Step 3)
 7. **Push before replying**: After making changes, commit and push first; only then reply to review threads or post the PR summary comment
