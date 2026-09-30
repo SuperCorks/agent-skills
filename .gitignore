@@ -11,3 +11,7 @@ __pycache__/
 
 # Skills synced into the install directory by Claude apps
 /synced/
+
+# bsk install state for the vendored browser-skill
+browser-skill/.bsk-source
+browser-skill/.bsk.lock
