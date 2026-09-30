@@ -1,0 +1,4 @@
+interface:
+  display_name: "Work Report"
+  short_description: "Summarize what happened on a project over a date range"
+  default_prompt: "Use $work-report to report what was done on this project since Monday."

@@ -68,6 +68,7 @@ A collection of AI agent skills for GitHub Copilot and other AI assistants.
 | [vimeo-ott](vimeo-ott) | Query Vimeo OTT products, customers, videos, live events, browse rows, and analytics |
 | [web-computer-use](web-computer-use) | Coordinate BrowserSkill (`bsk`) for Claude sessions, named Chrome/Brave plugin connections, Keeper authentication, and browser reservations, with an optional robot status extension and task timers |
 | [work-breakdown](work-breakdown) | Turn approved plans into vertical, independently verifiable work items with dependencies and acceptance criteria |
+| [work-report](work-report) | Report what happened on a project over a date range from GitHub, Kernel, Slack, and local agent threads |
 
 ## Installation
 
