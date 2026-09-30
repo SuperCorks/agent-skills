@@ -75,7 +75,8 @@ Consult the live OpenAPI contract for exact payloads rather than relying on reme
 This skill summarizes common workflows; it is not a complete list of the API. When a capability,
 field, or endpoint you need is not described here, read the Markdown guide and search the OpenAPI
 contract before concluding that Kernel cannot do it. Kernel adds endpoints regularly, such as
-organization and project files, page tabs, and LLM.txt, and documents them there first.
+organization and project files, page tabs, LLM.txt, and public file links, and documents them there
+first.
 
 ## Linking to tasks
 
@@ -89,17 +90,34 @@ portfolio reassignment. Continue using the task's UUID `id` in API paths and req
 
 ## Capabilities
 
-Kernel has two fixed access presets. A Read only key can read workspace data, organizations, projects, tags, ordinary and Standing tasks, task comments, work notes, activity, attachments, Habits and occurrences, schedules, work sessions, time entries, visible synced calendar events, the key creator's private meeting notes, Inbox sources and rules, and sanitized suggestion and analysis history. A Full work key adds the supported mutations below. A valid key without an operation's scope returns `403`.
+Kernel has two fixed access presets. A Read only key can read workspace data, organizations, projects, tags, ordinary and Standing tasks, task comments, work notes, activity, attachments, Habits and occurrences, schedules, work sessions, time entries, visible synced calendar events, the key creator's private meeting notes, Inbox sources and rules, sanitized suggestion and analysis history, and public file links with their views. A Full work key adds the supported mutations below. A valid key without an operation's scope returns `403`.
 
-- **Tasks:** list, create, inspect, update, complete, bulk-update, start work on, and conditionally delete ordinary tasks; search task options; inspect activity and comments; create comments; create, read, edit, and delete work notes; list, upload, download, and remove attachments; list, link, and unlink GitHub pull requests; undo supported task deletions.
+- **Tasks:** list, create, inspect, update, complete, bulk-update, start work on, and conditionally delete ordinary tasks; search task options; inspect activity and comments; create comments; create, read, edit, and delete work notes; list, upload, download, and remove attachments and their supporting files; create, disable, enable, delete, and restore public links to attachments and read their views; list, link, and unlink GitHub pull requests; undo supported task deletions.
 - **Standing tasks and Habits:** list and inspect both. Full work keys can create, update, archive, restore, or conditionally delete Standing tasks; create, update, pause, resume, or archive Habits; inspect occurrences; and skip occurrences.
 - **Time:** list work sessions and time entries; stop or undo-stop sessions; create, update, approve, split, merge, export, and delete time entries.
-- **Portfolio:** list organizations, projects, and tags; create, update, archive, and restore them and manage organization images where supported.
+- **Portfolio:** list organizations, projects, and tags; create, update, archive, and restore them and manage organization images where supported. Organization and project files, and their supporting files and public links, work like task attachments.
+- **Public file links:** list every link in the workspace, and read one link's view history. See [Publishing a file](#publishing-a-file).
 - **Scheduling:** inspect scheduling settings and scheduled blocks; create planned tasks, relocate planner items, edit, snooze, or intentionally remove blocks, preview schedules, update settings, and request rebuilds. Add a ready or active task to today's priorities, or remove it, so the scheduler places it before every other task until workspace-local midnight; task reads report the position as `todayPriorityRank`.
 - **Calendars:** read normalized planner-visible events; RSVP, associate meeting billing, create reviewable meeting time, and start, pause, or stop meeting tracking.
 - **Meeting notes:** read and replace the private "My notes" memo on one event occurrence through `GET/PATCH /calendar-events/{eventId}/notes`. It is the key creator's own note, so use it for that person's meeting preparation or memo instead of creating an agenda task or work note. PATCH `{notes, version}` replaces the whole memo: read it first, preserve existing content, and use version `0` only when none exists. A `409` means the memo changed or an uncertain write already landed; re-read before retrying.
 - **Inbox:** discover connected Gmail and Slack sources, inspect routing/exclusion rules, read sanitized suggestion history, inspect analysis outcomes including zero-suggestion decisions, and manage source rules.
 - **Realtime:** open the authenticated server-sent event stream for workspace invalidations and reload authoritative state after change events.
+
+### Publishing a file
+
+When asked to share a file publicly through Kernel, publish it on the task, project, or
+organization it belongs to:
+
+1. Upload the file as a task attachment or an organization or project file.
+2. For an HTML or Markdown page with CSS, scripts, images, or data, upload each of those as a
+   supporting file under the relative path the page uses, such as `css/app.css`.
+3. Create a public link, with an optional `label` naming who it is for, and give the user the
+   returned `url`.
+
+Anyone with an enabled link can open the file without an account. HTML runs in a sandbox without
+cookies or `localStorage`. Links of organization and project files always serve the latest
+version. Do not publish credentials or anything the user did not ask to share. Endpoints, limits,
+and view counting are in the guide's "Public file links" section.
 
 This list is not exhaustive. If what you need is missing, check the guide and OpenAPI contract in [Documentation and contract](#documentation-and-contract) before telling the user it is unsupported.
 
