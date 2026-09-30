@@ -22,6 +22,7 @@ A collection of AI agent skills for GitHub Copilot and other AI assistants.
 | [audio-summary](audio-summary) | Create and publish narrated summaries of the current task or latest output (synthesis via generate-audio) |
 | [boulevard](boulevard) | Query Boulevard APIs, discover availability, book sandbox appointments, and compare or sync services/packages |
 | [browser-profile-sync](browser-profile-sync) | Merge Chromium bookmarks and mirror local cookie databases across Chrome, Brave, and Comet on macOS |
+| [browser-skill](browser-skill) | Drive the logged-in Chromium browser through the BrowserSkill `bsk` CLI (vendored from bsk; see its UPSTREAM.md) |
 | [browserbase](browserbase) | Browserbase browser automation, Fetch/Search, remote auth contexts, UI QA, debugging, tracing, and platform workflows |
 | [bug-diagnosis](bug-diagnosis) | Diagnose bugs, flaky failures, and performance regressions to an evidence-backed cause without implicitly implementing a fix |
 | [change-explainer](change-explainer) | Create evidence-grounded HTML walkthroughs that teach how a bounded code change works |
@@ -64,6 +65,7 @@ A collection of AI agent skills for GitHub Copilot and other AI assistants.
 | [slack-reader](slack-reader) | Read Slack messages by permalink URL, including thread replies and resolved user mentions |
 | [test-engineer](test-engineer) | Baseline-first testing workflow for correctness and regression safety |
 | [typesafe-ai](typesafe-ai) | Build AI-powered software with TypeSafe typed judgments, probabilities, and composable decision primitives |
+| [use-spark](use-spark) | Read Spark email, calendar, contacts, and team data through the `spark` CLI (vendored from Spark; see its UPSTREAM.md) |
 | [vidapp](vidapp) | Query VidApp analytics, purchases, watch history, user tags, collections, and OpenAPI docs |
 | [vimeo-ott](vimeo-ott) | Query Vimeo OTT products, customers, videos, live events, browse rows, and analytics |
 | [web-computer-use](web-computer-use) | Coordinate BrowserSkill (`bsk`) for Claude sessions, named Chrome/Brave plugin connections, Keeper authentication, and browser reservations, with an optional robot status extension and task timers |
