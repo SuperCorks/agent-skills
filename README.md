@@ -45,7 +45,7 @@ A collection of AI agent skills for GitHub Copilot and other AI assistants.
 | [graphify-context](graphify-context) | Use Graphify safely for architecture, dependency, call-flow, SQL, and other multi-hop codebase questions |
 | [gtm-manager](gtm-manager) | Manage Google Tag Manager containers, tags, triggers, and variables |
 | [html-plan](html-plan) | Create reviewable HTML planning artifacts for implementation, QA, rollout, design, data, compliance, architecture, and handoff work (rendered with html-report-builder) |
-| [html-report-builder](html-report-builder) | Build, validate, and publish self-contained HTML plans, findings reports, and stakeholder briefs from a shared component library |
+| [html-report-builder](html-report-builder) | Build, validate, and publish self-contained HTML plans, findings reports, and stakeholder briefs from a shared component library, with a local point-and-click AI editor |
 | [implementation-executor](implementation-executor) | Execute an approved implementation plan with focused changes and validation |
 | [iterable](iterable) | Read Iterable profiles, profile fields, list users, and user events with multi-account support |
 | [lovable-workflow](lovable-workflow) | Safely modify, validate, synchronize, and release Lovable-managed projects |
