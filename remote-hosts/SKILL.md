@@ -28,8 +28,12 @@ embed the corresponding private key.
 - Rebuildable persistent Docker state: the dedicated daemon's data, TLS
   material, and plugins survive ordinary stop/start but are excluded from
   encrypted checkpoints.
-- Existing project: `/workspaces/champs`, cloned from
-  `https://github.com/SuperCorks/Champs.git`.
+- Projects live under `/workspaces`, and Codex and Claude have the default home
+  plus the owner's named per-account homes (separate credentials; shared
+  settings, skills, and agent definitions within each CLI family). The project
+  paths, repository inventory, account launchers, and credential notes are in
+  the [private host map](#private-host-map); read it when choosing a project
+  path, using an account-specific CLI, or refreshing the setup.
 - Tools include Codex, Claude Code, OpenCode, GitHub CLI, Node/fnm, Python/uv,
   Go, Rust/Cargo/rustup, Google Cloud CLI, `gws`, `gswitch`, `curl`, and Docker
   CLI.
@@ -38,6 +42,31 @@ embed the corresponding private key.
   Dokploy, or another owner's containers.
 - Codex, Claude Code, and OpenCode have a guarded daily updater. It skips all
   updates while any coding-agent session is active or its status is uncertain.
+
+## Private host map
+
+Machine-specific details that should not be published, such as client project
+paths, the repository inventory, account launchers, credential-migration notes,
+and deployment procedures, live in `hosts.local.md` beside this file. Resolve
+that path relative to the loaded skill and follow symlinks. The bundled
+`.gitignore` excludes it and same-prefix backups: never force-add it or copy
+its contents into public files, examples, or PR descriptions. If it is
+missing, say so and continue with the public inventory above.
+
+Each machine keeps one real copy at `~/.agents/skills/remote-hosts/hosts.local.md`;
+every other skills folder on that machine symlinks its `hosts.local.md` to it.
+The Mac and the remote host share the same content. From the Mac, keep them in
+step with the bundled script:
+
+```bash
+scripts/sync-hosts-map.sh status   # compare the two copies
+scripts/sync-hosts-map.sh push     # Mac copy -> remote (remote copy backed up first)
+scripts/sync-hosts-map.sh pull     # remote copy -> Mac (Mac copy backed up first)
+```
+
+Run `status` before editing, edit one copy, then `push` or `pull` so both
+machines match. When an agent on the remote host updates its copy, pull it
+from the Mac afterwards.
 
 ## Verify SSH trust and connect
 

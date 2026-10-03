@@ -1,0 +1,2 @@
+# Private, machine-specific host map and same-prefix backups.
+/hosts.local*
