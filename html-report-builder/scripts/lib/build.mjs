@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { attr, escapeHtml, normalizeText, parse, splice, textContent } from "./scan.mjs";
+import { attr, classes, escapeHtml, normalizeText, parse, splice, textContent } from "./scan.mjs";
 import { RUNTIME_VERSION, loadRuntime } from "./runtime.mjs";
 
 const MIME = {
@@ -74,7 +74,7 @@ export function tocSections(doc) {
   const visit = (element) => {
     for (const child of element.children) {
       if (child.name === "section" && attr(child, "id")) {
-        const heading = child.children.find((c) => c.name === "h2");
+        const heading = child.children.find((c) => c.name === "h2") || (classes(child).includes("slide") ? child.children.find((c) => c.name === "h1") : null);
         if (heading) {
           result.push({ id: attr(child, "id"), label: attr(child, "data-toc") || normalizeText(textContent(doc, heading)), element: child, heading });
           continue;
@@ -100,7 +100,6 @@ export function renderToc(doc) {
  */
 export function buildSource(source, { file, inlineImages = true } = {}) {
   const doc = parse(source);
-  const runtime = loadRuntime();
   const edits = [];
   const notes = [];
   const find = (predicate) => doc.elements.find(predicate);
@@ -108,6 +107,7 @@ export function buildSource(source, { file, inlineImages = true } = {}) {
   const body = find((e) => e.name === "body");
   const main = find((e) => e.name === "main");
   const html = find((e) => e.name === "html");
+  const runtime = loadRuntime(html ? attr(html, "data-template") : null);
 
   const styleLine = `<style data-hr-runtime="${RUNTIME_VERSION}">${runtime.css}</style>`;
   const scriptLine = `<script data-hr-runtime="${RUNTIME_VERSION}">${runtime.js}</script>`;

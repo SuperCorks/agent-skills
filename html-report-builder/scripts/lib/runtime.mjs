@@ -20,7 +20,9 @@ export const TEMPLATES = {
   brief: {
     required: ["summary", "decisions", "next"],
     order: ["summary", "overview", "decisions", "working", "visuals", "options", "risks", "phases", "next"]
-  }
+  },
+  // Decks are a sequence of <section class="slide">; check validates slides instead of ids.
+  slides: { required: [], order: [], deck: true }
 };
 
 const STRING = /("(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*')/;
@@ -51,14 +53,18 @@ export function oneLineJs(js) {
     .join(" ");
 }
 
-let cached;
-export function loadRuntime() {
-  if (cached) return cached;
-  const css = minifyCss(readFileSync(path.join(ASSETS_DIR, "report.css"), "utf8"));
-  const js = oneLineJs(readFileSync(path.join(ASSETS_DIR, "report.js"), "utf8"));
+const cache = new Map();
+/** Runtime CSS/JS for a template: every report gets report.css/js; decks add deck.css/js. */
+export function loadRuntime(template = null) {
+  const deck = Boolean(TEMPLATES[template]?.deck);
+  if (cache.has(deck)) return cache.get(deck);
+  const read = (name) => readFileSync(path.join(ASSETS_DIR, name), "utf8");
+  const css = minifyCss(read("report.css") + (deck ? `\n${read("deck.css")}` : ""));
+  const js = oneLineJs(read("report.js")) + (deck ? ` ${oneLineJs(read("deck.js"))}` : "");
   if (/<\/(style|script)/i.test(css + js)) throw new Error("runtime assets must not contain closing style/script tags");
-  cached = { css, js, classes: cssClasses(css) };
-  return cached;
+  const runtime = { css, js, classes: cssClasses(css) };
+  cache.set(deck, runtime);
+  return runtime;
 }
 
 /** Class names that the stylesheet defines selectors for: the component vocabulary. */

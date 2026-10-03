@@ -112,7 +112,7 @@ test("components.md snippets only use classes that report.css defines, and docum
 });
 
 test("templates build cleanly once guide comments are filled", () => {
-  for (const name of ["plan", "findings", "brief"]) {
+  for (const name of ["plan", "findings", "brief", "slides"]) {
     const dir = tmp();
     const file = path.join(dir, `${name}.html`);
     const filled = readFileSync(path.join(ASSETS_DIR, "templates", `${name}.html`), "utf8").replace(/<!-- guide:[\s\S]*?-->/g, "<p>Content.</p>");

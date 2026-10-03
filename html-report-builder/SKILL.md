@@ -1,6 +1,6 @@
 ---
 name: html-report-builder
-description: Build, validate, publish, and locally edit self-contained HTML reports from a shared component library and templates (plan, findings report, stakeholder brief), including a point-and-click editor with AI rewrites. Use for investigation, analysis, QA, audit, and incident reports, stakeholder or client briefs, editing an existing HTML report, and as the rendering layer for html-plan; use html-plan itself for planning requests.
+description: Build, validate, publish, and locally edit self-contained HTML reports and slide decks from a shared component library and templates (plan, findings report, stakeholder brief, slides), including a point-and-click editor with AI rewrites. Use for investigation, analysis, QA, audit, and incident reports, stakeholder or client briefs, presentation decks, editing an existing HTML report, and as the rendering layer for html-plan; use html-plan itself for planning requests.
 ---
 
 # HTML Report Builder
@@ -15,7 +15,8 @@ In the commands below, `$HRB` is this skill's folder (for example `~/.agents/ski
    - `plan.html`: implementation, QA, rollout, architecture, or design plans (the `html-plan` skill decides the content).
    - `findings.html`: investigations, diagnoses, analyses, QA runs, audits, incidents.
    - `brief.html`: stakeholder or client briefs, vision documents, executive summaries.
-2. **Read** the template, `references/components.md`, and `references/writing.md`. Read nothing else from this skill unless needed.
+   - `slides.html`: presentation decks (executive briefings, client pitches, CEO or CTO decks). Also read `references/slides.md`.
+2. **Read** the template, `references/components.md`, and `references/writing.md` (plus `references/slides.md` for a deck). Read nothing else from this skill unless needed.
 3. **Write the report** as one `.html` file:
    - Inside a repository, prefer `docs/plans/YYYY-MM-DD-<slug>.html` for plans and `docs/reports/YYYY-MM-DD-<slug>.html` for other reports; otherwise use the workspace's `outputs/` folder.
    - Keep the template's `<head>`, `<html>` attributes, and section ids. Replace every `<!-- guide: -->` comment with content or delete the section.
@@ -63,6 +64,14 @@ node "$HRB/scripts/report.mjs" export path/to/report.html --out /tmp/<slug>-publ
 ```
 
 This writes `<slug>.html` plus `<slug>.assets/` and checks the copy. Upload the whole folder with `publish-artifacts` (as a directory) or to Kernel (the HTML as the file, each asset as a supporting file at its relative path).
+
+## Presenting decks
+
+A `slides` report opens as stacked 16:9 slides with speaker notes under each one. Press P (or click Present) to present: arrows move, N shows notes, F toggles fullscreen, Esc exits. Printing gives one slide per page. Details are in `references/slides.md`.
+
+## Keeping the templates current
+
+The templates and references encode corrections reviewers have made before. When the user corrects a report or deck in a way that would apply to future ones (structure, voice, a missing component, a recurring layout fix), ask whether to fold it into `references/writing.md`, `references/slides.md`, `references/components.md`, or a template, and make the change in the skills repository rather than in an installed copy. Keep report-specific feedback out of the skill.
 
 ## Rules
 

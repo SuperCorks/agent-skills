@@ -9,12 +9,15 @@ Copy a template from `assets/templates/`, replace every `<!-- guide: ... -->` co
 | `plan.html` | Implementation, QA, rollout, integration, architecture, and design plans; anything a future agent will execute. Used by the `html-plan` skill. | internal |
 | `findings.html` | Investigations, bug diagnoses, data analyses, QA runs, audits, incident reports: anything that answers a question with evidence. | internal |
 | `brief.html` | Stakeholder or client briefs, vision documents, executive summaries, proposals: a non-technical reader making decisions. | client |
+| `slides.html` | Presentation decks: executive briefings, client pitches, CEO or CTO decks, anything presented in a meeting. Rules and layouts in `slides.md`. | client |
 
 ## Section order and ids
 
 **Plan**: `summary` (at a glance, optional) → `scope` → `questions` → `sources` → `current` → `target` → `architecture` (optional) → `phases` → `rollout` (optional) → `qa` → `acceptance` → `risks` → `handoff`.
 
 **Findings**: `summary` (verdict and key numbers) → `scope` (question, scope, method) → `findings` → `impact` → `options` (optional) → `recommendation` → `decisions` (optional) → `next` → `limits` (limits, definitions, sources).
+
+**Slides**: `s1` cover → `s2` the answer (statement) → context → options → the path (phases) → risks → the ask (divider). Slide ids run `s1`, `s2`, ...; each slide is followed by its `aside.notes`. See `slides.md`.
 
 **Brief**: `summary` (the one-minute version) → `overview` (plain-English description) → `decisions` → `working` (optional) → `visuals` (optional) → `options` (optional) → `risks` (optional) → `phases` (phase 1, 2, 3) → `next`.
 
