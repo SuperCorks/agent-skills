@@ -75,7 +75,7 @@ module.exports = async function deckTests({ browser, root, pass, watch }) {
     await page.keyboard.press("ArrowRight");
     assert.equal(await page.evaluate(() => location.hash), "#s5");
     await page.keyboard.press("End");
-    assert.equal(await page.evaluate(() => document.querySelector(".slide.hr-current").id), "s10");
+    assert.equal(await page.evaluate(() => document.querySelector(".slide.hr-current").id), "s11");
     await page.keyboard.press("Home");
     await page.keyboard.press("n");
     assert.ok(await page.evaluate(() => getComputedStyle(document.querySelector(".slide.hr-current + .notes")).display !== "none"), "N shows notes");
@@ -100,10 +100,22 @@ module.exports = async function deckTests({ browser, root, pass, watch }) {
     const page = await context.newPage();
     await page.goto(url);
     assert.ok(await noPageOverflow(page), `JS off at ${width}px overflows`);
-    assert.ok(await page.evaluate(() => document.querySelectorAll(".slide").length === 10));
+    assert.ok(await page.evaluate(() => document.querySelectorAll(".slide").length === 11));
     await context.close();
   }
   pass("deck with JavaScript off: every slide renders and fits at 900, 1120, and 1440 px");
+
+  {
+    const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+    await page.goto(url);
+    const lefts = await page.evaluate(() => [...document.querySelectorAll("#s9 .bars > div > b")].map((b) => Math.round(b.getBoundingClientRect().left)));
+    assert.equal(new Set(lefts).size, 1, `bar values share one column (${lefts})`);
+    const fit = require("node:child_process").spawnSync(process.execPath, [path.join(skill, "scripts/fit.cjs"), file], { encoding: "utf8", env: process.env });
+    assert.equal(fit.status, 0, fit.stdout + fit.stderr);
+    assert.match(fit.stdout, /All 11 slides fit/);
+    await page.close();
+  }
+  pass("deck: bar tracks align across rows and fit.cjs confirms every slide fits");
 
   {
     const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });

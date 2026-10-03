@@ -109,7 +109,9 @@ main > section:first-child { border-top: 0; padding-top: .5rem; }
 .card > :last-child, .question > :last-child, .finding > :last-child, .option > :last-child, .lane > :last-child, .callout > :last-child { margin-bottom: 0; }
 .grid, .options, .compare, .lanes { display: grid; gap: var(--gap); margin: 1rem 0; grid-template-columns: repeat(auto-fit, minmax(min(20rem, 100%), 1fr)); }
 .lanes { grid-template-columns: repeat(auto-fit, minmax(min(15rem, 100%), 1fr)); }
-.grid.three { grid-template-columns: repeat(auto-fit, minmax(min(13rem, 100%), 1fr)); }
+.grid.three, .grid.four { grid-template-columns: repeat(auto-fit, minmax(min(12rem, 100%), 1fr)); }
+@media (min-width: 700px) { .grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); } .grid.four { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 900px) { .grid.four { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 .devices { display: flex; flex-wrap: wrap; gap: 1.5rem; align-items: flex-start; justify-content: center; margin: 1rem 0; }
 .devices > figure, .devices > .device { margin: 0; }
 .devices > figure { width: min(100%, 390px); }
@@ -192,6 +194,7 @@ tbody tr:last-child > * { border-bottom: 0; }
 .compare > .before::before, .compare > .after::before { display: block; font-size: .75rem; font-weight: 700; margin-bottom: .4rem; }
 .compare > .before::before { content: "Before"; color: var(--risk); }
 .compare > .after::before { content: "After"; color: var(--ok); }
+.compare > :is(.before, .after):has(> :is(h3, h4):first-child)::before { content: none; }
 .option { position: relative; padding: 1rem 1.25rem; }
 .option.recommended { border: 2px solid var(--accent); }
 .option.recommended::before {
@@ -212,14 +215,22 @@ tbody tr:last-child > * { border-bottom: 0; }
 .checklist > li.done::before { content: "\2713"; color: var(--surface); background: var(--ok); border-color: var(--ok); }
 
 /* Charts */
-.bars { display: grid; gap: .45rem; margin: 1rem 0; }
-.bars > div { display: grid; grid-template-columns: minmax(6rem, 14rem) minmax(4rem, 1fr) minmax(3rem, auto); align-items: center; gap: .75rem; font-size: .9rem; }
+/* Rows share one column grid (subgrid) so every track starts and ends at the same place. */
+.bars, .roadmap { display: grid; grid-template-columns: minmax(6rem, 14rem) minmax(4rem, 1fr) auto; column-gap: .75rem; row-gap: .45rem; margin: 1rem 0; }
+.bars > div, .roadmap > div { display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; align-items: center; font-size: .9rem; }
 .bars > div::before {
   content: ""; grid-column: 2; grid-row: 1; height: .75rem; border-radius: 4px;
   background: linear-gradient(to right, var(--tone, var(--accent)) calc(var(--v, 0) * 100%), var(--sunken) 0);
 }
-.bars > div > span { grid-column: 1; grid-row: 1; }
-.bars > div > b { grid-column: 3; grid-row: 1; text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+.bars > div > span, .roadmap > div > span { grid-column: 1; grid-row: 1; }
+.bars > div > b, .roadmap > div > b { grid-column: 3; grid-row: 1; text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+.roadmap > div::before {
+  content: ""; grid-column: 2; grid-row: 1; height: 1.1rem; border-radius: 5px;
+  background: linear-gradient(to right, var(--sunken) calc(var(--from, 0) * 100%), var(--tone, var(--accent)) calc(var(--from, 0) * 100%), var(--tone, var(--accent)) calc(var(--to, 1) * 100%), var(--sunken) calc(var(--to, 1) * 100%));
+}
+.roadmap > .scale { color: var(--muted); font-size: .8rem; }
+.roadmap > .scale::before { background: none; height: auto; }
+.roadmap > .scale > small { grid-column: 2; grid-row: 1; display: flex; justify-content: space-between; }
 progress { appearance: none; width: min(100%, 20rem); height: .6rem; border: 0; border-radius: 999px; overflow: hidden; vertical-align: middle; background: var(--sunken); }
 progress::-webkit-progress-bar { background: var(--sunken); }
 progress::-webkit-progress-value { background: var(--accent); }
@@ -251,7 +262,7 @@ details[open] > summary { margin-bottom: .5rem; }
   body { padding: 0 1rem 3rem; }
   .toc { margin: 0 -1rem 1rem; padding: .5rem 1rem; }
   .hero { padding: 1.75rem 0 1.25rem; }
-  .bars > div { grid-template-columns: minmax(5rem, 38%) minmax(3rem, 1fr) auto; gap: .5rem; }
+  .bars, .roadmap { grid-template-columns: minmax(5rem, 38%) minmax(3rem, 1fr) auto; column-gap: .5rem; }
   .flow { flex-direction: column; gap: 1.6rem; }
   .flow > li { max-width: none; }
   .flow > li:not(:last-child)::after { content: "\2193"; right: auto; left: 1rem; top: auto; bottom: -1.45rem; transform: none; }

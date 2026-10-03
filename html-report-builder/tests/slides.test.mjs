@@ -63,14 +63,20 @@ test("deck checks: cover first, takeaway titles, word budget, notes placement", 
   assert.match(warnings(deck(`${cover}<aside class="notes"><p>Orphan.</p></aside>`)), /must directly follow the slide/);
 });
 
+test("client decks flag internal tool names, including in notes", () => {
+  const notes = `${cover.replace("<p>Open.</p>", "<p>From the merged Codex and Claude audit.</p>")}`;
+  assert.match(warnings(deck(notes)), /internal tools \(Codex, Claude\)/);
+  assert.doesNotMatch(warnings(deck(notes, 'data-template="slides" data-audience="internal"')), /internal tools/);
+});
+
 test("outline lists slides with word counts and notes", () => {
   const data = outlineData(deckSource());
-  assert.equal(data.slides.length, 10);
+  assert.equal(data.slides.length, 11);
   assert.deepEqual(data.slides[0], { ...data.slides[0], n: 1, id: "s1", layout: "cover", title: "Move bookings without losing a sale" });
   assert.ok(data.slides.every((s) => s.notesWords > 0));
   const text = formatOutline(data);
-  assert.match(text, /Slides \(10\)/);
-  assert.match(text, / 10 #s10 .*divider/);
+  assert.match(text, /Slides \(11\)/);
+  assert.match(text, / 11 #s11 .*divider/);
 });
 
 test("slides.md snippets only use classes the deck runtime defines", () => {

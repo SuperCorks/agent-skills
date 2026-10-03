@@ -47,10 +47,18 @@ export function deckSource() {
     <div style="--v:.62"><span>Checkout</span><b>62%</b></div>
     <div class="risk" style="--v:.18"><span>Search</span><b>18%</b></div>
     <div class="ok" style="--v:.84"><span>Account</span><b>84%</b></div>
+    <div style="--v:.1"><span>Exports</span><b>Documentation only</b></div>
   </div>
-  <div class="table-wrap"><table><thead><tr><th>Area</th><th class="num">Before</th><th class="num">After</th></tr></thead><tbody><tr><td>Checkout</td><td class="num">41%</td><td class="num">62%</td></tr></tbody></table></div>`, "Pilot data from the staging store.")
+  <div class="table-wrap"><table><thead><tr><th>Area</th><th class="num">Before</th><th class="num">After</th></tr></thead><tbody><tr><td>Checkout</td><td class="num">41%</td><td class="num">62%</td></tr></tbody></table></div>
+  <p class="takeaway">Checkout is where the money is, so it goes first.</p>`, "Pilot data from the staging store."),
+    slide(10, "Roadmap", "Workstreams", "Checkout parity overlaps the first two phases", `<div class="roadmap">
+    <div class="scale"><span></span><small><span>Phase 1</span><span>Phase 2</span><span>Phase 3</span></small></div>
+    <div style="--from:0;--to:.4"><span>Scheduling</span><b>Phase 1</b></div>
+    <div class="warn" style="--from:.3;--to:.75"><span>Checkout parity</span><b>Phases 1-2</b></div>
+    <div style="--from:.6;--to:1"><span>Reporting</span><b>Phase 3</b></div>
+  </div>`, "Bars show overlap, not exact dates.")
   ].join("\n\n");
-  const renumbered = closing.replace('id="s9"', 'id="s10"');
+  const renumbered = closing.replace('id="s9"', 'id="s11"');
   return `<!doctype html>
 <html lang="en" data-template="slides" data-audience="client">
 <head>

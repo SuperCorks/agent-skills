@@ -7,6 +7,7 @@ import { isLocalReference } from "./build.mjs";
 const IMAGE_WARN_BYTES = 300 * 1024;
 const IMAGES_TOTAL_WARN_BYTES = 2 * 1024 * 1024;
 const EVIDENCE = ["observed", "executed", "inferred", "unknown"];
+const INTERNAL_NAMES = /\b(?:Codex|Claude|Opus|Sonnet|CodeRabbit|ChatGPT)\b/g;
 const NETWORK_JS = /\bfetch\s*\(|\bXMLHttpRequest\b|\bWebSocket\s*\(|\bEventSource\s*\(|\bsendBeacon\s*\(|\bimport\s*\(/;
 
 function summarize(list, limit = 8) {
@@ -185,6 +186,13 @@ export function checkSource(source, { file, mode = "local" } = {}) {
     const evidence = elements.filter((e) => classes(e).includes("pill") && classes(e).some((c) => EVIDENCE.includes(c)));
     if (evidence.length) errors.push("client report contains evidence pills (observed/executed/inferred/unknown): rewrite as plain statements");
     if (ids.has("sources")) warnings.push("client report has a #sources section: keep it only if the client needs those references");
+    const internalNames = new Set();
+    for (const token of doc.tokens) {
+      if (token.type !== "text" || token.raw) continue;
+      for (const match of source.slice(token.start, token.end).matchAll(INTERNAL_NAMES)) internalNames.add(match[0]);
+    }
+    for (const anchor of named("a")) if (/slack\.com\//i.test(attr(anchor, "href") || "")) internalNames.add("Slack links");
+    if (internalNames.size) warnings.push(`client report mentions internal tools (${[...internalNames].join(", ")}), including in speaker notes: remove them unless the client should see them`);
   }
   return { errors: [...new Set(errors)], warnings: [...new Set(warnings)], template, audience };
 }
