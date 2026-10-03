@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en" data-template="plan" data-audience="internal">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plan title</title>
+</head>
+<body>
+<header class="hero">
+  <p class="eyebrow">Implementation plan</p>
+  <h1>Plan title</h1>
+  <p class="lede"><!-- guide: one-paragraph north star: the outcome, for whom, and why now. --></p>
+  <dl class="meta"><div><dt>Status</dt><dd>Draft for review</dd></div><div><dt>Updated</dt><dd>YYYY-MM-DD</dd></div><div><dt>Owner</dt><dd>Name</dd></div></dl>
+</header>
+<main>
+<section id="summary" data-toc="At a glance">
+  <h2>At a glance</h2>
+  <!-- guide: 3-5 tiles (recommendation, effort/phases, main risk, readiness), then 2-4 sentences. Bold the phrases that drive the decision. -->
+  <div class="tiles">
+    <div class="tile"><span>Recommendation</span><b>Option</b><small>one line</small></div>
+  </div>
+</section>
+<section id="scope">
+  <h2>Scope</h2>
+  <!-- guide: in scope, non-goals, constraints, authority boundaries (who decides what). Use a .grid of two .card blocks or short lists. -->
+</section>
+<section id="questions" data-toc="Questions">
+  <h2>Questions and decisions</h2>
+  <!-- guide: every open question as a full sentence, numbered q1, q2... in order. Context says what it affects and why; .rec gives the recommended default; .links point to detail sections. Confirmed decisions go in a short table after the cards. -->
+  <article class="question" id="q1">
+    <h3>Which ... should ...?</h3>
+    <p>Context: what this decides, the evidence, and what it blocks.</p>
+    <p class="rec">Recommended default and the reason.</p>
+    <p class="owner">Name or role</p>
+    <p class="links"><a href="#target">Target behavior</a></p>
+    <p class="answer"></p>
+  </article>
+</section>
+<section id="sources">
+  <h2>Sources reviewed</h2>
+  <!-- guide: a ul.sources list of paths and links with a short note each; say plainly what was inaccessible. -->
+</section>
+<section id="current" data-toc="Current state">
+  <h2>Current state</h2>
+  <!-- guide: what exists today and the gap, with file paths and observed behavior. -->
+</section>
+<section id="target" data-toc="Target">
+  <h2>Target behavior</h2>
+  <!-- guide: desired outcome and the recommended path. Alternatives considered: .options cards, or a table when they are one-liners. Product UI: mockups in .device frames grouped in .devices, before/after in .compare (mobile vs mobile), states and responsive rules. -->
+</section>
+<section id="architecture">
+  <h2>Architecture and data</h2>
+  <!-- guide: optional. Data flow as an ol.flow, contracts, data model and config impact in .table-wrap tables. Delete if not relevant. -->
+</section>
+<section id="phases">
+  <h2>Phases</h2>
+  <!-- guide: ol.steps for sequential phases; .lanes with .lane columns for parallel work. Each phase: goal, concrete changes, exit criteria. -->
+  <ol class="steps">
+    <li><h3>Phase 1: name</h3><p>Goal, changes, exit criteria.</p></li>
+  </ol>
+</section>
+<section id="rollout" data-toc="Rollout">
+  <h2>Environments and rollout</h2>
+  <!-- guide: optional. Environment matrix, env vars/flags, migrations, smoke tests, rollback. -->
+</section>
+<section id="qa" data-toc="QA">
+  <h2>QA and validation</h2>
+  <!-- guide: a .table-wrap table: check, how, expected result, environment. -->
+</section>
+<section id="acceptance">
+  <h2>Acceptance criteria</h2>
+  <ul class="checklist">
+    <li>Testable criterion.</li>
+  </ul>
+</section>
+<section id="risks">
+  <h2>Risks and mitigations</h2>
+  <!-- guide: table with a .pill risk/warn/ok severity column, or .callout blocks for the top two. -->
+</section>
+<section id="handoff" data-toc="Start here">
+  <h2>Implementation handoff</h2>
+  <!-- guide: what an implementing agent does first: branch, files, commands, and open decisions it must not assume. -->
+</section>
+</main>
+</body>
+</html>
