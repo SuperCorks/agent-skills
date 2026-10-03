@@ -11,7 +11,7 @@ Usage:
   node scripts/verify-access.js [--account <name>]
 
 Behavior:
-  Runs a read-only bb projects list smoke test with the selected account.
+  Runs a read-only browse cloud projects list --json smoke test.
 `;
 
 function main() {
@@ -21,9 +21,9 @@ function main() {
   }
 
   const executable = resolveExecutable(
-    'bb',
-    'Run: npm install -g @browserbasehq/cli or rely on npx fallback',
-    '@browserbasehq/cli'
+    'browse',
+    'Run: npm install -g browse or rely on the npx fallback',
+    'browse'
   );
 
   const accounts = parseAccounts(process.env.BROWSERBASE_ACCOUNTS);
@@ -31,7 +31,8 @@ function main() {
   const env = buildAccountEnv(account);
   const startedAt = new Date().toISOString();
 
-  const result = runCommand(executable.command, [...executable.prefixArgs, 'projects', 'list'], {
+  const commandArgs = [...executable.prefixArgs, 'cloud', 'projects', 'list', '--json'];
+  const result = runCommand(executable.command, commandArgs, {
     env,
     stdio: 'pipe',
     encoding: 'utf8',
@@ -41,7 +42,7 @@ function main() {
     metadata: {
       account: account.name,
       verifiedAt: startedAt,
-      command: `${executable.command} ${[...executable.prefixArgs, 'projects', 'list'].join(' ')}`,
+      command: `${executable.command} ${commandArgs.join(' ')}`,
     },
     account: summarizeAccount(account.name, account),
     verification: {

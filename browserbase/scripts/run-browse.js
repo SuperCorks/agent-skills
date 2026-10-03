@@ -2,18 +2,21 @@
 
 const { parseArgs, printHelp, outputError, requirePassthroughCommand } = require('../lib/cli');
 const { parseAccounts, resolveAccount, buildAccountEnv } = require('../lib/accounts');
+const { withAccountContext } = require('../lib/commands');
 const { resolveExecutable, runCommand } = require('../lib/command');
 
 const HELP = `
 Run the browse CLI with a selected Browserbase account.
 
 Usage:
-  node scripts/run-browse.js [--account <name>] -- <browse args...>
+  node scripts/run-browse.js [--account <name>] [--read-only-context | --no-account-context] -- <browse args...>
 
 Examples:
-  node scripts/run-browse.js --account prod -- env remote
-  node scripts/run-browse.js --account prod -- open https://example.com
-  node scripts/run-browse.js --account prod --no-account-context -- open https://example.com
+  node scripts/run-browse.js --account prod -- open https://example.com --remote
+  node scripts/run-browse.js --account prod -- cloud projects list
+  node scripts/run-browse.js --account prod -- cloud sessions create
+  node scripts/run-browse.js --account prod --read-only-context -- cloud sessions create
+  node scripts/run-browse.js --account prod --no-account-context -- cloud sessions create
   node scripts/run-browse.js --account prod -- snapshot
   node scripts/run-browse.js --account prod -- stop
 `;
@@ -27,8 +30,8 @@ function main() {
   const commandArgs = requirePassthroughCommand(passthrough, 'browse');
   const executable = resolveExecutable(
     'browse',
-    'Run: npm install -g @browserbasehq/browse-cli or rely on npx fallback',
-    '@browserbasehq/browse-cli'
+    'Run: npm install -g browse or rely on the npx fallback',
+    'browse'
   );
 
   const accounts = parseAccounts(process.env.BROWSERBASE_ACCOUNTS);
@@ -39,15 +42,7 @@ function main() {
 }
 
 function withResolvedContext(commandArgs, account, args) {
-  if (args.noAccountContext || !account.contextId || commandArgs[0] !== 'open') {
-    return commandArgs;
-  }
-
-  if (commandArgs.includes('--context-id') || commandArgs.some((arg) => arg.startsWith('--context-id='))) {
-    return commandArgs;
-  }
-
-  return [...commandArgs, '--context-id', account.contextId, '--persist'];
+  return withAccountContext(commandArgs, account, args);
 }
 
 try {

@@ -46,15 +46,44 @@ function runCommand(binary, args, options = {}) {
   }
 
   if (result.status !== 0) {
-    const detail = `${binary} ${args.join(' ')} exited with ${result.status}`;
+    const detail = `${formatCommand(binary, args)} exited with ${result.status}`;
     throw new SkillError('BROWSERBASE_COMMAND_FAILED', detail);
   }
 
   return result;
 }
 
+function formatCommand(binary, args) {
+  const redacted = [];
+  let redactNext = false;
+
+  for (const arg of args) {
+    if (redactNext) {
+      redacted.push('[redacted]');
+      redactNext = false;
+      continue;
+    }
+
+    if (arg === '--api-key' || arg === '--context-id') {
+      redacted.push(arg);
+      redactNext = true;
+      continue;
+    }
+
+    if (arg.startsWith('--api-key=') || arg.startsWith('--context-id=')) {
+      redacted.push(`${arg.slice(0, arg.indexOf('='))}=[redacted]`);
+      continue;
+    }
+
+    redacted.push(arg);
+  }
+
+  return [binary, ...redacted].join(' ');
+}
+
 module.exports = {
   ensureExecutable,
   resolveExecutable,
   runCommand,
+  formatCommand,
 };

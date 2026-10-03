@@ -13,6 +13,7 @@ function parseAccounts(envValue, fallbackEnv = process.env) {
 
     const accounts = new Map();
     for (const [name, value] of Object.entries(parsed)) {
+      validateAccountName(name);
       const credentials = normalizeAccountValue(name, value);
       accounts.set(name, credentials);
     }
@@ -33,12 +34,16 @@ function fallbackAccountMap(env) {
     return new Map();
   }
 
+  const session = normalizeString(env.BROWSE_SESSION) || 'browserbase-default';
+  validateSessionName(session, 'BROWSE_SESSION');
+
   return new Map([
     ['default', {
       apiKey,
       projectId: normalizeString(env.BROWSERBASE_PROJECT_ID),
       contextId: normalizeString(env.BROWSERBASE_CONTEXT_ID),
       baseUrl: normalizeString(env.BROWSERBASE_BASE_URL),
+      session,
     }],
   ]);
 }
@@ -64,12 +69,17 @@ function normalizeAccountValue(name, value) {
   const projectId = normalizeString(value.projectId || value.project || value.projectID);
   const contextId = normalizeString(value.contextId || value.context || value.contextID);
   const baseUrl = normalizeString(value.baseUrl || value.apiUrl);
+  const session = normalizeString(value.session || value.sessionName);
 
   if (!apiKey) {
     throw new SkillError('BROWSERBASE_AUTH_INVALID', `Account "${name}" must include apiKey`);
   }
 
-  return { apiKey, projectId, contextId, baseUrl };
+  if (session) {
+    validateSessionName(session, `Account "${name}" session`);
+  }
+
+  return { apiKey, projectId, contextId, baseUrl, session };
 }
 
 function resolveAccount(accounts, specifiedName) {
@@ -100,10 +110,13 @@ function resolveAccount(accounts, specifiedName) {
 function buildAccountEnv(account, baseEnv = process.env) {
   const env = { ...baseEnv };
   env.BROWSERBASE_API_KEY = account.apiKey;
+  env.BROWSE_SESSION = account.session || `browserbase-${account.name}`;
+  env.BROWSE_LOAD_DOTENV = '0';
 
   setOrDelete(env, 'BROWSERBASE_PROJECT_ID', account.projectId);
   setOrDelete(env, 'BROWSERBASE_CONTEXT_ID', account.contextId);
   setOrDelete(env, 'BROWSERBASE_BASE_URL', account.baseUrl);
+  delete env.BROWSERBASE_API_BASE_URL;
 
   return env;
 }
@@ -111,10 +124,11 @@ function buildAccountEnv(account, baseEnv = process.env) {
 function summarizeAccount(name, account) {
   return {
     name,
-    apiKey: redactSecret(account.apiKey),
+    apiKey: account.apiKey ? '[configured]' : null,
     projectId: account.projectId || null,
-    contextId: account.contextId || null,
+    contextId: account.contextId ? '[configured]' : null,
     baseUrl: account.baseUrl || null,
+    session: account.session || `browserbase-${name}`,
   };
 }
 
@@ -126,16 +140,22 @@ function setOrDelete(env, key, value) {
   }
 }
 
-function redactSecret(value) {
-  if (!value) {
-    return null;
+function validateAccountName(name) {
+  if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(name)) {
+    throw new SkillError(
+      'BROWSERBASE_AUTH_INVALID',
+      `Account alias "${name}" must start with a letter or digit and contain only letters, digits, dots, underscores, or hyphens`
+    );
   }
+}
 
-  if (value.length <= 10) {
-    return '***';
+function validateSessionName(name, label) {
+  if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(name)) {
+    throw new SkillError(
+      'BROWSERBASE_AUTH_INVALID',
+      `${label} must start with a letter or digit and contain only letters, digits, dots, underscores, or hyphens`
+    );
   }
-
-  return `${value.slice(0, 7)}...${value.slice(-4)}`;
 }
 
 function normalizeString(value) {
@@ -152,4 +172,6 @@ module.exports = {
   resolveAccount,
   buildAccountEnv,
   summarizeAccount,
+  validateAccountName,
+  validateSessionName,
 };

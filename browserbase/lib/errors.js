@@ -27,7 +27,7 @@ const ERROR_CODES = {
   BROWSERBASE_CLI_MISSING: {
     code: 'BROWSERBASE_CLI_MISSING',
     message: 'Required Browserbase CLI executable was not found',
-    remediation: 'Install @browserbasehq/cli for bb or @browserbasehq/browse-cli for browse',
+    remediation: 'Install the current unified CLI with: npm install -g browse',
   },
   BROWSERBASE_COMMAND_FAILED: {
     code: 'BROWSERBASE_COMMAND_FAILED',
