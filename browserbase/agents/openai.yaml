@@ -1,0 +1,4 @@
+interface:
+  display_name: "Browserbase"
+  short_description: "Proactive multi-account browser and cloud workflows"
+  default_prompt: "Use $browserbase to choose an efficient, account-safe workflow and suggest reusable automation or contexts when helpful."
