@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en" data-template="findings" data-audience="internal">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Findings title</title>
+</head>
+<body>
+<header class="hero">
+  <p class="eyebrow">Investigation</p>
+  <h1>Findings title</h1>
+  <p class="lede"><!-- guide: the answer in one or two plain sentences, before any method. The summary section repeats it with numbers and confidence. --></p>
+  <dl class="meta"><div><dt>Updated</dt><dd>YYYY-MM-DD</dd></div><div><dt>Scope</dt><dd>What was examined</dd></div></dl>
+</header>
+<main>
+<section id="summary" data-toc="At a glance">
+  <h2>At a glance</h2>
+  <!-- guide: tiles for the key numbers (3-5, short values), then a .callout with tone ok/warn/risk stating the verdict and its confidence. -->
+  <div class="tiles">
+    <div class="tile risk"><span>Affected</span><b>0</b><small>since date</small></div>
+  </div>
+  <div class="callout warn"><p><b>Verdict:</b> one sentence.</p></div>
+</section>
+<section id="scope" data-toc="Scope and method">
+  <h2>Question, scope, and method</h2>
+  <!-- guide: the question being answered, what was in and out, how evidence was gathered. -->
+</section>
+<section id="findings">
+  <h2>Findings</h2>
+  <!-- guide: one .finding per finding, ordered by severity (risk high, warn medium, none low, ok healthy or fixed). Lead sentence, then a short evidence list with paths, queries, and numbers. Evidence pills and confidence only for internal reports. -->
+  <article class="finding risk" id="f1">
+    <h3>Finding stated as a fact</h3>
+    <p><span class="pill risk">High</span> <span class="pill observed">Observed</span> Confidence: high</p>
+    <p>Evidence and what it means.</p>
+  </article>
+</section>
+<section id="impact">
+  <h2>Impact</h2>
+  <!-- guide: who or what is affected and how much; numbers in .bars or a table. -->
+</section>
+<section id="options">
+  <h2>Options</h2>
+  <!-- guide: optional. .options with .option cards; mark one .recommended; .pros / .cons lists. -->
+</section>
+<section id="recommendation">
+  <h2>Recommendation</h2>
+  <!-- guide: the recommended path and why, in plain language. -->
+</section>
+<section id="decisions" data-toc="Decisions">
+  <h2>Decisions needed</h2>
+  <!-- guide: .question cards (q1, q2...) for anything the reader must decide. Delete if none. -->
+</section>
+<section id="next" data-toc="Next steps">
+  <h2>Next steps</h2>
+  <ol class="steps">
+    <li><h3>Step</h3><p>Who does what, and the signal that it worked.</p></li>
+  </ol>
+</section>
+<section id="limits" data-toc="Limits and sources">
+  <h2>Limits, definitions, and sources</h2>
+  <!-- guide: what the evidence can and cannot establish, definitions, and source links. -->
+</section>
+</main>
+</body>
+</html>

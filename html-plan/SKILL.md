@@ -30,53 +30,56 @@ Create a durable planning artifact that turns messy source context into a decisi
 - Use `requirements-interview` when available and unresolved decisions would materially change the plan. With substantial context, propose an evidence-grounded understanding for correction; otherwise ask the highest-impact question. Investigate factual questions before routing them to the user, and stop when further answers would not change the plan.
 - Preserve the source and status of consequential claims in the assumptions or decisions section: distinguish user decisions, observed behavior, documented or researched facts, and agent inferences. Explain the consequence if wrong and the boundary of any deliberate deferral. Use a compact table only when several claims warrant it; do not create a separate ledger artifact.
 
-4. Write a self-contained HTML artifact:
+4. Write the HTML artifact with `html-report-builder`:
 - Prefer `docs/plans/<yyyy-mm-dd-topic>.html` inside a repo.
 - If no repo docs location is obvious, use a local `outputs/` folder in the current workspace.
-- Embed CSS in the file. Do not require external runtime dependencies.
+- Load the `html-report-builder` skill and start from its `assets/templates/plan.html`. Use only the classes in its `references/components.md` and follow its `references/writing.md`. Write no CSS or JavaScript except mockup styles scoped to `.mock-*` classes; the builder inlines the shared runtime.
 - Put open questions and recommended decisions immediately after scope so the reviewer sees decision needs before reading the full plan.
-- Favor reviewability over decoration: clear headings, compact cards and tables, readable typography, responsive layout, and print-friendly structure.
 - Include concrete paths, commands, links, identifiers, source names, and open decisions so a future agent can execute from the plan.
-- Add stable `id` anchors to major sections and link question cards to the relevant detail sections.
+- Link question cards to the relevant detail sections by their section ids.
+- Run `node <html-report-builder>/scripts/report.mjs build <file>` and fix every error.
+- If `html-report-builder` is not installed, write one self-contained HTML file by hand instead: embedded CSS, no external runtime dependencies, clear headings, compact cards and tables, responsive and print-friendly layout, and stable `id` anchors on major sections.
 
 5. Verify and hand off:
-- Confirm the file exists and is readable.
-- Open it or inspect its first lines when practical.
+- Confirm `report.mjs build` (or `check`) passes.
+- When a browser tool is available, view the plan at about 1280 px and 390 px wide and check the console.
 - Do not change implementation code unless the user explicitly asks for implementation.
 - Respond with the artifact path, recommendation summary, top open decisions, and whether the plan is ready for implementation.
+- When revising an existing plan, run `report.mjs outline <file>` first, edit only the affected sections, keep question ids stable, fold in any answers the reader recorded, and rebuild.
 
 ## Required Sections
 
-Every HTML plan should include:
+Every HTML plan should include these sections (the `plan` template's section id is in parentheses):
 
-- Title and one-paragraph north star.
-- Scope, non-goals, assumptions, and authority boundaries.
-- Open questions and recommended decisions immediately after scope.
-- Sources reviewed with links or local paths.
-- Current state or current gap.
-- Target behavior or desired outcome.
-- Recommended path and alternatives considered.
-- Phases or workstreams, with sequential versus parallelizable work marked.
-- Data/content model impact, when applicable.
-- Environment/config/deployment impact, when applicable.
-- QA/validation matrix.
-- Acceptance criteria and definition of done.
-- Risks and mitigations.
-- Implementation handoff summary.
+- Title and one-paragraph north star (hero), with an optional at-a-glance summary (`summary`).
+- Scope, non-goals, assumptions, and authority boundaries (`scope`).
+- Open questions and recommended decisions immediately after scope (`questions`).
+- Sources reviewed with links or local paths (`sources`).
+- Current state or current gap (`current`).
+- Target behavior or desired outcome (`target`).
+- Recommended path and alternatives considered (`target`, or an `options` block where it fits).
+- Phases or workstreams, with sequential versus parallelizable work marked (`phases`).
+- Data/content model impact, when applicable (`architecture`).
+- Environment/config/deployment impact, when applicable (`rollout`).
+- QA/validation matrix (`qa`).
+- Acceptance criteria and definition of done (`acceptance`).
+- Risks and mitigations (`risks`).
+- Implementation handoff summary (`handoff`).
 
 ## Question Section Requirements
 
 Place open questions near the top of the document, directly after the scope section and before deep source/current-state detail. Each question should be understandable without reading the full plan first.
 
-For each question or decision card, include:
+Use the builder's question card (`<article class="question" id="q1">`), numbered `q1`, `q2`, ... in document order so the reader can answer in a batch. For each question or decision card, include:
 
-- A specific question title.
+- A specific question title written as a complete sentence ending in a question mark, never a fragment such as "Hosting?".
 - A short context paragraph explaining what the decision affects and why it matters.
 - A recommended default or proposed answer when there is enough evidence.
 - Links to the relevant sections for more detail, such as `#current`, `#target`, `#ux`, `#architecture`, `#qa`, `#rollout`, or another plan-specific anchor.
 - A clear owner or decision maker when known.
+- An empty `.answer` slot for the reader's answer.
 
-When the plan has a sticky nav or table of contents, place the Questions or Decisions link immediately after Scope.
+The table of contents follows section order, so keeping `questions` right after `scope` also places it right after Scope in the navigation.
 
 ## Type-Specific Additions
 
@@ -84,7 +87,8 @@ For frontend, design, or product plans, include:
 
 - Figma/design references, node IDs, screenshots, or current/target comparisons when available.
 - A concise design context and reuse mapping: governing sources, reference routes/files, verified components and variants, layout/behavior rules, and justified extensions. Distinguish documented rules from inference and unresolved conflicts. Make mockups follow this context and include source checks and rendered comparison criteria in the implementation handoff.
-- Embedded HTML mockups or prototypes by default for any plan with a meaningful frontend, dashboard, or product UI surface. Use low-fidelity wireframes when final visuals are unknown. Skip only when the user explicitly declines visuals or the plan is purely non-UI.
+- Embedded HTML mockups or prototypes by default for any plan with a meaningful frontend, dashboard, or product UI surface, inside the builder's `.device` phone or desktop frames and styled with the product's own design language. Use low-fidelity wireframes when final visuals are unknown. Skip only when the user explicitly declines visuals or the plan is purely non-UI.
+- Before/after comparisons (`.compare`) that compare like with like: mobile with mobile, the same region at the same size, with sharp screenshots.
 - UX behavior, states, responsive behavior, empty/error/loading cases, and URL parameter behavior.
 - Content and data-model requirements per feature.
 - UI acceptance criteria precise enough for visual QA.
@@ -134,5 +138,7 @@ Before finalizing the plan, check that it does not repeat common failure modes:
 - UI details are testable rather than vague.
 - Source-of-truth comparisons go beyond warehouse data when platform reports matter.
 - Plan-only requests did not result in implementation changes.
+- The plan follows the builder's `references/writing.md`: decision-relevant phrases in bold, key content not collapsed, company and product named precisely, and no internal provenance in client-facing plans.
+- `report.mjs build` passes with no errors.
 
 As you get corrected through the plan, ask if this skill document should get updated to prevent future corrections (if applicable and not too specific to the current plan).

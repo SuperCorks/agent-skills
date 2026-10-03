@@ -110,7 +110,10 @@ organization it belongs to:
 
 1. Upload the file as a task attachment or an organization or project file.
 2. For an HTML or Markdown page with CSS, scripts, images, or data, upload each of those as a
-   supporting file under the relative path the page uses, such as `css/app.css`.
+   supporting file under the relative path the page uses, such as `css/app.css`. For a report
+   built with `html-report-builder`, first run its `report.mjs export <report.html> --out <dir>`
+   and publish the exported `<slug>.html` with each file in `<slug>.assets/` as a supporting file,
+   so images are references rather than inlined data.
 3. Create a public link, with an optional `label` naming who it is for, and give the user the
    returned `url`.
 

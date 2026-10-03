@@ -19,6 +19,7 @@ Publish finished artifacts with the bundled `scripts/publish.py` uploader. It ta
 ## Workflow
 
 1. Finish generating and validating the artifact with the relevant skill. For an HTML plan, follow the `html-plan` skill first.
+   - For a report built with `html-report-builder` (its `<style>` carries `data-hr-runtime`), publish an export instead of the local file, so images are referenced files rather than inlined data: run `node <html-report-builder>/scripts/report.mjs export <report.html> --out <dir>` and upload `<dir>` as a directory (it holds `<slug>.html` and `<slug>.assets/`).
 2. Select a clear destination prefix. Use one of these conventions unless the user names a destination:
    - `plans/YYYY-MM-DD/<slug>/` for HTML plans
    - `documents/YYYY-MM-DD/` for PDFs and documents

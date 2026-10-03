@@ -1,0 +1,4 @@
+interface:
+  display_name: "HTML Report Builder"
+  short_description: "Build and edit HTML reports"
+  default_prompt: "Use $html-report-builder to build a self-contained HTML findings report for this investigation."
