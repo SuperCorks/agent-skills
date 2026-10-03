@@ -1,0 +1,10 @@
+/* Page-level editor states, injected by report-editor.mjs and never saved. */
+[data-hre^="b"] { cursor: text; }
+.hre-hover { outline: 2px dashed rgb(33 85 207 / .5) !important; outline-offset: 3px; border-radius: 3px; }
+.hre-editing { outline: 2px solid #2155cf !important; outline-offset: 3px; border-radius: 3px; background-color: rgb(33 85 207 / .06); }
+.hre-scope { outline: 2px solid #b26a00 !important; outline-offset: 5px; border-radius: 4px; }
+.hre-preview { outline: 2px solid #17703f !important; outline-offset: 5px; border-radius: 4px; }
+.answer.hre-editing::after { content: none !important; }
+.hre-editing a { cursor: text; }
+#hre-host { all: initial; }
+@media print { [data-hr-ui] { display: none !important; } }

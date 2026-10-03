@@ -43,6 +43,7 @@ Create a durable planning artifact that turns messy source context into a decisi
 5. Verify and hand off:
 - Confirm `report.mjs build` (or `check`) passes.
 - When a browser tool is available, view the plan at about 1280 px and 390 px wide and check the console.
+- Offer the builder's local editor for review (`node <html-report-builder>/editor/report-editor.mjs <file>`): the reader can fix wording, answer question cards, and rewrite sections with AI directly in the file.
 - Do not change implementation code unless the user explicitly asks for implementation.
 - Respond with the artifact path, recommendation summary, top open decisions, and whether the plan is ready for implementation.
 - When revising an existing plan, run `report.mjs outline <file>` first, edit only the affected sections, keep question ids stable, fold in any answers the reader recorded, and rebuild.

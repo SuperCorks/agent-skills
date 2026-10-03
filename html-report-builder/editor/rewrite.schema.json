@@ -1,0 +1,8 @@
+{
+  "type": "object",
+  "properties": {
+    "html": { "type": "string", "description": "The rewritten fragment: exactly one element, same tag and id as the original." }
+  },
+  "required": ["html"],
+  "additionalProperties": false
+}

@@ -1,6 +1,6 @@
 ---
 name: html-report-builder
-description: Build, validate, and publish self-contained HTML reports from a shared component library and templates (plan, findings report, stakeholder brief). Use for investigation, analysis, QA, audit, and incident reports, stakeholder or client briefs, and as the rendering layer for html-plan; use html-plan itself for planning requests.
+description: Build, validate, publish, and locally edit self-contained HTML reports from a shared component library and templates (plan, findings report, stakeholder brief), including a point-and-click editor with AI rewrites. Use for investigation, analysis, QA, audit, and incident reports, stakeholder or client briefs, editing an existing HTML report, and as the rendering layer for html-plan; use html-plan itself for planning requests.
 ---
 
 # HTML Report Builder
@@ -29,7 +29,7 @@ In the commands below, `$HRB` is this skill's folder (for example `~/.agents/ski
 
    Fix every `ERROR`. Treat each `WARNING` as a prompt to fix or consciously accept. Building twice changes nothing, and building an older report upgrades its runtime.
 5. **Look at it** when a browser tool is available: check desktop (about 1280 px) and mobile (390 px) widths, both color schemes if the report has mockups, and the console.
-6. **Hand off** with the file path, a one-paragraph summary, and the open questions.
+6. **Hand off** with the file path, a one-paragraph summary, and the open questions. When the user will review the report, offer the local editor (below) so they can fix wording, answer question cards, and rewrite sections in place.
 
 ## Revising a report
 
@@ -37,6 +37,22 @@ In the commands below, `$HRB` is this skill's folder (for example `~/.agents/ski
 - Lines containing `data-hr-runtime` or `data-hr-generated` are generated; never edit them, and skip them when reading. Inlined images also make some `<img>` lines very long, so read line ranges with truncated lines, for example `sed -n '120,180p' report.html | cut -c1-400`.
 - Keep question ids stable so answers stay attached, then rebuild.
 - Answers the reader typed into `.answer` slots appear in `outline`; fold them into the decisions.
+
+## Local editor
+
+The editor opens a report in the browser with point-and-click editing and an AI rewrite button. It works on any HTML report, not only builder reports, and saves straight into the file.
+
+```bash
+node "$HRB/editor/report-editor.mjs" path/to/report.html [--provider codex|openrouter] [--model gpt-6-luna] [--effort low] [--port 0] [--no-open]
+```
+
+- Start it as a background process; it prints a tokenized `http://127.0.0.1:<port>/?t=...` link and opens the browser. It serves only that one report (and files beside it) on 127.0.0.1. Stop it with Ctrl+C or by ending the process.
+- Click any paragraph, list item, heading, table cell, tile, or `.answer` slot to edit its text; Enter saves, Shift+Enter adds a line break, Esc cancels. Only that element's bytes change.
+- Select a block, widen the scope with the labels in the toolbar (for example to the whole card or section), and press **Rewrite with AI** (Cmd+K). The proposal is validated (same element and ids, no scripts or unknown markup; images, code, and mockups are protected), previewed in place with a word diff, and written only on **Accept**. Undo and Redo cover every save.
+- AI defaults to the Codex CLI on the user's ChatGPT login with `gpt-6-luna` at `low` effort (about 5 to 10 seconds per rewrite, no API cost). If `codex` is missing or logged out, it falls back to OpenRouter (`openai/gpt-6-luna`) when `OPENROUTER_API_KEY` is set. Change provider, model, and effort from the toolbar; they persist in `~/.config/html-report-editor/config.json`.
+- The first save backs up the original to `~/.cache/html-report-editor/`. If an agent changes the file while it is open, the page reloads; edits based on an old version are refused instead of overwriting.
+
+After the user has worked in the editor, run `outline` before revising: it shows their answers, and every edit is already in the file.
 
 ## Publishing
 
@@ -65,4 +81,4 @@ This writes `<slug>.html` plus `<slug>.assets/` and checks the copy. Upload the 
 | `report.mjs outline <file> [--json]` | Section map, questions with answers, findings |
 | `report.mjs export <file> --out <dir>` | Publish copy with images as files |
 
-Maintainers: run `node --test tests/*.test.mjs` and `NODE_PATH=<dir containing playwright> node tests/browser.cjs` from this folder after changing the runtime; `node tests/gallery.mjs <dir>` writes a component gallery for visual review. Classes in `assets/report.css` are append-only.
+Maintainers: run `node --test tests/*.test.mjs` and `NODE_PATH=<dir containing playwright> node tests/browser.cjs` from this folder after changing the runtime or editor; set `HR_CORPUS_LIST` (a file of report paths) to add the real-report corpus checks. `node tests/gallery.mjs` writes a component gallery for visual review. Classes in `assets/report.css` are append-only.
