@@ -1,0 +1,117 @@
+/* Slide decks (data-template="slides"): appended to report.css for decks only.
+   Each slide is a 960x540 design box scaled with CSS zoom: --hr-zoom is set by deck.js,
+   with media-query fallbacks when scripts are off. Speaker notes are the <aside class="notes">
+   that follows each slide. Classes are append-only, like report.css. */
+
+/* Fallbacks sized to the narrowest column in each range (deck.js sets the exact value). */
+:root { --hr-zoom: .62; }
+@media (min-width: 1100px) { :root { --hr-zoom: .8; } }
+@media (min-width: 1300px) { :root { --hr-zoom: .95; } }
+main.deck { counter-reset: hr-slide; }
+.slide {
+  counter-increment: hr-slide; position: relative; box-sizing: border-box; width: 960px; height: 540px;
+  zoom: var(--hr-zoom); margin: 0 0 1.25rem; padding: 46px 64px 54px; overflow: hidden;
+  display: flex; flex-direction: column; gap: 14px; font-size: 20px; line-height: 1.4;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+  box-shadow: 0 1px 2px rgb(0 0 0 / .05), 0 10px 30px rgb(0 0 0 / .06);
+}
+main > section.slide { padding-top: 46px; border-top: 1px solid var(--line); }
+.slide::after { content: counter(hr-slide); position: absolute; right: 26px; bottom: 18px; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.slide[data-hr-n]::after { content: attr(data-hr-n); }
+.slide > * { margin: 0; flex: none; }
+.slide p, .slide li { max-width: none; }
+.slide h1 { font-size: 50px; line-height: 1.08; letter-spacing: -.025em; margin: 0; }
+.slide h2 { font-size: 34px; line-height: 1.15; letter-spacing: -.015em; margin: 0 0 6px; text-wrap: balance; }
+.slide h3 { font-size: 22px; margin: 0 0 6px; }
+.slide .eyebrow { font-size: 15px; letter-spacing: .01em; }
+.slide .lede { font-size: 24px; max-width: 34ch; }
+.slide ul:not(.pros):not(.cons):not(.checklist):not(.sources), .slide ol:not(.steps):not(.flow) { padding-left: 1.2em; }
+.slide li + li { margin-top: 8px; }
+.slide .grid, .slide .options, .slide .compare, .slide .lanes, .slide .tiles, .slide .bars, .slide .steps, .slide .flow, .slide .table-wrap, .slide .callout { margin: 0; }
+.slide .card, .slide .option, .slide .lane { padding: 16px 20px; }
+.slide .tile > span, .slide small { font-size: 15px; }
+.slide .tile > b { font-size: 34px; }
+.slide table { font-size: 16px; }
+.slide .pill { font-size: 14px; }
+.slide figure { margin: 0; }
+.slide figure img { max-height: 300px; width: auto; }
+.slide .device.phone { zoom: .62; }
+.slide .devices { gap: 28px; }
+.slide .devices > figure { width: auto; text-align: center; }
+.slide .bars > div, .slide .roadmap > div { font-size: 18px; }
+.slide .lanes { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
+.slide .flow { flex-wrap: nowrap; gap: 30px; }
+.slide .flow > li { flex: 1 1 0; min-width: 0; max-width: none; font-size: 17px; }
+.slide .flow > li:not(:last-child)::after { right: -24px; }
+.slide .steps > li { padding-bottom: 12px; }
+.slide .steps > li > h3, .slide .steps > li > h4 { margin: 2px 0 2px; }
+.slide .takeaway { margin-top: auto; padding-top: 12px; border-top: 2px solid var(--line); font-weight: 650; }
+.slide.divider a { color: inherit; }
+.slide .spacer { flex: 1 1 auto; }
+.slide.cover, .slide.statement, .slide.divider { justify-content: center; }
+.slide.cover { gap: 18px; border-left: 10px solid var(--accent); }
+.slide.cover::after { content: none; }
+.slide.cover .meta { margin-top: 10px; font-size: 16px; }
+.slide.statement h2 { font-size: 46px; max-width: 24ch; }
+.slide.statement p:not(.eyebrow) { font-size: 22px; color: var(--muted); max-width: 46ch; }
+.slide.divider { background: var(--ink); color: var(--page); border-color: var(--ink); }
+.slide.divider h2 { font-size: 48px; }
+.slide.divider .eyebrow, .slide.divider p { color: color-mix(in srgb, var(--page) 75%, var(--ink)); }
+.slide.divider::after { color: color-mix(in srgb, var(--page) 60%, var(--ink)); }
+.notes {
+  margin: -.5rem 0 2.25rem; padding: .7rem 1rem; font-size: .9375rem; color: var(--muted);
+  border-left: 3px solid var(--line); background: color-mix(in srgb, var(--surface) 55%, transparent); border-radius: 0 8px 8px 0;
+}
+.notes::before { content: "Speaker notes"; display: block; font-size: .75rem; font-weight: 700; color: var(--muted); }
+.notes > :last-child { margin-bottom: 0; }
+.slide[data-hr-overflow] { outline: 3px solid var(--risk); outline-offset: 3px; }
+.slide[data-hr-overflow]::before {
+  content: "Content is cut off: shorten this slide or move detail to the notes"; position: absolute; left: 12px; top: 10px;
+  z-index: 2; padding: 2px 8px; font-size: 13px; font-weight: 700; color: #fff; background: var(--risk); border-radius: 6px;
+}
+.hr-deck-ui {
+  position: fixed; left: 16px; bottom: 16px; z-index: 50; display: flex; align-items: center; gap: 4px; padding: 4px;
+  font: 600 13px/1 var(--font); color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+  box-shadow: 0 4px 16px rgb(0 0 0 / .12);
+}
+.hr-deck-ui button { font: inherit; color: inherit; background: transparent; border: 0; border-radius: 7px; padding: 7px 10px; cursor: pointer; }
+.hr-deck-ui button:hover { background: var(--sunken); }
+.hr-deck-ui .hr-count { padding: 0 6px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.hr-deck-ui [data-presenting] { display: none; }
+.hr-presenting .hr-deck-ui [data-presenting] { display: inline-block; }
+.hr-presenting .hr-deck-ui [data-review] { display: none; }
+
+/* Present mode: one slide, letterboxed to the viewport. */
+.hr-presenting, .hr-presenting body { overflow: hidden; background: #000; }
+.hr-presenting body { display: block; max-width: none; padding: 0; }
+.hr-presenting body > :not(main):not(.hr-deck-ui):not(script):not(style) { display: none !important; }
+.hr-presenting main.deck { position: fixed; inset: 0; display: grid; place-items: center; }
+.hr-presenting .slide { display: none; margin: 0; border-radius: 0; border: 0; box-shadow: none; outline: 0; }
+.hr-presenting .slide.hr-current { display: flex; }
+.hr-presenting .slide[data-hr-overflow]::before { content: none; }
+.hr-presenting .notes { display: none; }
+.hr-presenting.hr-show-notes .slide.hr-current + .notes {
+  display: block; position: fixed; left: 50%; bottom: 64px; transform: translateX(-50%); width: min(820px, calc(100vw - 32px));
+  max-height: 34vh; overflow: auto; margin: 0; color: #e7e9ee; background: rgb(14 16 20 / .92); border: 0; border-radius: 10px; font-size: 1rem;
+}
+.hr-presenting .hr-deck-ui { left: auto; right: 16px; top: 16px; bottom: auto; color: #e7e9ee; background: rgb(23 26 33 / .85); border-color: #2b303b; opacity: .35; transition: opacity .2s; }
+.hr-presenting .hr-deck-ui:hover, .hr-presenting .hr-deck-ui:focus-within { opacity: 1; }
+.hr-presenting .hr-deck-ui button:hover { background: rgb(255 255 255 / .1); }
+
+/* Phones: slides reflow as cards instead of shrinking text to an unreadable size. */
+@media (max-width: 700px) {
+  html:not(.hr-presenting) .slide { zoom: 1; width: auto; height: auto; min-height: 0; overflow: visible; padding: 22px 20px 34px; font-size: 16px; }
+  html:not(.hr-presenting) .slide h1 { font-size: 30px; }
+  html:not(.hr-presenting) .slide h2, html:not(.hr-presenting) .slide.statement h2, html:not(.hr-presenting) .slide.divider h2 { font-size: 23px; }
+  html:not(.hr-presenting) .slide .lede, html:not(.hr-presenting) .slide.statement p { font-size: 17px; }
+  html:not(.hr-presenting) .slide .tile > b { font-size: 24px; }
+  html:not(.hr-presenting) .slide[data-hr-overflow] { outline: 0; }
+  html:not(.hr-presenting) .slide[data-hr-overflow]::before { content: none; }
+}
+@media print {
+  @page { size: 960px 540px; margin: 0; }
+  .slide { zoom: 1 !important; margin: 0; border: 0; border-radius: 0; box-shadow: none; outline: 0; break-after: page; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  .slide[data-hr-overflow]::before { content: none; }
+  .notes, .hr-deck-ui, .toc { display: none !important; }
+  main.deck { margin: 0; }
+}

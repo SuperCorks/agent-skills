@@ -11,7 +11,7 @@ import { escapeHtml } from "../scripts/lib/scan.mjs";
 import { isEntrypoint } from "../scripts/report.mjs";
 
 // A small valid PNG (a phone-shaped card) so figures render without binary fixtures.
-function screenshotPng(width = 240, height = 160) {
+export function screenshotPng(width = 240, height = 160) {
   const rows = [];
   for (let y = 0; y < height; y++) {
     const row = [0];

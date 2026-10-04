@@ -7,6 +7,7 @@ import { isLocalReference } from "./build.mjs";
 const IMAGE_WARN_BYTES = 300 * 1024;
 const IMAGES_TOTAL_WARN_BYTES = 2 * 1024 * 1024;
 const EVIDENCE = ["observed", "executed", "inferred", "unknown"];
+const INTERNAL_NAMES = /\b(?:Codex|Claude|Opus|Sonnet|CodeRabbit|ChatGPT)\b/g;
 const NETWORK_JS = /\bfetch\s*\(|\bXMLHttpRequest\b|\bWebSocket\s*\(|\bEventSource\s*\(|\bsendBeacon\s*\(|\bimport\s*\(/;
 
 function summarize(list, limit = 8) {
@@ -23,10 +24,10 @@ export function checkSource(source, { file, mode = "local" } = {}) {
   const warnings = [];
   const doc = parse(source);
   const { elements } = doc;
-  const runtime = loadRuntime();
   const named = (name) => elements.filter((e) => e.name === name);
   const html = named("html")[0];
   const template = html ? attr(html, "data-template") : null;
+  const runtime = loadRuntime(template);
   const audience = (html && attr(html, "data-audience")) || "internal";
   const baseDir = file ? path.dirname(path.resolve(file)) : null;
 
@@ -142,6 +143,7 @@ export function checkSource(source, { file, mode = "local" } = {}) {
     const loose = main.children.filter((c) => c.name === "section" && !attr(c, "id"));
     if (loose.length) warnings.push(`${loose.length} <main> section(s) without an id (no anchor or TOC entry)`);
   }
+  if (TEMPLATES[template]?.deck && main) checkDeck(doc, main, warnings);
 
   const questions = elements.filter((e) => classes(e).includes("question"));
   questions.forEach((question, index) => {
@@ -184,8 +186,43 @@ export function checkSource(source, { file, mode = "local" } = {}) {
     const evidence = elements.filter((e) => classes(e).includes("pill") && classes(e).some((c) => EVIDENCE.includes(c)));
     if (evidence.length) errors.push("client report contains evidence pills (observed/executed/inferred/unknown): rewrite as plain statements");
     if (ids.has("sources")) warnings.push("client report has a #sources section: keep it only if the client needs those references");
+    const internalNames = new Set();
+    for (const token of doc.tokens) {
+      if (token.type !== "text" || token.raw) continue;
+      for (const match of source.slice(token.start, token.end).matchAll(INTERNAL_NAMES)) internalNames.add(match[0]);
+    }
+    for (const anchor of named("a")) if (/slack\.com\//i.test(attr(anchor, "href") || "")) internalNames.add("Slack links");
+    if (internalNames.size) warnings.push(`client report mentions internal tools (${[...internalNames].join(", ")}), including in speaker notes: remove them unless the client should see them`);
   }
   return { errors: [...new Set(errors)], warnings: [...new Set(warnings)], template, audience };
+}
+
+const SLIDE_WORD_LIMIT = 70;
+
+/** Deck rules: a cover first, a takeaway title on every slide, room to breathe, notes after slides. */
+function checkDeck(doc, main, warnings) {
+  const slides = main.children.filter((c) => classes(c).includes("slide"));
+  if (!slides.length) {
+    warnings.push('slides template has no <section class="slide"> inside <main class="deck">');
+    return;
+  }
+  if (!classes(slides[0]).includes("cover")) warnings.push('the first slide should be the cover (<section class="slide cover">)');
+  slides.forEach((slide, index) => {
+    const label = attr(slide, "id") ? `#${attr(slide, "id")}` : `slide ${index + 1}`;
+    const kinds = classes(slide);
+    const title = slide.children.find((c) => c.name === "h1" || c.name === "h2");
+    if (!title) warnings.push(`${label} has no <h2> title`);
+    else if (!kinds.some((k) => ["cover", "divider"].includes(k)) && normalizeText(textContent(doc, title)).split(" ").length < 4) {
+      warnings.push(`${label} title "${normalizeText(textContent(doc, title))}" is a label; state the slide's takeaway as a sentence`);
+    }
+    const words = normalizeText(textContent(doc, slide)).split(" ").filter(Boolean).length;
+    if (words > SLIDE_WORD_LIMIT) warnings.push(`${label} has ${words} words (aim for ${SLIDE_WORD_LIMIT} or fewer); move detail into its notes or split the slide`);
+  });
+  main.children.forEach((child, index) => {
+    if (classes(child).includes("notes") && !classes(main.children[index - 1] || { attrs: [] }).includes("slide")) {
+      warnings.push("an <aside class=\"notes\"> must directly follow the slide it belongs to");
+    }
+  });
 }
 
 export function checkFile(file, options = {}) {

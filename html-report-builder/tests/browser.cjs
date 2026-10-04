@@ -90,6 +90,8 @@ const { chromium } = require("playwright");
       await page.close();
     }
 
+    const deckTests = path.join(__dirname, "deck-browser.cjs");
+    if (await fs.stat(deckTests).then(() => true, () => false)) await require(deckTests)({ browser, root, pass, watch });
     const editorTests = path.join(__dirname, "editor-browser.cjs");
     if (await fs.stat(editorTests).then(() => true, () => false)) await require(editorTests)({ browser, root, pass, watch });
     console.log(`\n${checks} browser checks passed. Screenshots: ${root}`);

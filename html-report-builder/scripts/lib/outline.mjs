@@ -27,6 +27,18 @@ export function outlineData(source) {
       answer: answer ? findText(answer) : null, tone
     };
   });
+  const main = doc.elements.find((e) => e.name === "main");
+  const children = main ? main.children : [];
+  const slides = children.filter((c) => classes(c).includes("slide")).map((slide, i) => {
+    const heading = slide.children.find((c) => c.name === "h1" || c.name === "h2");
+    const next = children[children.indexOf(slide) + 1];
+    const notes = next && classes(next).includes("notes") ? findText(next) : "";
+    const layout = ["cover", "statement", "divider"].find((k) => classes(slide).includes(k)) || null;
+    return {
+      n: i + 1, id: attr(slide, "id"), layout, title: heading ? findText(heading) : "", from: line(slide.start), to: line((next && notes ? next : slide).end - 1),
+      words: findText(slide).split(" ").filter(Boolean).length, notesWords: notes ? notes.split(" ").filter(Boolean).length : 0
+    };
+  });
   return {
     title: title ? findText(title) : "",
     template: html ? attr(html, "data-template") : null,
@@ -39,6 +51,7 @@ export function outlineData(source) {
       id: s.id, label: s.label, from: line(s.element.start), to: line(s.element.end - 1),
       bytes: Buffer.byteLength(source.slice(s.element.start, s.element.end))
     })),
+    slides,
     questions: cards("question"),
     findings: cards("finding")
   };
@@ -49,7 +62,13 @@ export function formatOutline(data) {
   out.push(`${data.title || "(untitled)"} | template: ${data.template || "none"} | audience: ${data.audience} | runtime: ${data.runtime || "not built"} | ${kb(data.bytes)}, ${data.lines} lines`);
   out.push("Generated runtime lines contain data-hr-runtime / data-hr-generated; skip them when reading.");
   if (data.hero) out.push(`hero          L${data.hero.from}-${data.hero.to}`);
-  for (const s of data.sections) out.push(`#${s.id.padEnd(13)} L${s.from}-${s.to}`.padEnd(30) + `${kb(s.bytes).padStart(9)}  ${clip(s.label, 70)}`);
+  if (data.slides.length) {
+    out.push(`Slides (${data.slides.length}); line ranges include each slide's notes:`);
+    for (const s of data.slides) {
+      out.push(`  ${String(s.n).padStart(2)} #${(s.id || "?").padEnd(5)} L${s.from}-${s.to}`.padEnd(26) + `${String(s.words).padStart(3)} words, notes ${s.notesWords ? `${s.notesWords} words` : "none"}${s.layout ? `, ${s.layout}` : ""}  ${clip(s.title, 70)}`);
+    }
+  }
+  if (!data.slides.length) for (const s of data.sections) out.push(`#${s.id.padEnd(13)} L${s.from}-${s.to}`.padEnd(30) + `${kb(s.bytes).padStart(9)}  ${clip(s.label, 70)}`);
   if (data.questions.length) {
     out.push("", "Questions:");
     data.questions.forEach((q, i) => {

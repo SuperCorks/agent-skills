@@ -187,7 +187,7 @@ export async function startEditor({
         title: title ? normalizeText(textContent(doc, title)) : "",
         audience: (htmlElement && attr(htmlElement, "data-audience")) || "internal",
         outline: outlineHeadings(doc), before: context.before, after: context.after,
-        vocabulary: [...loadRuntime().classes].filter((c) => c !== "hr-copy").sort(),
+        vocabulary: [...loadRuntime(htmlElement && attr(htmlElement, "data-template")).classes].filter((c) => !c.startsWith("hr-")).sort(),
         tags: ALLOWED_FRAGMENT_TAGS
       });
       const result = await rewrite(session.settings, { prompt, signal });

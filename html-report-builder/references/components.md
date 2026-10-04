@@ -82,12 +82,16 @@ Number ids `f1`, `f2`, ... Tone sets severity: `risk` high, `warn` medium, no to
 
 ## Cards and grid
 
-`.grid` fits two cards per row on desktop and one on mobile. `.grid.three` fits three or four short cards per row.
+`.grid` fits two cards per row on desktop and one on mobile. `.grid.three` and `.grid.four` give exactly three or four columns on wide screens for short cards.
 
 ```html
 <div class="grid">
   <div class="card"><h3>In scope</h3><ul><li>Sync worker</li></ul></div>
   <div class="card"><h3>Not in scope</h3><ul><li>Billing changes</li></ul></div>
+</div>
+<div class="grid four">
+  <div class="card"><h3>Schedule</h3><p>Booking</p></div><div class="card"><h3>Checkout</h3><p>Payments</p></div>
+  <div class="card"><h3>Events</h3><p>Webhooks</p></div><div class="card"><h3>Data</h3><p>Reports</p></div>
 </div>
 ```
 
@@ -136,7 +140,7 @@ Arrows are drawn between items; on mobile the flow stacks vertically. Keep it to
 
 ## Compare (before and after)
 
-Compare like with like: mobile with mobile, the same region at the same size.
+Compare like with like: mobile with mobile, the same region at the same size. The "Before" and "After" labels are automatic; start a side with its own `<h3>` (for example "Today" and "Hybrid") to replace them.
 
 ```html
 <div class="compare">
@@ -167,7 +171,7 @@ Mark one `.recommended`. When alternatives are one-liners without pros and cons,
 
 ## Bars and progress
 
-`--v` is a fraction from 0 to 1. Bars start at zero on the left.
+`--v` is a fraction from 0 to 1. Bars start at zero on the left, and every row's track lines up even when the `b` values differ in length. For ratings without numbers, put the rating in `b` ("Medium") and set `--v` to its rank.
 
 ```html
 <div class="bars">
@@ -175,6 +179,19 @@ Mark one `.recommended`. When alternatives are one-liners without pros and cons,
   <div class="risk" style="--v:.18"><span>Search</span><b>18%</b></div>
 </div>
 <p>Rollout <progress value="0.4">40%</progress></p>
+```
+
+## Roadmap
+
+Overlapping workstreams on one timeline: `--from` and `--to` are fractions of the whole span. An optional `.scale` row labels the span.
+
+```html
+<div class="roadmap">
+  <div class="scale"><span></span><small><span>Phase 1</span><span>Phase 2</span><span>Phase 3</span></small></div>
+  <div style="--from:0;--to:.4"><span>Scheduling</span><b>Phase 1</b></div>
+  <div class="warn" style="--from:.3;--to:.75"><span>Checkout parity</span><b>Phases 1-2</b></div>
+  <div style="--from:.6;--to:1"><span>Reporting</span><b>Phase 3</b></div>
+</div>
 ```
 
 ## Device frames for mockups
