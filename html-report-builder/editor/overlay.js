@@ -1,6 +1,7 @@
 // Injected into the served report by report-editor.mjs; never saved into the file.
 // Click a block to edit its text; select a paragraph or section and press "Rewrite with AI"
-// (Cmd+K) to propose a model rewrite, review the diff, then accept or discard it.
+// (Cmd+K) to propose a model rewrite, review the diff, then accept or discard it. Click beside
+// the text to select its card or section; Delete removes the selection (Undo brings it back).
 (() => {
   "use strict";
   const stateNode = document.getElementById("hre-state");
@@ -16,6 +17,7 @@
   let lastInstruction = "";
   let saveQueue = Promise.resolve();
   const SCROLL_KEY = `hre-scroll:${location.pathname}`;
+  const FLASH_KEY = `hre-flash:${location.pathname}`;
   const CHIPS = [
     ["Shorter", "Make this shorter and tighter without losing any facts, numbers, or decisions."],
     ["Clearer", "Make this clearer and less technical for a non-specialist reader."],
@@ -97,6 +99,7 @@
       <span class="sep"></span>
       <span class="crumbs" id="crumbs"></span>
       <button class="primary" id="ai" disabled title="Rewrite the highlighted part with AI (⌘K)">✦ Rewrite with AI</button>
+      <button class="danger" id="delete" disabled title="Delete the highlighted part (⌫)">Delete</button>
       <span class="sep"></span>
       <button id="undo" disabled title="Undo (⌘Z)">Undo</button>
       <button id="redo" disabled title="Redo (⇧⌘Z)">Redo</button>
@@ -121,6 +124,7 @@
   };
   const inUi = (node) => node === host || host.contains(node);
   const isBlock = (node) => node && node.dataset && /^b\d+$/.test(node.dataset.hre || "");
+  const canDelete = (node) => !!node && node.hasAttribute("data-hre-del");
   const labelOf = (element) => {
     const id = element.id ? `#${element.id}` : "";
     const cls = [...element.classList].find((c) => !c.startsWith("hre-"));
@@ -145,8 +149,20 @@
     scope = block;
     renderCrumbs();
   }
+  function selectScope(element) {
+    if (scope && scope !== element) scope.classList.remove("hre-scope");
+    selected = element;
+    setScope(element);
+    setStatus("", canDelete(element) ? `${labelOf(element)} selected · ⌫ deletes` : `${labelOf(element)} selected`);
+  }
+  function clearSelection() {
+    if (scope) scope.classList.remove("hre-scope", "hre-doomed");
+    selected = null;
+    scope = null;
+    renderCrumbs();
+  }
   function setScope(element) {
-    if (scope) scope.classList.remove("hre-scope");
+    if (scope) scope.classList.remove("hre-scope", "hre-doomed");
     scope = element;
     if (scope && scope !== editing?.el) scope.classList.add("hre-scope");
     renderCrumbs();
@@ -155,9 +171,10 @@
     const crumbs = $("crumbs");
     crumbs.textContent = "";
     $("ai").disabled = !scope;
+    $("delete").disabled = !canDelete(scope);
     if (!selected) return;
     const chain = [];
-    for (let node = selected; node && node !== document.body && chain.length < 4; node = node.parentElement) {
+    for (let node = selected; node && node !== document.body && chain.length < 6; node = node.parentElement) {
       if (node.dataset && node.dataset.hre) chain.push(node);
     }
     chain.reverse().forEach((element, index) => {
@@ -166,6 +183,7 @@
       button.addEventListener("click", () => setScope(element));
       crumbs.append(button);
     });
+    crumbs.scrollLeft = crumbs.scrollWidth;
   }
 
   // ----- inline editing -----
@@ -230,11 +248,13 @@
   });
   document.addEventListener("mousedown", (event) => {
     if (event.button !== 0 || inUi(event.target) || proposal || running) return;
-    const block = event.target.closest ? event.target.closest("[data-hre]") : null;
-    const target = isBlock(block) ? block : null;
+    const node = event.target.closest ? event.target.closest("[data-hre]") : null;
+    const target = isBlock(node) ? node : null;
     if (editing && editing.el !== target) commit();
-    if (!target || event.metaKey || event.ctrlKey || editing?.el === target) return;
-    startEdit(target);
+    if (event.metaKey || event.ctrlKey || (target && editing?.el === target)) return;
+    if (target) startEdit(target);
+    else if (node) selectScope(node);
+    else clearSelection();
   }, true);
   document.addEventListener("click", (event) => {
     if (inUi(event.target)) return;
@@ -269,7 +289,15 @@
       return;
     }
     if (!editing && mod && event.key.toLowerCase() === "z") { event.preventDefault(); historyStep(event.shiftKey ? "redo" : "undo"); return; }
-    if (!editing && event.key === "Escape") closePanel();
+    if (!editing && !mod && (event.key === "Delete" || event.key === "Backspace") && $("panel").hidden && scope && scope.classList.contains("hre-scope")) {
+      event.preventDefault();
+      removeScope();
+      return;
+    }
+    if (!editing && event.key === "Escape") {
+      if ($("panel").hidden) clearSelection();
+      else closePanel();
+    }
   }, true);
 
   // ----- AI rewrite -----
@@ -372,6 +400,40 @@
   }
   $("ai").addEventListener("click", openPanel);
 
+  // ----- delete -----
+  async function removeScope() {
+    const target = scope;
+    if (!canDelete(target) || proposal || running) return;
+    if (editing) {
+      if (target.contains(editing.el)) cancelEdit();
+      else await commit();
+    }
+    await saveQueue;
+    target.classList.remove("hre-doomed");
+    $("delete").disabled = true;
+    setStatus("saving", "Deleting…");
+    try {
+      const result = await request("/api/delete", { id: target.dataset.hre, version });
+      version = result.version;
+      const links = result.unlinked ? ` and unlinked ${result.unlinked} reference${result.unlinked === 1 ? "" : "s"} to it` : "";
+      sessionStorage.setItem(FLASH_KEY, `Deleted ${labelOf(target)}${links}. ⌘Z to undo.`);
+      reload();
+    } catch (error) {
+      setStatus("error", "Not deleted");
+      renderCrumbs();
+      toast(error.message);
+      if (error.status === 409 || error.status === 404) setTimeout(reload, 1500);
+    }
+  }
+  const doom = (on) => { if (scope && canDelete(scope) && !$("delete").disabled) scope.classList.toggle("hre-doomed", on); };
+  $("delete").addEventListener("mouseenter", () => doom(true));
+  $("delete").addEventListener("mouseleave", () => doom(false));
+  $("delete").addEventListener("focus", () => doom(true));
+  $("delete").addEventListener("blur", () => doom(false));
+  // Keep focus (and any edit in progress) where it is, so removeScope decides what to save.
+  $("delete").addEventListener("mousedown", (event) => event.preventDefault());
+  $("delete").addEventListener("click", removeScope);
+
   // ----- undo, redo, settings, live reload -----
   async function historyStep(kind) {
     if ($(kind).disabled) return;
@@ -413,6 +475,13 @@
     }
   });
   $("banner-reload").addEventListener("click", reload);
+
+  const flash = sessionStorage.getItem(FLASH_KEY);
+  if (flash !== null) {
+    sessionStorage.removeItem(FLASH_KEY);
+    setStatus("saved", "Deleted");
+    toast(flash);
+  }
 
   request("/api/state", null, { method: "GET" }).then((data) => {
     state = data;

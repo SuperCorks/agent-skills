@@ -128,6 +128,38 @@ module.exports = async function editorTests({ browser, root, pass, watch }) {
     await page.waitForFunction(() => document.body.textContent.includes("Rate limits were fixed upstream."));
     pass("editor: an outside change to the file reloads the page");
 
+    const beforeDelete = await read();
+    const box = await page.locator("#q1").boundingBox();
+    await page.mouse.click(box.x + box.width - 6, box.y + 6);
+    assert.ok(await page.evaluate(() => document.getElementById("q1").classList.contains("hre-scope")), "clicking beside the text selects the card");
+    assert.equal(await page.getAttribute("#q1", "contenteditable"), null);
+    await shadow("delete").hover();
+    assert.ok(await page.evaluate(() => document.getElementById("q1").classList.contains("hre-doomed")), "hovering Delete previews what goes");
+    await Promise.all([page.waitForEvent("load"), shadow("delete").click()]);
+    await page.waitForFunction(() => document.getElementById("hre-host"));
+    assert.equal(await read(), beforeDelete.replace(/<article class="question" id="q1">.*<\/article>\n/, ""));
+    assert.match(await shadow("toast").textContent(), /Deleted article#q1\. ⌘Z to undo\./);
+    await Promise.all([page.waitForEvent("load"), page.keyboard.press("Meta+z")]);
+    await page.waitForFunction(() => document.getElementById("hre-host"));
+    assert.equal(await read(), beforeDelete);
+    pass("editor: clicking beside text selects a card, Delete removes it, and Cmd+Z brings it back");
+
+    await page.click("#para");
+    await page.keyboard.press("Escape");
+    await page.evaluate(() => {
+      const crumbs = [...document.getElementById("hre-host").shadowRoot.querySelectorAll(".crumb")];
+      crumbs.find((c) => c.textContent === "section#scope").click();
+    });
+    await Promise.all([page.waitForEvent("load"), page.keyboard.press("Backspace")]);
+    await page.waitForFunction(() => document.getElementById("hre-host"));
+    const withoutScope = await read();
+    assert.doesNotMatch(withoutScope, /id="scope"|href="#scope"/, "the section and its TOC entry are gone");
+    assert.equal(await page.locator("#questions").count(), 1);
+    await Promise.all([page.waitForEvent("load"), shadow("undo").click()]);
+    await page.waitForFunction(() => document.getElementById("hre-host"));
+    assert.equal(await read(), beforeDelete);
+    pass("editor: a section selected from the breadcrumbs is deleted with the Delete key");
+
     await page.setViewportSize({ width: 390, height: 844 });
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth));
     await page.screenshot({ path: path.join(root, "editor-mobile.png") });

@@ -17,13 +17,15 @@ kbd { font: 11px ui-monospace, monospace; opacity: .75; margin-left: 4px; }
 }
 .bar button { flex: none; white-space: nowrap; }
 .bar button:hover:not(:disabled):not(.primary) { background: rgb(255 255 255 / .09); }
+.bar button.danger:hover:not(:disabled), .bar button.danger:focus-visible { color: #fff; background: #c62828; }
 .status { display: flex; align-items: center; gap: 7px; padding: 0 8px; color: #b8bdc8; white-space: nowrap; }
 .dot { width: 8px; height: 8px; border-radius: 50%; background: #7d8594; flex: none; }
 .dot.saved { background: #4cc38a; }
 .dot.saving { background: #f1b45c; }
 .dot.error { background: #ff6b5e; }
 .sep { width: 1px; align-self: stretch; margin: 3px 4px; background: rgb(255 255 255 / .14); }
-.crumbs { display: flex; align-items: center; gap: 1px; flex: 0 1 auto; min-width: 0; max-width: 420px; overflow: hidden; }
+.crumbs { display: flex; align-items: center; gap: 1px; flex: 0 1 auto; min-width: 0; max-width: 420px; overflow-x: auto; scrollbar-width: none; }
+.crumbs::-webkit-scrollbar { display: none; }
 .crumb { flex: none; padding: 4px 7px; color: #b8bdc8; font: 12px ui-monospace, SFMono-Regular, Menlo, monospace; white-space: nowrap; }
 .crumb.active { color: #fff; background: rgb(255 255 255 / .14); }
 .chev { color: #6f7685; }

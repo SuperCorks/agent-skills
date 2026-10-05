@@ -54,7 +54,7 @@ const blockId = (page, text) => {
   return match[1];
 };
 const scopeId = (page, attrs) => {
-  const match = new RegExp(`<[a-z]+ data-hre="(c\\d+)" ${attrs}`).exec(page);
+  const match = new RegExp(`<[a-z]+ data-hre="(c\\d+)"(?: data-hre-del)? ${attrs}`).exec(page);
   assert.ok(match, `scope for ${attrs}`);
   return match[1];
 };
@@ -202,6 +202,89 @@ test("settings are validated and saved to the config file", async () => {
   assert.deepEqual(JSON.parse(readFileSync(path.join(dir, "config", "config.json"), "utf8")), saved.json.settings);
   const rejected = await call("/api/settings", { method: "PUT", body: { provider: "evil", model: "x; rm -rf /", effort: "ultra" } });
   assert.deepEqual(rejected.json.settings, saved.json.settings);
+});
+
+test("deleting removes whole sections, cards, rows, and paragraphs, and unlinks references to them", async () => {
+  const report = buildSource(`<!doctype html>
+<html lang="en" data-template="findings">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Delete test</title>
+</head>
+<body>
+<header class="hero"><h1>Delete test</h1><p class="lede">Lede.</p></header>
+<main>
+<section id="summary"><h2>At a glance</h2>
+  <div class="tiles">
+    <div class="tile"><span>Failed</span><b>4%</b></div>
+    <div class="tile"><span>Fixed</span><b>2</b></div>
+  </div>
+  <p>See <a href="#f1">the rate limits</a> and <a href="#next">next steps</a>.</p>
+  <ul><li>Only item.</li></ul>
+</section>
+<section id="findings"><h2>Findings</h2>
+  <article class="finding risk" id="f1"><h3>Rate limits</h3><p>Evidence one.</p></article>
+  <article class="question" id="q1"><h3>Retry for a day?</h3><p class="rec">Yes.</p><p class="answer"></p></article>
+  <div class="table-wrap"><table><thead><tr><th>Check</th></tr></thead><tbody><tr><td>Row one</td></tr><tr><td>Row two</td></tr></tbody></table></div>
+</section>
+<section id="next"><h2>Next steps</h2><p>Ship it.</p></section>
+</main>
+</body>
+</html>
+`).output;
+  writeFileSync(file(), report);
+  const started = Date.now();
+  while (editor.session.source !== report) {
+    if (Date.now() - started > 2000) throw new Error("the editor did not pick up the new file");
+    await new Promise((resolve) => setTimeout(resolve, 20));
+  }
+
+  const remove = async (pattern) => {
+    const page = (await call("/")).text;
+    const match = new RegExp(`data-hre="([bc]\\d+)"( data-hre-del)?[^>]*>${pattern}`).exec(page);
+    assert.ok(match, `element for ${pattern}`);
+    return call("/api/delete", { method: "POST", body: { id: match[1], version: (await state()).version } });
+  };
+
+  const page = (await call("/")).text;
+  assert.match(page, /<header data-hre="c\d+" class="hero">/, "the hero holds the h1, so it is not deletable");
+  assert.match(page, /<h2 data-hre="b\d+">Findings/, "section titles are not deletable");
+  assert.match(page, /<p data-hre="b\d+" class="answer">/, "answer slots are not deletable");
+  assert.match(page, /<article data-hre="c\d+" data-hre-del class="finding risk"/);
+  assert.equal((await remove("Findings")).status, 400);
+  const stale = await call("/api/delete", { method: "POST", body: { id: /data-hre="(c\d+)" data-hre-del/.exec(page)[1], version: "old" } });
+  assert.equal(stale.status, 409);
+  assert.equal(readFileSync(file(), "utf8"), report);
+
+  const card = await remove("<h3[^>]*>Rate limits");
+  assert.equal(card.status, 200, card.text);
+  assert.equal(card.json.unlinked, 1);
+  let saved = readFileSync(file(), "utf8");
+  assert.equal(saved, report
+    .replace('  <article class="finding risk" id="f1"><h3>Rate limits</h3><p>Evidence one.</p></article>\n', "")
+    .replace('<a href="#f1">the rate limits</a>', "the rate limits"));
+
+  assert.equal((await remove("Only item\\.")).status, 200);
+  saved = readFileSync(file(), "utf8");
+  assert.doesNotMatch(saved, /<ul>/, "a list left empty goes with its last item");
+  assert.match(saved, /next steps<\/a>\.<\/p>\n<\/section>/);
+
+  assert.equal((await remove("<td[^>]*>Row two")).status, 200);
+  assert.match(readFileSync(file(), "utf8"), /<tbody><tr><td>Row one<\/td><\/tr><\/tbody>/);
+  assert.equal((await remove("<span>Fixed")).status, 200);
+  assert.doesNotMatch(readFileSync(file(), "utf8"), /Fixed/);
+
+  const beforeSection = readFileSync(file(), "utf8");
+  const removed = await remove("<h2[^>]*>Next steps");
+  assert.equal(removed.status, 200, removed.text);
+  saved = readFileSync(file(), "utf8");
+  assert.doesNotMatch(saved, /id="next"|href="#next"/, "the section, its TOC entry, and links to it are gone");
+  assert.match(saved, /and next steps\.<\/p>/);
+  assert.match(saved, /<\/section>\n<\/main>/, "no blank line is left behind");
+
+  assert.equal((await call("/api/undo", { method: "POST", body: {} })).status, 200);
+  assert.equal(readFileSync(file(), "utf8"), beforeSection);
 });
 
 function fakeCodex() {

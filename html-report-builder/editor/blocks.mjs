@@ -1,10 +1,15 @@
-// Map a report's source to editable blocks (b1, b2, ...) and AI scopes (c1, c2, ...).
-// Ids are ordinals recomputed from the current source on every request, injected only into
-// the served copy, and never written to the file.
+// Map a report's source to editable blocks (b1, b2, ...) and AI scopes (c1, c2, ...), and
+// mark which of them can be deleted. Ids are ordinals recomputed from the current source on
+// every request, injected only into the served copy, and never written to the file.
 import { ancestors, attr, classes, decodeEntities, escapeHtml, normalizeText, parse, splice, textContent } from "../scripts/lib/scan.mjs";
 
 const BLOCK_TAGS = new Set(["p", "li", "h1", "h2", "h3", "h4", "h5", "h6", "td", "th", "dt", "dd", "figcaption", "summary", "caption", "blockquote"]);
-const SCOPE_TAGS = new Set(["section", "article", "aside", "header", "footer", "div", "ul", "ol", "dl", "table", "figure", "details", "blockquote", "li"]);
+const SCOPE_TAGS = new Set(["section", "article", "aside", "header", "footer", "div", "ul", "ol", "dl", "table", "tr", "figure", "details", "blockquote", "li"]);
+// Text blocks that can be deleted on their own; cells, terms, captions, and section titles
+// belong to their container, so delete the row, list, or section instead.
+const DELETABLE_BLOCK_TAGS = new Set(["p", "li", "blockquote", "figcaption", "div", "h3", "h4", "h5", "h6"]);
+// Wrappers that go too when a deletion leaves them empty.
+const COLLAPSIBLE_TAGS = new Set(["ul", "ol", "dl", "div", "li", "tr", "thead", "tbody", "tfoot", "figure", "blockquote"]);
 export const INLINE_TAGS = new Set(["a", "abbr", "b", "br", "cite", "code", "del", "em", "i", "ins", "kbd", "mark", "q", "s", "small", "span", "strong", "sub", "sup", "time", "u", "wbr"]);
 const OPAQUE_TAGS = new Set(["pre", "svg", "math", "script", "style", "textarea", "template", "noscript", "head", "button", "select", "iframe", "object", "video", "audio", "canvas"]);
 
@@ -23,6 +28,12 @@ export function indexBlocks(doc) {
   const blocks = [];
   const scopes = [];
   const body = doc.elements.find((e) => e.name === "body") || doc.root;
+  // The page title and a question card's title are required, so they and anything holding
+  // the page title cannot be deleted.
+  const titles = doc.elements.filter((e) => e.name === "h1");
+  const deletable = (element, kind) => (kind === "scope" || (DELETABLE_BLOCK_TAGS.has(element.name) && !classes(element).includes("answer")
+    && !(/^h\d$/.test(element.name) && classes(element.parent).includes("question"))))
+    && !titles.some((title) => title.start >= element.start && title.end <= element.end);
   const visit = (element) => {
     for (const child of element.children) {
       if (isOpaque(child) || child.foreign) continue;
@@ -30,11 +41,11 @@ export function indexBlocks(doc) {
       const textDiv = child.name === "div" && child.children.length > 0;
       if ((BLOCK_TAGS.has(child.name) || isAnswer || textDiv) && child.clean && child.close && phrasingOnly(child)) {
         // Empty blocks stay indexed so ordinals do not shift when an edit clears a block.
-        blocks.push({ id: `b${blocks.length + 1}`, element: child, kind: "block" });
+        blocks.push({ id: `b${blocks.length + 1}`, element: child, kind: "block", deletable: deletable(child, "block") });
         continue;
       }
       if (SCOPE_TAGS.has(child.name) && child.clean && child.close && child.children.length > 0) {
-        scopes.push({ id: `c${scopes.length + 1}`, element: child, kind: "scope" });
+        scopes.push({ id: `c${scopes.length + 1}`, element: child, kind: "scope", deletable: deletable(child, "scope") });
       }
       visit(child);
     }
@@ -47,9 +58,9 @@ export function indexBlocks(doc) {
 export function instrument(source, { headHtml = "", bodyHtml = "" } = {}) {
   const doc = parse(source);
   const { blocks, scopes } = indexBlocks(doc);
-  const edits = [...blocks, ...scopes].map(({ id, element }) => {
+  const edits = [...blocks, ...scopes].map(({ id, element, deletable }) => {
     const at = element.open.start + 1 + element.name.length;
-    return { start: at, end: at, text: ` data-hre="${id}"` };
+    return { start: at, end: at, text: ` data-hre="${id}"${deletable ? " data-hre-del" : ""}` };
   });
   const head = doc.elements.find((e) => e.name === "head");
   const body = doc.elements.find((e) => e.name === "body");
@@ -80,6 +91,50 @@ export function replaceInner(source, element, html) {
 /** Replace a whole element (outer range); returns the new source. */
 export function replaceOuter(source, element, html) {
   return splice(source, [{ start: element.start, end: element.end, text: html }]);
+}
+
+/**
+ * Edits that delete an element. Wrappers it leaves empty go with it, a slide takes its
+ * speaker notes, the surrounding line goes when the element sat alone on it, and links
+ * elsewhere that pointed into the deleted part are unwrapped to plain text.
+ */
+export function removal(doc, element) {
+  const source = doc.source;
+  let target = element;
+  while (target.parent && COLLAPSIBLE_TAGS.has(target.parent.name) && !isOpaque(target.parent) && onlyContent(source, target.parent, target)) target = target.parent;
+  let end = target.end;
+  const siblings = target.parent ? target.parent.children : [];
+  const next = siblings[siblings.indexOf(target) + 1];
+  if (classes(target).includes("slide") && next && next.name === "aside" && classes(next).includes("notes") && !source.slice(target.end, next.start).trim()) end = next.end;
+  const range = wholeLines(source, target.start, end);
+
+  const inside = (e) => e.start >= range.start && e.end <= range.end;
+  const removedIds = new Set(doc.elements.filter((e) => inside(e) && attr(e, "id")).map((e) => attr(e, "id")));
+  for (const e of doc.elements) if (!inside(e) && attr(e, "id")) removedIds.delete(attr(e, "id"));
+  const unlinked = doc.elements.filter((e) => e.name === "a" && e.close && !inside(e)
+    && !ancestors(e).some((a) => attr(a, "data-hr-generated") !== null)
+    && /^#./.test(attr(e, "href") || "") && removedIds.has(safeDecode(attr(e, "href").slice(1))));
+  const edits = [{ ...range, text: "" }];
+  for (const link of unlinked) edits.push({ start: link.start, end: link.innerStart, text: "" }, { start: link.innerEnd, end: link.end, text: "" });
+  return { edits, element: target, unlinked: unlinked.length };
+}
+
+function onlyContent(source, parent, child) {
+  const rest = source.slice(parent.innerStart, child.start) + source.slice(child.end, parent.innerEnd);
+  return parent.children.length === 1 && !rest.replace(/<!--[\s\S]*?-->/g, "").trim();
+}
+
+function wholeLines(source, start, end) {
+  let lineStart = start;
+  while (lineStart > 0 && (source[lineStart - 1] === " " || source[lineStart - 1] === "\t")) lineStart--;
+  let lineEnd = end;
+  while (lineEnd < source.length && (source[lineEnd] === " " || source[lineEnd] === "\t")) lineEnd++;
+  const alone = (lineStart === 0 || source[lineStart - 1] === "\n") && (lineEnd === source.length || source[lineEnd] === "\n");
+  return alone ? { start: lineStart, end: Math.min(lineEnd + 1, source.length) } : { start, end };
+}
+
+function safeDecode(value) {
+  try { return decodeURIComponent(value); } catch { return value; }
 }
 
 /** Text around an element for AI context: the closest preceding and following prose. */

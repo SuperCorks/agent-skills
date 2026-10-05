@@ -41,7 +41,7 @@ In the commands below, `$HRB` is this skill's folder (for example `~/.agents/ski
 
 ## Local editor
 
-The editor opens a report in the browser with point-and-click editing and an AI rewrite button. It works on any HTML report, not only builder reports, and saves straight into the file.
+The editor opens a report in the browser with point-and-click editing, deletion, and an AI rewrite button. It works on any HTML report, not only builder reports, and saves straight into the file.
 
 ```bash
 node "$HRB/editor/report-editor.mjs" path/to/report.html [--provider codex|openrouter] [--model gpt-6-luna] [--effort low] [--port 0] [--no-open]
@@ -49,6 +49,7 @@ node "$HRB/editor/report-editor.mjs" path/to/report.html [--provider codex|openr
 
 - Start it as a background process; it prints a tokenized `http://127.0.0.1:<port>/?t=...` link and opens the browser. It serves only that one report (and files beside it) on 127.0.0.1. Stop it with Ctrl+C or by ending the process.
 - Click any paragraph, list item, heading, table cell, tile, or `.answer` slot to edit its text; Enter saves, Shift+Enter adds a line break, Esc cancels. Only that element's bytes change.
+- Click beside the text (a card's padding, the gap between paragraphs) to select the card, list, or section around it. **Delete** (or the Delete key) removes the highlighted section, card, table row, list, tile, figure, or paragraph; hovering the button outlines exactly what will go. Wrappers left empty go with it, a slide takes its speaker notes, and links elsewhere that pointed into it become plain text. The page title, section headings, table cells, and `.answer` slots cannot be deleted on their own.
 - Select a block, widen the scope with the labels in the toolbar (for example to the whole card or section), and press **Rewrite with AI** (Cmd+K). The proposal is validated (same element and ids, no scripts or unknown markup; images, code, and mockups are protected), previewed in place with a word diff, and written only on **Accept**. Undo and Redo cover every save.
 - AI defaults to the Codex CLI on the user's ChatGPT login with `gpt-6-luna` at `low` effort (about 5 to 10 seconds per rewrite, no API cost). If `codex` is missing or logged out, it falls back to OpenRouter (`openai/gpt-6-luna`) when `OPENROUTER_API_KEY` is set. Change provider, model, and effort from the toolbar; they persist in `~/.config/html-report-editor/config.json`.
 - The first save backs up the original to `~/.cache/html-report-editor/`. If an agent changes the file while it is open, the page reloads; edits based on an old version are refused instead of overwriting.

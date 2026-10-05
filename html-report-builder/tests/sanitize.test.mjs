@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { indexBlocks, instrument } from "../editor/blocks.mjs";
+import { indexBlocks, instrument, removal } from "../editor/blocks.mjs";
 import { protect, restore, safeHref, sanitizeInline, validateRewrite, wordDiff } from "../editor/sanitize.mjs";
-import { parse } from "../scripts/lib/scan.mjs";
+import { parse, splice } from "../scripts/lib/scan.mjs";
 
 test("inline edits keep original inline tags and unwrap or drop everything else", () => {
   const original = 'Ship <strong>before Friday</strong> via <a href="#phases">phase 2</a>.';
@@ -78,9 +78,40 @@ test("blocks index innermost phrasing elements and skip opaque or generated regi
   assert.ok(!scopes.some((s) => s.element.name === "section"), "a section holding an implicitly closed <p> is not");
   const served = instrument(source, { headHtml: "<!--h-->", bodyHtml: "<!--b-->" });
   assert.match(served, /<h2 data-hre="b1">A<\/h2>/);
+  assert.match(served, /<p data-hre="b2" data-hre-del>One/);
+  assert.match(served, /<div data-hre="b4" data-hre-del class="tile">/);
+  assert.match(served, /<p data-hre="b5" class="answer">/);
   assert.match(served, /<!--h--><\/head>/);
-  assert.equal(served.replace(/ data-hre="[bc]\d+"/g, "").replace("<!--h-->", "").replace("<!--b-->", ""), source);
+  assert.equal(served.replace(/ data-hre="[bc]\d+"(?: data-hre-del)?/g, "").replace("<!--h-->", "").replace("<!--b-->", ""), source);
   const headless = instrument("<!doctype html><p>Only a paragraph</p>", { headHtml: "<!--h-->", bodyHtml: "<!--b-->" });
   assert.ok(headless.startsWith("<!doctype html>"), "editor assets never precede the doctype");
   assert.ok(headless.endsWith("<!--h--><!--b-->"));
+});
+
+test("removal takes empty wrappers, a slide's notes, and the whole line, and unlinks references", () => {
+  const source = `<main class="deck">
+<section class="slide" id="s1"><h2>One</h2><p>See <a href="#s2">slide two</a>.</p></section>
+<aside class="notes"><p>Notes one.</p></aside>
+<section class="slide" id="s2"><h2>Two</h2>
+  <div class="callout">
+    <!-- a note -->
+    <p>Only <b>child</b>.</p>
+  </div>
+  <p>Kept <a href="#s2">self link</a>.</p>
+</section>
+<aside class="notes"><p>Notes two.</p></aside>
+</main>`;
+  const doc = parse(source);
+  const find = (predicate) => doc.elements.find(predicate);
+  const only = find((e) => e.name === "p" && source.slice(e.innerStart, e.innerEnd).startsWith("Only"));
+  const callout = removal(doc, only);
+  assert.equal(callout.element.name, "div", "a wrapper left with only a comment goes too");
+  assert.equal(splice(source, callout.edits), source.replace(/  <div class="callout">[\s\S]*?<\/div>\n/, ""));
+  const slide = removal(doc, find((e) => e.name === "section" && e.attrs.some((a) => a.value === "s2")));
+  assert.equal(slide.unlinked, 1, "links inside the deleted slide are not counted");
+  assert.equal(splice(source, slide.edits), source
+    .replace(/<section class="slide" id="s2">[\s\S]*Notes two\.<\/p><\/aside>\n/, "")
+    .replace('<a href="#s2">slide two</a>', "slide two"));
+  const inline = parse("<ul><li>a</li><li>b</li></ul>");
+  assert.equal(splice(inline.source, removal(inline, inline.elements[1]).edits), "<ul><li>b</li></ul>");
 });

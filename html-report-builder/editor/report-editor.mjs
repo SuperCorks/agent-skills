@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-// Local point-and-click editor for one HTML report, with AI rewrites of a paragraph or section.
+// Local point-and-click editor for one HTML report, with AI rewrites of a paragraph or section
+// and deletion of sections, cards, rows, and paragraphs.
 // Usage: report-editor.mjs <file.html> [--port 0] [--provider codex|openrouter] [--model gpt-6-luna]
 //                          [--effort low] [--no-open]
 import { spawn } from "node:child_process";
@@ -12,8 +13,8 @@ import { fileURLToPath } from "node:url";
 import { refreshToc } from "../scripts/lib/build.mjs";
 import { checkSource } from "../scripts/lib/check.mjs";
 import { loadRuntime } from "../scripts/lib/runtime.mjs";
-import { attr, normalizeText, parse, textContent } from "../scripts/lib/scan.mjs";
-import { describe, instrument, locate, outlineHeadings, replaceInner, replaceOuter, surroundingText } from "./blocks.mjs";
+import { attr, normalizeText, parse, splice, textContent } from "../scripts/lib/scan.mjs";
+import { describe, instrument, locate, outlineHeadings, removal, replaceInner, replaceOuter, surroundingText } from "./blocks.mjs";
 import { DEFAULT_SETTINGS, EFFORTS, MODEL_SUGGESTIONS, PROVIDERS, buildPrompt, rewrite as defaultRewrite } from "./providers.mjs";
 import { ALLOWED_FRAGMENT_TAGS, protect, readableText, restore, sanitizeInline, validateRewrite, wordDiff } from "./sanitize.mjs";
 
@@ -54,6 +55,17 @@ function normalizeSettings(input, base = DEFAULT_SETTINGS) {
   if (typeof input.model === "string" && /^[\w./:-]{1,80}$/.test(input.model.trim())) settings.model = input.model.trim();
   if (EFFORTS.includes(input.effort)) settings.effort = input.effort;
   return settings;
+}
+
+// Check errors a change introduces. List-style errors ("duplicate ids: a, b") are compared
+// item by item, so fixing or keeping an old problem never counts against the change.
+function addedErrors(before, after, file) {
+  const items = (source) => new Set(checkSource(source, { file }).errors.flatMap((error) => {
+    const match = /^([^:]+): (.+)$/.exec(error);
+    return match ? match[2].split(", ").filter((item) => !/^\+\d+ more$/.test(item)).map((item) => `${match[1]}: ${item}`) : [error];
+  }));
+  const known = items(before);
+  return [...items(after)].filter((error) => !known.has(error));
 }
 
 class HttpError extends Error {
@@ -199,8 +211,7 @@ export async function startEditor({
       }
       if (session.version !== version) throw new HttpError(409, "The report changed while the AI was working. Reloading.", { version: session.version });
       const next = refreshToc(replaceOuter(source, element, restored));
-      const known = new Set(checkSource(source, { file: target }).errors);
-      const added = checkSource(next, { file: target }).errors.filter((error) => !known.has(error));
+      const added = addedErrors(source, next, target);
       if (added.length) throw new HttpError(422, `The AI proposal would break the report (${added.join("; ")}). Try again or rephrase.`);
 
       const proposalId = randomBytes(8).toString("hex");
@@ -210,6 +221,18 @@ export async function startEditor({
         provider: result.provider, model: result.model, ms: result.ms, fallback: result.fallback || null,
         unchanged: restored === outer
       };
+    },
+    remove({ id, version }) {
+      requireVersion(version);
+      const found = locate(session.source, String(id));
+      if (!found) throw new HttpError(404, "That part of the report no longer exists. Reloading.");
+      if (!found.deletable) throw new HttpError(400, "This part of the report cannot be deleted on its own. Select its section, card, row, or list instead.");
+      const { edits, unlinked } = removal(found.doc, found.element);
+      const next = refreshToc(splice(session.source, edits));
+      const added = addedErrors(session.source, next, target);
+      if (added.length) throw new HttpError(422, `Deleting this would break the report (${added.join("; ")}).`);
+      write(next);
+      return { version: session.version, reload: true, unlinked, canUndo: true, canRedo: false };
     },
     apply({ proposalId }) {
       const proposal = session.proposals.get(String(proposalId));
@@ -311,7 +334,7 @@ export async function startEditor({
         req.on("close", () => { clearInterval(keepAlive); session.clients.delete(res); });
         return undefined;
       }
-      const routes = { "/api/edit": "edit", "/api/ai": "ai", "/api/apply": "apply", "/api/undo": "undo", "/api/redo": "redo", "/api/settings": "saveSettings", "/api/describe": "describe" };
+      const routes = { "/api/edit": "edit", "/api/ai": "ai", "/api/apply": "apply", "/api/delete": "remove", "/api/undo": "undo", "/api/redo": "redo", "/api/settings": "saveSettings", "/api/describe": "describe" };
       if ((req.method === "POST" || req.method === "PUT") && routes[url.pathname]) {
         const body = await readBody(req);
         const controller = new AbortController();
