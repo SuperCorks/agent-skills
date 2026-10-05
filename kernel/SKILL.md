@@ -90,12 +90,13 @@ portfolio reassignment. Continue using the task's UUID `id` in API paths and req
 
 ## Capabilities
 
-Kernel has two fixed access presets. A Read only key can read workspace data, organizations, projects, tags, ordinary and Standing tasks, task comments, work notes, activity, attachments, Habits and occurrences, schedules, work sessions, time entries, visible synced calendar events, the key creator's private meeting notes, Inbox sources and rules, sanitized suggestion and analysis history, and public file links with their views. A Full work key adds the supported mutations below. A valid key without an operation's scope returns `403`.
+Kernel has two fixed access presets. A Read only key can read workspace data, organizations, projects, organization and project pricing, tags, ordinary and Standing tasks, task comments, work notes, activity, attachments, Habits and occurrences, schedules, work sessions, time entries, visible synced calendar events, the key creator's private meeting notes, Inbox sources and rules, sanitized suggestion and analysis history, and public file links with their views. A Full work key adds the supported mutations below. A valid key without an operation's scope returns `403`.
 
 - **Tasks:** list, create, inspect, update, complete, bulk-update, start work on, and conditionally delete ordinary tasks; search task options; inspect activity and comments; create comments; create, read, edit, and delete work notes; list, upload, download, and remove attachments and their supporting files; create, disable, enable, delete, and restore public links to attachments and read their views; list, link, and unlink GitHub pull requests; undo supported task deletions.
 - **Standing tasks and Habits:** list and inspect both. Full work keys can create, update, archive, restore, or conditionally delete Standing tasks; create, update, pause, resume, or archive Habits; inspect occurrences; and skip occurrences.
 - **Time:** list work sessions and time entries; stop or undo-stop sessions; create, update, approve, split, merge, export, and delete time entries.
 - **Portfolio:** list organizations, projects, and tags; create, update, archive, and restore them and manage organization images where supported. Organization and project files, and their supporting files and public links, work like task attachments.
+- **Pricing:** read an organization's billing tracking, effective-dated currency and default hourly-rate terms, and a project's billing model, fixed fee, rate overrides, and current effective rate. Full work keys turn tracking on or off, add or change terms and overrides, change a project's model or fixed fee, and send initial `billing` when creating a project. Amounts are integer cents. Read pricing first and pass its `version`; see the guide's "Organization and project pricing" section.
 - **Public file links:** list every link in the workspace, and read one link's view history. See [Publishing a file](#publishing-a-file).
 - **Scheduling:** inspect scheduling settings and scheduled blocks; create planned tasks, relocate planner items, edit, snooze, or intentionally remove blocks, preview schedules, update settings, and request rebuilds. Add a ready or active task to today's priorities, or remove it, so the scheduler places it before every other task until workspace-local midnight; task reads report the position as `todayPriorityRank`.
 - **Calendars:** read normalized planner-visible events; RSVP, associate meeting billing, create reviewable meeting time, and start, pause, or stop meeting tracking.
@@ -124,7 +125,7 @@ and view counting are in the guide's "Public file links" section.
 
 This list is not exhaustive. If what you need is missing, check the guide and OpenAPI contract in [Documentation and contract](#documentation-and-contract) before telling the user it is unsupported.
 
-The Agent API deliberately cannot administer API keys, OAuth grants, provider connections or synchronization, provider-owned calendar events, monetary billing, raw Inbox message content, unrestricted analysis internals, or live suggestion-review decisions. Do not use signed-in/internal routes, direct database access, or provider gateways to bypass those boundaries.
+The Agent API deliberately cannot administer API keys, OAuth grants, provider connections or synchronization, provider-owned calendar events, billing beyond pricing (payers, valuations, invoices, payments, write-offs), raw Inbox message content, unrestricted analysis internals, or live suggestion-review decisions. Do not use signed-in/internal routes, direct database access, or provider gateways to bypass those boundaries.
 
 ## Work summaries and notes
 
