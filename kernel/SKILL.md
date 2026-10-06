@@ -123,6 +123,28 @@ cookies or `localStorage`. Links of organization and project files always serve 
 version. Do not publish credentials or anything the user did not ask to share. Endpoints, limits,
 and view counting are in the guide's "Public file links" section.
 
+### Organization and project pages
+
+Each organization and project page has a fixed **Overview** (the record's `notes`), a fixed
+**Files** tab, and Markdown tabs added as documents. The convention is three added tabs: **People**
+(roles and contact routes), **Dates** (current targets and dependencies, labeled as targets rather
+than completion), and **Resources** (useful links). Keep each concise; detailed investigations
+belong in tasks, work notes, and files. Do not add or rename tabs unless the user asks.
+
+LLM.txt is the briefing an agent receives in every task handoff for that organization or project,
+alongside links to its tabs and files; the handoff does not include Overview. Write it for an agent
+starting a task, not for a person maintaining the page:
+
+- what the client or project is, in a line or two;
+- systems and code: repositories, local checkout paths, deploy routes, and which account or
+  provider gateway to use, pointing to each repository's `AGENTS.md` instead of copying it;
+- who decides what;
+- standing guardrails and business rules that are easy to get wrong.
+
+Keep out tab-maintenance rules, research-provenance notes, dated status snapshots, and links to
+the tabs, which the handoff already lists. A project's LLM.txt adds only what its organization's
+does not already say. Read the current document and send its `version` when replacing it.
+
 This list is not exhaustive. If what you need is missing, check the guide and OpenAPI contract in [Documentation and contract](#documentation-and-contract) before telling the user it is unsupported.
 
 The Agent API deliberately cannot administer API keys, OAuth grants, provider connections or synchronization, provider-owned calendar events, billing beyond pricing (payers, valuations, invoices, payments, write-offs), raw Inbox message content, unrestricted analysis internals, or live suggestion-review decisions. Do not use signed-in/internal routes, direct database access, or provider gateways to bypass those boundaries.
