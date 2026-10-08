@@ -32,6 +32,11 @@ def classify(name, tool_input):
         return native_layer, name.rsplit("__", 1)[-1].removeprefix("memory_")
     if not isinstance(tool_input, dict):
         return "other", "unclassified"
+    if name == "Skill":
+        selected = layer(str(tool_input.get("skill", "")))
+        return selected, "skill" if selected != "other" else "unclassified"
+    if name in {"Read", "Glob", "Grep"}:
+        return "literal", {"Read": "read", "Glob": "files", "Grep": "search"}[name]
     command = tool_input.get("cmd", tool_input.get("command"))
     if not isinstance(command, str):
         return "other", "unclassified"

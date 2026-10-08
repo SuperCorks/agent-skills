@@ -53,7 +53,43 @@ def state_path(config, session_id):
 
 def enrolled_scope(config, session_id):
     state = read_json(state_path(config, session_id)) if isinstance(session_id, str) and session_id else None
+    if not state and isinstance(session_id, str) and session_id:
+        state = read_json(config.state_dir / "starts" / (digest(session_id) + ".json"))
     return state.get("scope") if state else None
+
+
+def recover(config, session_id, raw_path, scope, apply=False):
+    """Start a future segment explicitly; never replay or discard pending events."""
+    path = transcript.allowed_path(config, raw_path)
+    meta = transcript.header(path)
+    if meta["id"] != session_id:
+        raise MemoryError("Recovery session does not match transcript identity")
+    with locked(config.state_dir / "locks" / (digest(session_id) + ".lock")):
+        state = read_json(state_path(config, session_id))
+        if not state or state["scope"] != scope:
+            raise MemoryError("Recovery requires an enrolled session in the explicit scope")
+        if (config.state_dir / "pending" / (digest(session_id) + ".json")).exists():
+            raise MemoryError("Finish the acknowledged pending import before transcript recovery")
+        if state.get("agent", transcript.CODEX) != meta["dialect"]:
+            raise MemoryError("Recovery transcript dialect changed")
+        old = state["files"].get(str(path))
+        if not old:
+            raise MemoryError("Recovery requires the enrolled transcript path; handle archive moves normally")
+        if old and prefix_matches(path, old["baseline"]) and prefix_matches(path, old["cursor"]):
+            raise MemoryError("Transcript prefix is intact; recovery is unnecessary")
+        boundary = transcript.snapshot(path)
+        if boundary.get("partial_bytes"):
+            raise MemoryError("Finish the partial transcript record before recovery")
+        result = {"session_id": session_id, "scope": scope, "status": "recovered" if apply else "preview",
+                  "excluded_prefix_bytes": boundary["offset"], "history_replayed": False,
+                  "gap": "rewritten_transcript_prefix_excluded"}
+        if apply:
+            write_json(config.state_dir / "recovery-backups" / (digest(session_id) + "-" + str(time.time_ns()) + ".json"), state)
+            state["files"][str(path)] = {"baseline": boundary, "cursor": boundary}
+            state["losses"] = sorted(set(state["losses"] + [result["gap"]]))
+            state.setdefault("recoveries", []).append({"at": now(), "excluded_prefix_bytes": boundary["offset"]})
+            write_json(state_path(config, session_id), state)
+        return result
 
 
 def job_path(config, session_id):
@@ -74,6 +110,8 @@ def hook(config, event, payload, spawn=True):
     Return value is operational metadata, NOT Codex hook JSON. CLI emits {};
     embedding hook routers should discard this value and preserve their own output.
     """
+    if os.environ.get("T3_REQUEST_KIND") == "metadata":
+        return {"queued": False, "reason": "auxiliary_request_excluded"}
     event = canonical_event(event)
     session_id = payload.get("session_id")
     cwd = payload.get("cwd")
@@ -90,6 +128,10 @@ def hook(config, event, payload, spawn=True):
             raise
     telemetry.record(config, event, payload, scope)
     boundary = activation(config)
+    start_path = config.state_dir / "starts" / (digest(session_id) + ".json")
+    if event == "SessionStart":
+        write_json(start_path, {"scope": enrolled_scope(config, session_id) or scope,
+                               "source": payload.get("source"), "at": now()})
     raw_path = payload.get("transcript_path")
     if raw_path is None or raw_path == "":
         raise CaptureSkip("Session has no persisted transcript; nothing to capture")
@@ -146,7 +188,8 @@ def hook(config, event, payload, spawn=True):
                         # file is a new session; an older one may be a resumed
                         # copy of history that was already captured.
                         age = (datetime.now(created.tzinfo) - created).total_seconds()
-                        fresh = fresh and payload.get("source") in (None, "startup") and age <= CLAUDE_FRESH_SECONDS
+                        start = read_json(start_path, {})
+                        fresh = fresh and start.get("source", payload.get("source")) in (None, "startup") and age <= CLAUDE_FRESH_SECONDS
                     else:
                         fresh = (fresh and event == "SessionStart" and payload.get("source") == "startup"
                                  and not any(meta.get(key) for key in ("forked_from_id", "forked_from", "parent_thread_id")))
@@ -162,6 +205,7 @@ def hook(config, event, payload, spawn=True):
                     state["losses"] = sorted(set(state["losses"] + ["unproven_start_prefix_excluded"]))
             state["files"][str(path)] = {"baseline": baseline, "cursor": cursor}
         state["last_hook_at"] = now()
+        state["provider_home"] = str(Path(os.environ.get("CLAUDE_CONFIG_DIR" if meta["dialect"] == transcript.CLAUDE else "CODEX_HOME", "~/.claude" if meta["dialect"] == transcript.CLAUDE else "~/.codex")).expanduser().resolve())
         state["last_hook_event"] = event
         state["hook_count"] = state.get("hook_count", 0) + 1
         write_json(state_path(config, session_id), state)

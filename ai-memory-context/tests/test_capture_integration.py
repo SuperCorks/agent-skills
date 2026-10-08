@@ -148,6 +148,26 @@ def claude(kind, blocks, session=CLAUDE, stamp=None, **extra):
 
 
 class CaptureIntegrationTests(unittest.TestCase):
+    def test_explicit_recovery_preserves_ids_and_captures_only_future_segment(self):
+        self.append(message("old history"))
+        capture.initialize(self.config)
+        self.append(message("captured before rewrite"))
+        self.hook()
+        capture.drain(self.config)
+        original = read_json(capture.state_path(self.config, SESSION))
+        self.path.write_text(self.path.read_text().replace("old history", "rewritten old history"))
+        scope = {"workspace": "work/team", "project": "app"}
+        preview = capture.recover(self.config, SESSION, self.path, scope)
+        self.assertFalse(preview["history_replayed"])
+        self.assertEqual(read_json(capture.state_path(self.config, SESSION)), original)
+        capture.recover(self.config, SESSION, self.path, scope, apply=True)
+        self.append(message("future recovery canary"))
+        self.hook()
+        capture.drain(self.config)
+        capture.drain(self.config)
+        self.assertEqual([event["content"] for event in self.events()], ["captured before rewrite", "future recovery canary"])
+        self.assertTrue(list((self.config.state_dir / "recovery-backups").glob("*.json")))
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.root = Path(self.temp.name)
@@ -303,7 +323,7 @@ class CaptureIntegrationTests(unittest.TestCase):
         capture.initialize(self.config)
         result = cli.doctor(self.config)
         self.assertTrue(result["registry_receipt_key_ready"])
-        self.assertEqual(result["status"], "ready")
+        self.assertEqual(result["status"], "unverified")
         self.registry_key.write_text("INVALID_SECRET_MUST_NOT_APPEAR")
         result = cli.doctor(self.config)
         self.assertFalse(result["registry_receipt_key_ready"])

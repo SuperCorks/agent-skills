@@ -68,18 +68,15 @@ def companion_command(command):
         return False
 
 
-def reconcile_claude_hooks(original, hook_path, python_path):
-    """Add fuller capture beside ai-memory's own Claude hooks, which stay.
-
-    Those native hooks own the bounded observations and the session briefing,
-    so only this companion's entries are replaced here.
-    """
+def reconcile_claude_hooks(original, hook_path, python_path, replace_native=True):
+    """One adapter owns bounded lifecycle and fuller capture; no duplicate hooks."""
     result = copy.deepcopy(original)
     hooks = result.setdefault("hooks", {})
     for event, groups in list(hooks.items()):
         kept = []
         for group in groups:
-            retained = [entry for entry in group.get("hooks", []) if not companion_command(entry.get("command"))]
+            retained = [entry for entry in group.get("hooks", []) if not (
+                managed_command(entry.get("command")) if replace_native else companion_command(entry.get("command")))]
             if retained:
                 kept.append({**group, "hooks": retained})
         if kept:

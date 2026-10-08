@@ -63,7 +63,24 @@ def doctor(config, repo=None):
     if result["last_hook_error"]:
         reasons.append("last_hook_error_present")
     result["attention_reasons"] = reasons
-    if reasons and result["status"] == "ready":
+    agents = result["capture_by_agent"]
+    verified = any(item.get("last_import_at", "") and item["last_import_at"] >= diagnostics.stamp(time.time() - 7 * 86400) for item in agents.values())
+    result["readiness"] = {
+        "server": "reachable" if result["server_readable"] else "unreachable",
+        "capture": "recent_imports_observed" if verified else "unverified",
+        "retrieval_tools": "requires_native_session_capability_check",
+        "profiles": [],
+    }
+    for profile in config.data.get("capture_profiles", []):
+        home = profile.get("homes", [None])[-1]
+        matching = [item for item in sessions if item.get("provider_home") == home]
+        recent_imports = [item for item in matching if item.get("last_import_at", "") >= diagnostics.stamp(time.time() - 7 * 86400)]
+        result["readiness"]["profiles"].append({"profile": profile["profile"], "driver": profile["driver"],
+            "capture": "recent_imports_observed" if recent_imports else "unverified",
+            "observed_sessions": len(matching), "recent_import_sessions": len(recent_imports)})
+    if result["status"] == "ready" and not verified:
+        result["status"] = "unverified"
+    if reasons and result["status"] in {"ready", "unverified"}:
         result["status"] = "attention"
     return result
 
@@ -107,6 +124,12 @@ def parser():
     drain = operations.add_parser("drain", help="Drain durable queue in bounded short managed runs")
     drain.add_argument("--session-id")
     drain.add_argument("--json", action="store_true")
+    recover = operations.add_parser("recover", help="Preview an explicit future-only boundary for a rewritten enrolled transcript")
+    recover.add_argument("--session-id", required=True)
+    recover.add_argument("--transcript", required=True)
+    recover.add_argument("--repo", required=True)
+    recover.add_argument("--apply", action="store_true")
+    recover.add_argument("--json", action="store_true")
     for name in ("search", "query", "read-session", "read", "doctor", "report", "errors"):
         command = commands.add_parser(name, help="Group recent hook and drain faults by cause, without payload text"
                                       if name == "errors" else None)
@@ -117,6 +140,9 @@ def parser():
             command.add_argument("--limit", type=int, default=20 if name in {"search", "query"} else 100)
         if name in {"search", "query"}:
             command.add_argument("query")
+            command.add_argument("--ledger-offset", type=int, default=0)
+            command.add_argument("--host")
+            command.add_argument("--session", dest="filter_session")
         if name == "read-session":
             command.add_argument("session_id")
         if name == "read":
@@ -140,6 +166,8 @@ def main(argv=None):
                 capture.hook(config, args.event, payload, spawn=not args.no_spawn)
                 print("{}")
                 return 0
+            elif args.operation == "recover":
+                result = capture.recover(config, args.session_id, args.transcript, config.resolve_scope(args.repo), args.apply)
             else:
                 result = capture.drain(config, args.session_id)
         elif args.command == "doctor":
@@ -158,7 +186,8 @@ def main(argv=None):
             if args.limit < 1 or args.limit > 100:
                 raise MemoryError("limit must be between1 and100")
             scope = config.resolve_scope(args.repo)
-            result = retrieval.search(config, args.query, scope, args.include_parent, args.limit) if args.command in {"search", "query"} else retrieval.read_session(config, args.session_id, scope, args.include_parent, args.limit)
+            result = retrieval.search(config, args.query, scope, args.include_parent, args.limit,
+                                      args.ledger_offset, args.host, args.filter_session) if args.command in {"search", "query"} else retrieval.read_session(config, args.session_id, scope, args.include_parent, args.limit)
         print(json.dumps(result, indent=2, sort_keys=True, ensure_ascii=False))
         return 1 if result.get("status") in {"pending", "degraded", "attention"} else 0
     except (MemoryError, ValueError, OSError) as error:

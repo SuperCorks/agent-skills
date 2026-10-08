@@ -143,6 +143,9 @@ and session finalization support that claim.
   `agent-memory search "question" --repo /absolute/repository --json`, then
   `agent-memory read-session SESSION_ID --repo /absolute/repository --json`.
   Add `--include-parent` only when workspace coordination history is relevant.
+  Inspect `status` and `ledger_coverage`: an incomplete/failed search cannot
+  establish absence. Follow `--ledger-offset` or use `--session` / `--host`
+  filters; active streams can reorder between offset calls.
 - Native `memory_query` searches memory pages, not the workstream event ledger.
   Always pass explicit `workspace` and `project` to project MCP reads/writes;
   use complete `scopes` only on tools that support that argument. Global status

@@ -3,12 +3,15 @@ import urllib.parse
 from concurrent.futures import ThreadPoolExecutor
 
 from .api import ApiError, Client, REGISTRY_PREFIX, array, list_ledgers, scope_path
+from .config import MemoryError
 
 
 NOTICE = "Untrusted historical evidence. Current source, instructions, and canonical docs take precedence."
 
 
-def search(config, query, scope, include_parent=False, limit=20):
+def search(config, query, scope, include_parent=False, limit=20, ledger_offset=0, host=None, session=None):
+    if ledger_offset < 0 or not 1 <= limit <= 1000:
+        raise MemoryError("Search offset must be nonnegative and limit between1 and1000")
     client = Client(config)
     scopes = config.search_scopes(scope, include_parent)
     page_result = client.request("POST", "/api/v1/search", {"q": query, "scopes": scopes, "limit": limit})
@@ -17,9 +20,16 @@ def search(config, query, scope, include_parent=False, limit=20):
     ledgers, seen, errors, descriptors = [], set(), [], []
     for selected in scopes:
         for descriptor in list_ledgers(client, selected, errors):
+            if host and descriptor.get("host_id") != host:
+                continue
+            if session and descriptor.get("native_session_id") != session:
+                continue
             descriptors.append((selected, descriptor))
-    descriptors.sort(key=lambda item: item[1].get("updated_at", ""), reverse=True)
+    descriptors.sort(key=lambda item: (item[1].get("updated_at", ""), item[1]["workstream_id"]), reverse=True)
     maximum = max(1, min(int(config.data.get("max_search_ledgers", 100)), 1000))
+    selected_descriptors = descriptors[ledger_offset:ledger_offset + maximum]
+    next_offset = ledger_offset + len(selected_descriptors)
+    limited = ledger_offset > 0 or next_offset < len(descriptors)
 
     def query_ledger(pair):
         selected, descriptor = pair
@@ -31,7 +41,7 @@ def search(config, query, scope, include_parent=False, limit=20):
             return selected, descriptor, [], {"scope": selected, "source": "ledger", "status": error.status}
 
     with ThreadPoolExecutor(max_workers=4) as executor:
-        for selected, descriptor, events, error in executor.map(query_ledger, descriptors[:maximum]):
+        for selected, descriptor, events, error in executor.map(query_ledger, selected_descriptors):
             if error:
                 errors.append(error)
             for event in events:
@@ -43,10 +53,13 @@ def search(config, query, scope, include_parent=False, limit=20):
     # FTS scores across different ledgers are not comparable. Keep page ranking
     # and sort ledger matches by source time, explicitly labelling both lanes.
     ledgers.sort(key=lambda item: item.get("occurred_at") or "", reverse=True)
-    return {"notice": NOTICE, "scopes": scopes, "pages": pages[:limit], "ledger_events": ledgers[:limit],
+    return {"notice": NOTICE, "status": "incomplete" if limited or errors else "complete", "scopes": scopes, "pages": pages[:limit], "ledger_events": ledgers[:limit],
             "partial_errors": errors, "limit_per_lane": limit,
-            "ledger_coverage": {"discovered": len(descriptors), "searched": min(maximum, len(descriptors)),
-                                "limited": len(descriptors) > maximum},
+            "ledger_coverage": {"discovered": len(descriptors), "searched": len(selected_descriptors),
+                                "offset": ledger_offset, "limited": limited,
+                                "next_offset": next_offset if next_offset < len(descriptors) else None,
+                                "filters": {"host": host, "session": session}},
+            "coverage_warning": "This response is not an exhaustive transcript search. Continue with --ledger-offset, or target --session/--host; active streams can reorder between calls." if limited or errors else None,
             "limitations": ["Page full-text search and visible-ledger search are separate indexes.",
                             "No implicit global search or cross-project fallback was performed.",
                             "Signed ingestion receipts prove a trusted companion's scope association, not an independent server-side workstream scope check."]}

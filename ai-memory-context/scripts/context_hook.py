@@ -85,10 +85,10 @@ def note_failure(config, component, error, **context):
         pass
 
 
-def native_hook(config, event, payload):
+def native_hook(config, event, payload, agent="codex"):
     """Preserve bounded native capture/briefings; fuller capture is independent."""
     from native_hooks import briefing, enqueue
-    query = enqueue(config, event, payload)
+    query = enqueue(config, event, payload, agent=agent)
     return briefing(config, query, payload["session_id"]) if event == "SessionStart" and query else {}
 
 
@@ -100,6 +100,10 @@ def arguments(argv):
 
 
 def main():
+    # Auxiliary app requests must neither enroll history nor consume handoffs.
+    if os.environ.get("T3_REQUEST_KIND") == "metadata":
+        print("{}")
+        return 0
     event, agent = arguments(sys.argv)
     if event == "--drain-native":
         from agent_memory.config import Config, MemoryError
@@ -118,11 +122,8 @@ def main():
     except (ValueError, OSError):
         print("{}")
         return 0
-    # Claude Code already runs ai-memory's native lifecycle hook, which owns the
-    # bounded observations, the briefing, and its own tool-scope policy. Here it
-    # only needs the fuller transcript capture.
-    lifecycle = agent == "codex"
-    denied = scope_guard(event, payload) if lifecycle else None
+    # Both providers use one adapter for bounded lifecycle + fuller capture.
+    denied = scope_guard(event, payload)
     if denied:
         print(json.dumps(denied))
         return 0
@@ -152,11 +153,10 @@ def main():
             hook(config, event, payload, spawn=True)
         except Exception as error:
             note_failure(config, "capture", error, event=event, payload=payload, scope=scope, agent=agent)
-    if lifecycle:
-        try:
-            output = native_hook(config, event, payload)
-        except Exception as error:
-            note_failure(config, "native-hook", error, event=event, payload=payload, agent=agent)
+    try:
+        output = native_hook(config, event, payload, agent)
+    except Exception as error:
+        note_failure(config, "native-hook", error, event=event, payload=payload, agent=agent)
     print(json.dumps(output))
     return 0
 

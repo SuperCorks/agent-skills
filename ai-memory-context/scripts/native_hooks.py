@@ -7,6 +7,7 @@ historical import: server idempotency retention is finite.
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -86,13 +87,13 @@ def marker_context(cwd):
     return query
 
 
-def capture_body(config, event, payload):
+def capture_body(config, event, payload, agent="codex"):
     body = bounded_body(payload)
     if event not in {"PreToolUse", "PostToolUse"}:
         return body
     # Reuse the installed CLI's marker ignore-path policy without spooling,
     # authentication, network access, or reimplementing its glob semantics.
-    result = subprocess.run(["ai-memory", "hook", "--agent", "codex", "--event", EVENTS[event],
+    result = subprocess.run(["ai-memory", "hook", "--agent", agent, "--event", EVENTS[event],
                              "--server-url", config.server_url, "--check-capture"],
                             input=json.dumps(payload), capture_output=True, text=True, timeout=0.7)
     if result.returncode:
@@ -107,22 +108,27 @@ def capture_body(config, event, payload):
     return body
 
 
-def enqueue(config, event, payload, spawn=True):
+def enqueue(config, event, payload, spawn=True, agent="codex"):
+    if os.environ.get("T3_REQUEST_KIND") == "metadata":
+        return None
     if event not in EVENTS or not isinstance(payload.get("cwd"), str) or not payload.get("session_id"):
         return None
     # Native bounded capture may explicitly preserve other existing projects;
     # fuller Desktop transcript capture has its own narrower allowlist.
     native_config = Config({**config.data, "allowed_scopes": config.data.get("native_allowed_scopes", config.scopes)})
+    from agent_memory.capture import enrolled_scope
+    frozen = enrolled_scope(config, payload["session_id"])
     try:
-        scope = native_config.resolve_scope(payload["cwd"])
+        scope = frozen or native_config.resolve_scope(payload["cwd"])
     except MemoryError:
         return None
+    # Shell cd must not move an enrolled task's bounded observations either.
     query = {**marker_context(payload["cwd"]), **scope, "project_src": "marker"}
-    body = capture_body(config, event, payload)
+    body = capture_body(config, event, payload, agent)
     if body is None:
         return None
     key = uuid.uuid4().hex
-    query.update(event=EVENTS[event], agent="codex", ingest_key=key)
+    query.update(event=EVENTS[event], agent=agent, ingest_key=key)
     queue = private_dir(config.state_dir / "native-hooks")
     write_json(queue / f"{time.time_ns():020d}-{key}.json",
                {"url": config.server_url + "/hook?" + urllib.parse.urlencode(query), "body": body})

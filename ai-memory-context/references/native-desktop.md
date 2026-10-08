@@ -44,10 +44,11 @@ See the pinned [event storage and reader implementation](https://github.com/akit
 
 ## Claude Code capture
 
-The same fuller capture reads Claude Code transcripts. ai-memory's own Claude
-hooks stay installed and keep owning the bounded observations and the session
-briefing; the companion runs beside them as `context_hook.py <Event> --agent
-claude-code` and does transcript capture only.
+The same adapter reads Claude Code transcripts and owns bounded lifecycle
+observations and briefings as `context_hook.py <Event> --agent claude-code`.
+The installer replaces upstream ai-memory lifecycle commands to avoid duplicate
+capture and to exclude T3 metadata requests before any handoff is consumed.
+Unrelated hooks and provider credentials stay untouched.
 
 ```sh
 python3 ~/.agents/skills/ai-memory-context/scripts/install-context.py --claude-settings ~/.claude/settings.json
@@ -68,7 +69,7 @@ only; add each extra `CLAUDE_CONFIG_DIR`).
   `<system-reminder>` are not.
 - Claude writes the transcript only after the first prompt, so SessionStart
   usually has no file and is an expected skip. A session first seen while its
-  file is under ten minutes old starts at byte zero; an older file may be a
+  file is under ten minutes old and not known to be a resume starts at byte zero; an older file may be a
   resumed copy of captured history and starts at its current end.
 - Claude reports the shell's current directory, which follows `cd`, where Codex
   reports a fixed top-level one. An enrolled session therefore keeps its frozen
@@ -77,6 +78,31 @@ only; add each extra `CLAUDE_CONFIG_DIR`).
 - There is no PreToolUse hook: capture reads the transcript, so a process per
   tool call would add overhead for nothing. Tool durations in `report` are
   therefore Codex-only.
+
+### T3 profiles
+
+Preview/apply against the **actual** T3 settings on each host:
+
+```sh
+python3 ~/.agents/skills/ai-memory-context/scripts/install-t3-context.py
+python3 ~/.agents/skills/ai-memory-context/scripts/install-t3-context.py --apply
+```
+
+The default is `~/.t3-fork/userdata/settings.json`; override with `--settings`.
+Enabled primary and shadow homes receive portable hooks, unbound Claude Serena
+and authenticated memory MCP registrations. Account `.claude.json` files are
+merged individually, not shared. Context skill copies become links to the
+canonical `~/.agents/skills`, with originals moved into a private backup.
+Resolved Claude transcript roots and named Codex roots are added without
+resetting activation or offsets. Additional marker identities require an
+explicit `--repo /absolute/repository`. This is not historical backfill.
+
+New/reconnected sessions must prove initialized MCP capabilities and scoped
+capture. `doctor.readiness.profiles` reports imported events observed under an
+effective home; it does not prove T3 launched that session or tools were useful.
+T3 auxiliary providers use `T3_REQUEST_KIND=metadata`; the adapter exits before
+capture, briefing or handoff access. T3 also disables native hooks in its
+metadata launch paths. Existing sessions may need reconnection to reload hooks.
 
 ## Diagnosing capture
 
@@ -196,6 +222,32 @@ agent-memory read-session SESSION_ID --repo /absolute/repository --json
 agent-memory capture drain --json
 agent-memory report --repo /absolute/repository --days 7 --json
 ```
+
+Search reports `status=incomplete`, `ledger_coverage` and a warning when only a
+bounded subset was searched. Continue with the returned `--ledger-offset`, or
+target an exact `--session ID` / `--host HOST`. Inventory is live and streams
+can reorder between offset calls: use a session filter for deterministic
+follow-up. Empty results from an incomplete search are not evidence of absence.
+Pages and transcript results remain separately ranked and bounded.
+
+`doctor.readiness` separates connectivity, recent imports and tool verification.
+`unverified` means configuration alone has not established recent capture;
+`attention` identifies current faults. Neither a green connection nor import
+counts establish retrieval quality.
+
+When a rewritten transcript is quarantined, first finish any pending import.
+Preview a future-only recovery with explicit identity, scope and transcript:
+
+```sh
+agent-memory capture recover --session-id ID --transcript /absolute/transcript.jsonl --repo /absolute/repository --json
+# Apply that preview only when intentionally excluding the rewritten prefix:
+agent-memory capture recover --session-id ID --transcript /absolute/transcript.jsonl --repo /absolute/repository --apply --json
+```
+
+Recovery backs up local state, preserves imported event IDs and scope, records
+the coverage gap, and starts at the complete file's current end. It never
+replays the prefix or discards a pending acknowledged import. Ordinary archive
+moves with intact prefixes need no recovery. Prove a new future event afterward.
 
 Search without `--include-parent` stays in the exact repository scope.
 `--include-workspace` is an alias for the configured parent inclusion, not an

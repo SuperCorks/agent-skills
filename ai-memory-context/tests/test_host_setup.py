@@ -99,7 +99,7 @@ class InstallationTests(unittest.TestCase):
         self.assertIn("SessionEnd", result["hooks"])
         self.assertEqual(result, self.setup.reconcile_hooks(result, "/skills/ai-memory-context/scripts/context_hook.py", "/usr/bin/python3"))
 
-    def test_claude_install_keeps_native_lifecycle_hooks_and_is_idempotent(self):
+    def test_claude_install_replaces_native_lifecycle_hooks_and_is_idempotent(self):
         native = "'/releases/ai-memory' --data-dir '/data' hook --event stop --agent claude-code"
         original = {"theme": "dark", "hooks": {
             "Stop": [{"matcher": "", "hooks": [{"type": "command", "command": native},
@@ -109,13 +109,13 @@ class InstallationTests(unittest.TestCase):
         hook = "/skills/ai-memory-context/scripts/context_hook.py"
         result = self.setup.reconcile_claude_hooks(original, hook, "/usr/bin/python3")
         commands = {event: [h["command"] for group in groups for h in group["hooks"]] for event, groups in result["hooks"].items()}
-        # ai-memory's own Claude hooks own lifecycle observations and the briefing: they stay.
-        self.assertIn(native, commands["Stop"])
+        # The combined adapter owns both layers and excludes auxiliary requests.
+        self.assertNotIn(native, commands["Stop"])
         self.assertIn("my-notifier --done", commands["Stop"])
         self.assertIn("/usr/bin/python3 " + hook + " Stop --agent claude-code", commands["Stop"])
         self.assertEqual(result["theme"], "dark")
         # No per-tool-call process before the tool runs; capture reads the transcript afterwards.
-        self.assertFalse(any("context_hook.py" in command for command in commands["PreToolUse"]))
+        self.assertNotIn("PreToolUse", commands)
         self.assertEqual({event for event, listed in commands.items() if any("context_hook.py" in c for c in listed)},
                          set(self.setup.CLAUDE_EVENTS))
         self.assertEqual(result, self.setup.reconcile_claude_hooks(result, hook, "/usr/bin/python3"))

@@ -16,7 +16,13 @@ multi-hop relationship map and direct search's literal matching.
 4. Activate the resolved **absolute path**, not only a registered project name.
 
 Use a per-task stdio server that starts unbound:
-`serena start-mcp-server --context=codex --open-web-dashboard=false`.
+`serena start-mcp-server --context=codex --open-web-dashboard=false` for Codex,
+or `--context=claude-code` for Claude Code (including T3's Claude SDK).
+T3 selects an effective provider home, often a named shadow home. A server in
+the default Claude home does not prove availability there: check the actual
+session's initialized tools. Keep account credentials separate; portable
+settings and skills can be shared. The memory companion's T3 profile installer
+registers an unbound server in each enabled Claude profile.
 Do not add `--project-from-cwd` globally: desktop task roots may be non-Git
 parent workspaces. Explicit activation selects the child/worktree deliberately.
 After a configuration change, reconnect the task's MCP server; changing a file

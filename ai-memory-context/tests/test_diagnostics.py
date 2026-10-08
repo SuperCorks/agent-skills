@@ -136,12 +136,13 @@ class DiagnosticsTests(unittest.TestCase):
             quiet = cli.doctor(self.config)
             diagnostics.note(self.config, "capture", self.raised(MemoryError("Native hook session_id does not match the transcript header")))
             noisy = cli.doctor(self.config)
-        self.assertEqual((quiet["status"], quiet["attention_reasons"], quiet["hook_error_count"]), ("ready", [], 1))
+        self.assertEqual((quiet["status"], quiet["attention_reasons"], quiet["hook_error_count"]), ("unverified", [], 1))
+        self.assertEqual(quiet["readiness"]["capture"], "unverified")
         self.assertEqual((noisy["status"], noisy["attention_reasons"]), ("attention", ["hook_or_drain_errors_last_24h"]))
         self.assertEqual(noisy["diagnostics"]["error_groups_last_24h"][0]["error"],
                          "Native hook session_id does not match the transcript header")
 
-    def test_claude_mode_runs_fuller_capture_only_and_logs_skips_with_context(self):
+    def test_claude_mode_runs_combined_capture_and_logs_skips_with_context(self):
         payload = {"session_id": "claude-1", "cwd": str(self.repo), "transcript_path": None, "hook_event_name": "SessionStart"}
         (self.config.state_dir).mkdir(parents=True)
         (self.config.state_dir / "activation.json").write_text(json.dumps({"activated_at": "2026-01-01T00:00:00Z", "files": {}}))
@@ -149,9 +150,9 @@ class DiagnosticsTests(unittest.TestCase):
         with patch.object(sys, "argv", ["context_hook.py", "SessionStart", "--agent", "claude-code"]), \
                 patch.object(sys, "stdin", io.StringIO(json.dumps(payload))), \
                 patch("agent_memory.config.Config.load", return_value=self.config), \
-                patch.object(context_hook, "native_hook") as lifecycle, redirect_stdout(output):
+                patch.object(context_hook, "native_hook", return_value={}) as lifecycle, redirect_stdout(output):
             self.assertEqual(context_hook.main(), 0)
-        lifecycle.assert_not_called()  # ai-memory's own Claude hook owns lifecycle observations
+        lifecycle.assert_called_once_with(self.config, "SessionStart", payload, "claude-code")
         self.assertEqual(output.getvalue().strip(), "{}")
         skip, = self.records(diagnostics.SKIPS)
         self.assertEqual((skip["agent"], skip["event"], skip["session_id"]), ("claude-code", "SessionStart", "claude-1"))
