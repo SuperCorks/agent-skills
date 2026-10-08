@@ -99,7 +99,7 @@ def main():
     # Credential never appears in argv, stdout, source, or a preview diff.
     config = Config(runtime, runtime_path)
     writes, links, profiles = plan(task_home, settings, runtime, task_home / ".agents/skills",
-                                 sys.executable, serena, config.token())
+                                 sys.executable, "serena", config.token())
     encoded = {path: value if isinstance(value, str) else json.dumps(value, indent=2) + "\n" for path, value in writes.items()}
     changed = {path: value for path, value in encoded.items() if not path.exists() or path.read_text() != value}
     backup = task_home / ".local/state/agent-memory/install-backups" / (datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S.%fZ") + "-t3")
