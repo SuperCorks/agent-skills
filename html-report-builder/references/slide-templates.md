@@ -86,7 +86,7 @@ Counts that narrow step by step with the share that continues, as centred Plotly
   <p class="eyebrow">Where buyers drop</p>
   <h2>One in eight shoppers who start checkout pays</h2>
   <figure class="chart">
-    <script type="application/json" data-hr-chart>{"data":[{"type":"bar","orientation":"h","y":["Started checkout","Entered shipping","Reached payment","Paid"],"x":[48200,29400,16300,5800],"base":[0.0,9400.0,15950.0,21200.0],"marker":{"color":["token:accent","token:accent","token:accent","token:risk"]},"text":["48,200","29,400 · 61% continue","16,300 · 55% continue","5,800 · 36% continue"],"textposition":"outside","cliponaxis":false,"width":0.62,"hovertemplate":"%{y}: %{text}<extra></extra>"}],"layout":{"showlegend":false,"height":250,"xaxis":{"visible":false,"range":[0,64000]},"yaxis":{"autorange":"reversed","showgrid":false,"showspikes":false}}}</script>
+    <script type="application/json" data-hr-chart>{"data":[{"type":"bar","orientation":"h","y":["Started checkout","Entered shipping","Reached payment","Paid"],"x":[48200,29400,16300,5800],"base":[0.0,9400.0,15950.0,21200.0],"marker":{"color":["token:accent","token:accent","token:accent","token:risk"]},"text":["48,200","29,400 · 61% continue","16,300 · 55% continue","5,800 · 36% continue"],"textposition":"outside","cliponaxis":false,"width":0.62,"hovertemplate":"%{y}: %{text}<extra></extra>"}],"layout":{"showlegend":false,"height":220,"xaxis":{"visible":false,"range":[0,64000]},"yaxis":{"autorange":"reversed","showgrid":false,"showspikes":false}}}</script>
     <figcaption>Checkout sessions by step, July to September 2026</figcaption>
   </figure>
   <p class="takeaway">Payment is the biggest drop, so the pilot starts there.</p>
