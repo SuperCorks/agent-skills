@@ -2,6 +2,7 @@
 // Click a block to edit its text; select a paragraph or section and press "Rewrite with AI"
 // (Cmd+K) to propose a model rewrite, review the diff, then accept or discard it. Click beside
 // the text to select its card or section; Delete removes the selection (Undo brings it back).
+// Comment (C) pins a review comment to the spot you click; pins open threads to reply or resolve.
 (() => {
   "use strict";
   const stateNode = document.getElementById("hre-state");
@@ -16,6 +17,11 @@
   let pending = 0;
   let lastInstruction = "";
   let saveQueue = Promise.resolve();
+  let comments = [];
+  let commenting = false;
+  let showResolved = false;
+  let draft = null;
+  let openThreadId = null;
   const SCROLL_KEY = `hre-scroll:${location.pathname}`;
   const FLASH_KEY = `hre-flash:${location.pathname}`;
   const CHIPS = [
@@ -88,6 +94,11 @@
       </div>
       <p class="error" id="error" hidden></p>
     </section>
+    <section class="comments" id="comments" hidden aria-label="Comments">
+      <header><strong>Comments</strong><label><input type="checkbox" id="show-resolved"> Show resolved</label><button id="comments-close" aria-label="Close">×</button></header>
+      <ol id="comment-list"></ol>
+      <p class="meta" id="comments-empty">No comments yet. Press Comment (C), then click the part of the report it is about.</p>
+    </section>
     <section class="settings" id="settings" hidden aria-label="AI settings">
       <label>Provider <select id="provider"></select></label>
       <label>Model <input id="model" list="models" spellcheck="false"><datalist id="models"></datalist></label>
@@ -100,6 +111,9 @@
       <span class="crumbs" id="crumbs"></span>
       <button class="primary" id="ai" disabled title="Rewrite the highlighted part with AI (⌘K)">✦ Rewrite with AI</button>
       <button class="danger" id="delete" disabled title="Delete the highlighted part (⌫)">Delete</button>
+      <span class="sep"></span>
+      <button id="comment" title="Pin a comment to the next spot you click (C)">+ Comment</button>
+      <button id="comments-btn" title="All comments">Comments<span class="count" id="comment-count" hidden></span></button>
       <span class="sep"></span>
       <button id="undo" disabled title="Undo (⌘Z)">Undo</button>
       <button id="redo" disabled title="Redo (⇧⌘Z)">Redo</button>
@@ -122,7 +136,16 @@
     if (typeof data.canUndo === "boolean") $("undo").disabled = !data.canUndo;
     if (typeof data.canRedo === "boolean") $("redo").disabled = !data.canRedo;
   };
-  const inUi = (node) => node === host || host.contains(node);
+  // Pins and threads live in their own shadow root, positioned in page coordinates.
+  const pinHost = document.createElement("div");
+  pinHost.id = "hre-pins";
+  pinHost.setAttribute("data-hr-ui", "");
+  pinHost.style.cssText = "position:absolute;left:0;top:0;width:0;height:0;z-index:2147482000";
+  document.body.append(pinHost);
+  const pinRoot = pinHost.attachShadow({ mode: "open" });
+  pinRoot.innerHTML = `<link rel="stylesheet" href="/__hre/toolbar.css"><div id="pins"></div><section class="thread" id="thread" hidden></section>`;
+  const pin$ = (id) => pinRoot.getElementById(id);
+  const inUi = (node) => node === host || host.contains(node) || node === pinHost || pinHost.contains(node);
   const isBlock = (node) => node && node.dataset && /^b\d+$/.test(node.dataset.hre || "");
   const canDelete = (node) => !!node && node.hasAttribute("data-hre-del");
   const labelOf = (element) => {
@@ -240,14 +263,17 @@
   document.addEventListener("mouseover", (event) => {
     if (inUi(event.target)) return;
     const block = event.target.closest ? event.target.closest("[data-hre]") : null;
-    const target = isBlock(block) ? block : null;
+    const target = commenting || isBlock(block) ? block : null;
     if (target === hovered) return;
     if (hovered) hovered.classList.remove("hre-hover");
     hovered = target;
     if (hovered && hovered !== editing?.el) hovered.classList.add("hre-hover");
   });
   document.addEventListener("mousedown", (event) => {
-    if (event.button !== 0 || inUi(event.target) || proposal || running) return;
+    if (event.button !== 0 || inUi(event.target)) return;
+    if (commenting) { event.preventDefault(); return; }
+    if (!pin$("thread").hidden && !pin$("thread-text")?.value.trim()) closeThread();
+    if (proposal || running) return;
     const node = event.target.closest ? event.target.closest("[data-hre]") : null;
     const target = isBlock(node) ? node : null;
     if (editing && editing.el !== target) commit();
@@ -258,6 +284,7 @@
   }, true);
   document.addEventListener("click", (event) => {
     if (inUi(event.target)) return;
+    if (commenting) { event.preventDefault(); event.stopPropagation(); placeComment(event); return; }
     const link = event.target.closest ? event.target.closest("a[href]") : null;
     const block = event.target.closest ? event.target.closest("[data-hre]") : null;
     if (link && isBlock(block) && !(event.metaKey || event.ctrlKey)) event.preventDefault();
@@ -285,9 +312,13 @@
     if (mod && event.key.toLowerCase() === "k") { event.preventDefault(); openPanel(); return; }
     if (typing && inUi(event.target)) {
       if (mod && event.key === "Enter" && origin.id === "instruction") { event.preventDefault(); runAi($("instruction").value); }
-      if (event.key === "Escape") closePanel();
+      if (mod && event.key === "Enter" && origin.id === "thread-text") { event.preventDefault(); submitThread(); }
+      if (event.key === "Escape") { if (origin.id === "thread-text") closeThread(); else closePanel(); }
       return;
     }
+    const presenting = document.documentElement.classList.contains("hr-presenting");
+    if (!editing && !mod && !event.altKey && event.key.toLowerCase() === "c" && !typing && !presenting) { event.preventDefault(); setCommenting(!commenting); return; }
+    if (!editing && event.key === "Escape" && (commenting || !pin$("thread").hidden)) { event.preventDefault(); setCommenting(false); closeThread(); return; }
     if (!editing && mod && event.key.toLowerCase() === "z") { event.preventDefault(); historyStep(event.shiftKey ? "redo" : "undo"); return; }
     if (!editing && !mod && (event.key === "Delete" || event.key === "Backspace") && $("panel").hidden && scope && scope.classList.contains("hre-scope")) {
       event.preventDefault();
@@ -434,6 +465,211 @@
   $("delete").addEventListener("mousedown", (event) => event.preventDefault());
   $("delete").addEventListener("click", removeScope);
 
+  // ----- comments -----
+  const make = (tag, props = {}, ...children) => {
+    const node = Object.assign(document.createElement(tag), props);
+    node.append(...children.filter((child) => child !== null && child !== undefined && child !== false));
+    return node;
+  };
+  const anchorOf = (id) => document.querySelector(`[data-hr-comment~="${CSS.escape(id)}"]`);
+  const pointOf = (anchor, x, y) => {
+    const rect = anchor.getBoundingClientRect();
+    if (!rect.width && !rect.height) return null;
+    return { left: rect.left + window.scrollX + x * rect.width, top: rect.top + window.scrollY + y * rect.height };
+  };
+  const when = (at) => {
+    const date = new Date(at);
+    return Number.isNaN(date.getTime()) ? at : date.toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  };
+  const visible = (thread) => thread.status === "open" || showResolved;
+
+  function setCommenting(on) {
+    if (on && (proposal || running)) { toast("Finish or discard the AI proposal first."); return; }
+    if (on && editing) commit();
+    commenting = on;
+    document.documentElement.classList.toggle("hre-commenting", on);
+    $("comment").classList.toggle("active", on);
+    if (on) { clearSelection(); closeThread(); }
+    if (hovered) { hovered.classList.remove("hre-hover"); hovered = null; }
+    setStatus("", on ? "Click where the comment belongs · Esc cancels" : "Click any text to edit");
+  }
+  function placeComment(event) {
+    const anchor = event.target.closest ? event.target.closest("[data-hre]") : null;
+    if (!anchor) { toast("Click on the report's content to pin a comment there."); return; }
+    const rect = anchor.getBoundingClientRect();
+    const x = rect.width ? (event.clientX - rect.left) / rect.width : 0;
+    const y = rect.height ? (event.clientY - rect.top) / rect.height : 0;
+    setCommenting(false);
+    draft = { anchor, x: Math.min(1, Math.max(0, x)), y: Math.min(1, Math.max(0, y)) };
+    openThreadId = null;
+    renderPins();
+    renderThread();
+  }
+  function renderPins() {
+    const layer = pin$("pins");
+    layer.textContent = "";
+    comments.forEach((thread, index) => {
+      if (!visible(thread)) return;
+      const anchor = anchorOf(thread.id);
+      const point = anchor && pointOf(anchor, thread.x, thread.y);
+      if (!point) return;
+      const pin = make("button", { className: `pin${thread.status === "resolved" ? " resolved" : ""}${thread.id === openThreadId ? " active" : ""}`, textContent: String(index + 1), title: `Comment ${index + 1}: ${thread.entries[0]?.text.slice(0, 80) || ""}` });
+      pin.dataset.thread = thread.id;
+      pin.style.left = `${point.left}px`;
+      pin.style.top = `${point.top}px`;
+      pin.addEventListener("click", () => (openThreadId === thread.id ? closeThread() : openThread(thread.id)));
+      layer.append(pin);
+    });
+    const point = draft && draft.anchor.isConnected && pointOf(draft.anchor, draft.x, draft.y);
+    if (point) {
+      const pin = make("span", { className: "pin draft", textContent: "+" });
+      pin.style.left = `${point.left}px`;
+      pin.style.top = `${point.top}px`;
+      layer.append(pin);
+    }
+    placeThread();
+  }
+  let layoutFrame = 0;
+  const scheduleLayout = () => { cancelAnimationFrame(layoutFrame); layoutFrame = requestAnimationFrame(renderPins); };
+  window.addEventListener("resize", scheduleLayout);
+  window.addEventListener("load", scheduleLayout);
+  if ("ResizeObserver" in window) new ResizeObserver(scheduleLayout).observe(document.body);
+
+  function placeThread() {
+    const panel = pin$("thread");
+    if (panel.hidden) return;
+    let point = null;
+    if (draft) point = pointOf(draft.anchor, draft.x, draft.y);
+    else if (openThreadId) {
+      const thread = comments.find((t) => t.id === openThreadId);
+      const anchor = thread && anchorOf(thread.id);
+      point = anchor && pointOf(anchor, thread.x, thread.y);
+    }
+    const width = Math.min(340, window.innerWidth - 16);
+    if (!point) point = { left: window.scrollX + (window.innerWidth - width) / 2 - 24, top: window.scrollY + 96 };
+    let left = point.left + 30;
+    if (left + width > window.scrollX + window.innerWidth - 8) left = point.left - width - 8;
+    panel.style.width = `${width}px`;
+    panel.style.left = `${Math.max(window.scrollX + 8, left)}px`;
+    // Stay in view and clear of the toolbar along the bottom of the window.
+    const bottom = window.scrollY + window.innerHeight - 76;
+    panel.style.top = `${Math.max(window.scrollY + 8, Math.min(point.top - 30, bottom - panel.offsetHeight))}px`;
+  }
+  function renderThread() {
+    const panel = pin$("thread");
+    panel.textContent = "";
+    const thread = openThreadId && comments.find((t) => t.id === openThreadId);
+    if (!draft && !thread) { panel.hidden = true; return; }
+    const number = thread ? comments.indexOf(thread) + 1 : null;
+    const close = make("button", { className: "x", textContent: "×", ariaLabel: "Close" });
+    close.addEventListener("click", closeThread);
+    panel.append(make("header", {}, make("strong", { textContent: thread ? `Comment ${number}` : "New comment" }),
+      thread && thread.status === "resolved" ? make("span", { className: "tag", textContent: "Resolved" }) : null,
+      thread && !thread.pinned ? make("span", { className: "tag", textContent: "Detached" }) : null, close));
+    if (thread && thread.quote) panel.append(make("p", { className: "quote", textContent: `On “${thread.quote}”` }));
+    if (thread) {
+      panel.append(make("ol", { className: "entries" }, ...thread.entries.map((entry) => make("li", {},
+        make("div", { className: "who" }, make("b", { textContent: entry.by || "Someone" }), ` · ${when(entry.at)}`),
+        make("p", { textContent: entry.text })))));
+    }
+    const text = make("textarea", { id: "thread-text", placeholder: thread ? "Reply…" : "What should change here?", rows: thread ? 2 : 3 });
+    panel.append(text);
+    const row = make("div", { className: "row" });
+    if (thread) {
+      const remove = make("button", { className: "danger", textContent: "Delete" });
+      remove.addEventListener("click", () => { if (confirm(`Delete comment ${number} and its replies?`)) commentRequest("/api/comments/delete", { thread: thread.id }, () => closeThread()); });
+      const resolve = make("button", { textContent: thread.status === "resolved" ? "Reopen" : "Resolve" });
+      resolve.addEventListener("click", () => commentRequest("/api/comments/resolve", { thread: thread.id, resolved: thread.status !== "resolved" }, () => { if (thread.status !== "resolved" && !showResolved) closeThread(); }));
+      row.append(remove, resolve);
+    } else {
+      row.append(make("span", { className: "meta", textContent: state ? `as ${state.author}` : "" }));
+      const cancel = make("button", { textContent: "Cancel" });
+      cancel.addEventListener("click", closeThread);
+      row.append(cancel);
+    }
+    const submit = make("button", { className: "primary", id: "thread-submit" }, thread ? "Reply" : "Comment", make("kbd", { textContent: "⌘↵" }));
+    submit.addEventListener("click", submitThread);
+    row.append(submit);
+    panel.append(row);
+    panel.hidden = false;
+    placeThread();
+    text.focus({ preventScroll: true });
+  }
+  function openThread(id) {
+    draft = null;
+    openThreadId = id;
+    renderPins();
+    renderThread();
+  }
+  function closeThread() {
+    draft = null;
+    openThreadId = null;
+    pin$("thread").hidden = true;
+    renderPins();
+  }
+  function submitThread() {
+    const text = pin$("thread-text").value.trim();
+    if (!text) { pin$("thread-text").focus(); return; }
+    if (draft) {
+      const { anchor, x, y } = draft;
+      commentRequest("/api/comments/add", { id: anchor.dataset.hre, x, y, text }, (result) => {
+        anchor.setAttribute("data-hr-comment", [anchor.getAttribute("data-hr-comment"), result.thread].filter(Boolean).join(" "));
+        draft = null;
+        openThread(result.thread);
+      });
+    } else if (openThreadId) {
+      commentRequest("/api/comments/reply", { thread: openThreadId, text }, () => renderThread());
+    }
+  }
+  function commentRequest(path, body, after) {
+    saveQueue = saveQueue.then(async () => {
+      setStatus("saving", "Saving…");
+      try {
+        const result = await request(path, { ...body, version });
+        version = result.version;
+        comments = result.comments;
+        updateHistory(result);
+        setStatus("saved", "Saved");
+        if (after) after(result);
+        renderComments();
+      } catch (error) {
+        setStatus("error", "Not saved");
+        toast(error.message);
+        if (error.status === 409 || error.status === 404) setTimeout(reload, 1500);
+      }
+    });
+    return saveQueue;
+  }
+  function renderComments() {
+    const open = comments.filter((t) => t.status === "open").length;
+    $("comment-count").textContent = String(open);
+    $("comment-count").hidden = !open;
+    const list = $("comment-list");
+    list.textContent = "";
+    comments.forEach((thread, index) => {
+      if (!visible(thread)) return;
+      const first = thread.entries[0] || { by: "", text: "" };
+      const details = [thread.entries.length > 1 ? `${thread.entries.length - 1} repl${thread.entries.length === 2 ? "y" : "ies"}` : "", thread.status === "resolved" ? "resolved" : "", thread.pinned ? "" : "detached"].filter(Boolean).join(" · ");
+      const item = make("button", { className: `item${thread.status === "resolved" ? " resolved" : ""}` },
+        make("span", { className: "num", textContent: String(index + 1) }),
+        make("span", { className: "body" }, make("b", { textContent: first.by || "Someone" }), ` ${first.text}`,
+          make("small", { textContent: [thread.quote ? `on “${thread.quote.slice(0, 60)}”` : "", details].filter(Boolean).join(" · ") })));
+      item.addEventListener("click", () => {
+        const anchor = anchorOf(thread.id);
+        if (anchor) anchor.scrollIntoView({ block: "center", behavior: "instant" });
+        openThread(thread.id);
+      });
+      list.append(make("li", {}, item));
+    });
+    show("comments-empty", !comments.length);
+    renderPins();
+    if (openThreadId && !comments.some((t) => t.id === openThreadId)) closeThread();
+  }
+  $("comment").addEventListener("click", () => setCommenting(!commenting));
+  $("comments-btn").addEventListener("click", () => show("comments", $("comments").hidden));
+  $("comments-close").addEventListener("click", () => show("comments", false));
+  $("show-resolved").addEventListener("change", (event) => { showResolved = event.target.checked; renderComments(); });
+
   // ----- undo, redo, settings, live reload -----
   async function historyStep(kind) {
     if ($(kind).disabled) return;
@@ -485,8 +721,10 @@
 
   request("/api/state", null, { method: "GET" }).then((data) => {
     state = data;
+    comments = data.comments || [];
     renderModelLabel();
     updateHistory(data);
+    renderComments();
     if (data.version !== version) reload();
   }).catch((error) => toast(error.message));
 

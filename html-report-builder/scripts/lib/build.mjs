@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { attr, classes, escapeHtml, normalizeText, parse, splice, textContent } from "./scan.mjs";
+import { stripComments } from "./comments.mjs";
 import { RUNTIME_VERSION, loadRuntime } from "./runtime.mjs";
 
 const MIME = {
@@ -25,7 +26,7 @@ function attrNode(element, name) {
 }
 
 /** Edit that replaces an attribute's value (or adds it after the tag name when absent). */
-function setAttributeEdit(source, element, name, value) {
+export function setAttributeEdit(source, element, name, value) {
   const existing = attrNode(element, name);
   if (existing && existing.valueStart >= 0) {
     if (existing.quote) return { start: existing.valueStart, end: existing.valueEnd, text: value.replace(/&/g, "&amp;").replace(new RegExp(existing.quote, "g"), existing.quote === '"' ? "&quot;" : "&#39;") };
@@ -36,7 +37,7 @@ function setAttributeEdit(source, element, name, value) {
   return { start: nameEnd, end: nameEnd, text: ` ${name}=${quoteAttribute(value)}` };
 }
 
-function removeAttributeEdit(source, element, name) {
+export function removeAttributeEdit(source, element, name) {
   const existing = attrNode(element, name);
   if (!existing) return null;
   let start = existing.start;
@@ -228,7 +229,7 @@ export function exportFile(file, outDir) {
   mkdirSync(outDir, { recursive: true });
   const outFile = path.join(outDir, `${slug}.html`);
   if (path.resolve(outFile) === path.resolve(file)) throw new Error("export --out must differ from the report's own folder");
-  writeFileSync(outFile, splice(source, edits));
+  writeFileSync(outFile, stripComments(splice(source, edits)));
   return { file: outFile, assets };
 }
 

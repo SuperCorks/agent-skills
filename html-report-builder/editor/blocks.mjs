@@ -16,6 +16,7 @@ const OPAQUE_TAGS = new Set(["pre", "svg", "math", "script", "style", "textarea"
 function isOpaque(element) {
   if (OPAQUE_TAGS.has(element.name)) return true;
   if (attr(element, "data-hr-runtime") !== null || attr(element, "data-hr-generated") !== null || attr(element, "data-hr-ui") !== null) return true;
+  if (attr(element, "data-hr-comments") !== null) return true;
   return classes(element).includes("device");
 }
 

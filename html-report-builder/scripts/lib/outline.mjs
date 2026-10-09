@@ -1,13 +1,15 @@
 import { readFileSync } from "node:fs";
 import { ancestors, attr, classes, lineOf, lineStarts, normalizeText, parse, textContent } from "./scan.mjs";
 import { tocSections } from "./build.mjs";
+import { readComments } from "./comments.mjs";
 
 const kb = (bytes) => `${(bytes / 1024).toFixed(1)} KB`;
 const clip = (text, length) => (text.length > length ? `${text.slice(0, length - 1)}…` : text);
 
 /**
  * A compact map of a report for targeted revisions: section line ranges and sizes, plus
- * every question with its answer and every finding. Agents read this instead of the file.
+ * every question with its answer, every finding, and every review comment. Agents read this
+ * instead of the file.
  */
 export function outlineData(source) {
   const doc = parse(source);
@@ -39,6 +41,14 @@ export function outlineData(source) {
       words: findText(slide).split(" ").filter(Boolean).length, notesWords: notes ? notes.split(" ").filter(Boolean).length : 0
     };
   });
+  const where = (element) => {
+    const host = element && [element, ...ancestors(element)].find((e) => attr(e, "id") && (e.name === "section" || classes(e).includes("slide") || classes(e).includes("question") || classes(e).includes("finding")));
+    return host ? attr(host, "id") : null;
+  };
+  const comments = readComments(source, doc).threads.map((t) => ({
+    id: t.id, status: t.status, pinned: Boolean(t.anchor), section: where(t.anchor), line: t.anchor ? line(t.anchor.start) : line(t.element.start),
+    quote: t.quote, entries: t.entries
+  }));
   return {
     title: title ? findText(title) : "",
     template: html ? attr(html, "data-template") : null,
@@ -53,7 +63,8 @@ export function outlineData(source) {
     })),
     slides,
     questions: cards("question"),
-    findings: cards("finding")
+    findings: cards("finding"),
+    comments
   };
 }
 
@@ -79,6 +90,16 @@ export function formatOutline(data) {
   if (data.findings.length) {
     out.push("", "Findings:");
     data.findings.forEach((f, i) => out.push(`  F${i + 1} #${f.id || "?"} L${f.line}${f.tone ? ` [${f.tone}]` : ""}  ${clip(f.title, 90)}`));
+  }
+  const open = data.comments.filter((c) => c.status === "open");
+  if (data.comments.length) {
+    const resolved = data.comments.length - open.length;
+    out.push("", `Comments (${open.length} open${resolved ? `, ${resolved} resolved` : ""}); reply or resolve in the store after <main>:`);
+    for (const c of open) {
+      const place = c.pinned ? `${c.section ? `#${c.section} ` : ""}L${c.line}` : "detached (its part was deleted)";
+      out.push(`  ${c.id} ${place}  on "${clip(c.quote, 60)}"`);
+      for (const e of c.entries) out.push(`      ${e.by || "?"}: ${clip(e.text.replace(/\s+/g, " "), 160)}`);
+    }
   }
   return out.join("\n");
 }

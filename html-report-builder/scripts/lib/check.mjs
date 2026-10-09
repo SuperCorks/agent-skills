@@ -3,6 +3,7 @@ import path from "node:path";
 import { ancestors, attr, classes, normalizeText, parse, textContent } from "./scan.mjs";
 import { RUNTIME_VERSION, TEMPLATES, loadRuntime } from "./runtime.mjs";
 import { isLocalReference } from "./build.mjs";
+import { readComments } from "./comments.mjs";
 
 const IMAGE_WARN_BYTES = 300 * 1024;
 const IMAGES_TOTAL_WARN_BYTES = 2 * 1024 * 1024;
@@ -163,10 +164,13 @@ export function checkSource(source, { file, mode = "local" } = {}) {
       break;
     }
   }
+  // Review comments are hidden from readers, so their text is not report text.
+  const comments = readComments(source, doc);
+  const inComments = (token) => comments.store && token.start >= comments.store.start && token.end <= comments.store.end;
   const visibleText = [];
   const codeRanges = elements.filter((e) => e.name === "pre" || e.name === "code").map((e) => [e.innerStart, e.innerEnd]);
   for (const token of doc.tokens) {
-    if (token.type !== "text" || token.raw) continue;
+    if (token.type !== "text" || token.raw || inComments(token)) continue;
     const text = source.slice(token.start, token.end);
     if (/\{\{[^}]+\}\}|\[PLACEHOLDER\]/.test(text)) errors.push(`unfinished placeholder: ${text.trim().slice(0, 60)}`);
     if (/\bTODO\b/.test(text) && !codeRanges.some(([s, e]) => token.start >= s && token.end <= e)) visibleText.push(text.trim().slice(0, 50));
@@ -188,11 +192,15 @@ export function checkSource(source, { file, mode = "local" } = {}) {
     if (ids.has("sources")) warnings.push("client report has a #sources section: keep it only if the client needs those references");
     const internalNames = new Set();
     for (const token of doc.tokens) {
-      if (token.type !== "text" || token.raw) continue;
+      if (token.type !== "text" || token.raw || inComments(token)) continue;
       for (const match of source.slice(token.start, token.end).matchAll(INTERNAL_NAMES)) internalNames.add(match[0]);
     }
     for (const anchor of named("a")) if (/slack\.com\//i.test(attr(anchor, "href") || "")) internalNames.add("Slack links");
     if (internalNames.size) warnings.push(`client report mentions internal tools (${[...internalNames].join(", ")}), including in speaker notes: remove them unless the client should see them`);
+    if (comments.threads.length && mode !== "export") {
+      const open = comments.threads.filter((t) => t.status === "open").length;
+      warnings.push(`client report stores ${comments.threads.length} review comment(s) (${open} open): \`report.mjs export\` removes them; delete them before sharing this file directly`);
+    }
   }
   return { errors: [...new Set(errors)], warnings: [...new Set(warnings)], template, audience };
 }

@@ -11,7 +11,7 @@ const USAGE = `Usage:
   report.mjs build <file.html>             refresh runtime CSS/JS and TOC, inline local images, then check
   report.mjs check <file.html> [--json]    validate without changing the file
   report.mjs export <file.html> --out <dir>  publish copy with images as files in <dir>/<slug>.assets/
-  report.mjs outline <file.html> [--json]  section line ranges, questions with answers, findings`;
+  report.mjs outline <file.html> [--json]  section line ranges, questions with answers, findings, review comments`;
 
 // import.meta.url is always a real path, while argv[1] keeps any symlink used to reach the
 // script (a symlinked skills folder). Comparing them unresolved would exit silently.

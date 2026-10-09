@@ -1,9 +1,9 @@
 #!/usr/bin/env node
-// Local point-and-click editor for one HTML report, with AI rewrites of a paragraph or section
-// and deletion of sections, cards, rows, and paragraphs.
+// Local point-and-click editor for one HTML report, with AI rewrites of a paragraph or section,
+// deletion of sections, cards, rows, and paragraphs, and review comments pinned to any part.
 // Usage: report-editor.mjs <file.html> [--port 0] [--provider codex|openrouter] [--model gpt-6-luna]
-//                          [--effort low] [--no-open]
-import { spawn } from "node:child_process";
+//                          [--effort low] [--author "Name"] [--no-open]
+import { execFileSync, spawn } from "node:child_process";
 import { createHash, randomBytes } from "node:crypto";
 import { copyFileSync, existsSync, mkdirSync, readFileSync, realpathSync, renameSync, statSync, writeFileSync } from "node:fs";
 import http from "node:http";
@@ -12,6 +12,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { refreshToc } from "../scripts/lib/build.mjs";
 import { checkSource } from "../scripts/lib/check.mjs";
+import { addThread, deleteThread, keepPins, publicThreads, replyToThread, setThreadStatus } from "../scripts/lib/comments.mjs";
 import { loadRuntime } from "../scripts/lib/runtime.mjs";
 import { attr, normalizeText, parse, splice, textContent } from "../scripts/lib/scan.mjs";
 import { describe, instrument, locate, outlineHeadings, removal, replaceInner, replaceOuter, surroundingText } from "./blocks.mjs";
@@ -30,6 +31,16 @@ const ASSET_TYPES = {
 const MAX_BODY = 4 * 1024 * 1024;
 
 const hash = (text) => createHash("sha256").update(text).digest("hex").slice(0, 16);
+const minuteStamp = () => `${new Date().toISOString().slice(0, 16)}Z`;
+
+/** Who comments are from: --author, then git's user.name, then the login name. */
+export function defaultAuthor() {
+  try {
+    const name = execFileSync("git", ["config", "user.name"], { encoding: "utf8", timeout: 2000, stdio: ["ignore", "pipe", "ignore"] }).trim();
+    if (name) return name;
+  } catch { /* no git or no name */ }
+  try { return os.userInfo().username; } catch { return "Reviewer"; }
+}
 
 export function isEntrypoint(moduleUrl) {
   if (!process.argv[1]) return false;
@@ -78,7 +89,8 @@ class HttpError extends Error {
 
 /** Start the editor server. Returns {url, port, close, session}. */
 export async function startEditor({
-  file, port = 0, settings, configFile = CONFIG_FILE, backupDir = BACKUP_DIR, rewrite = defaultRewrite, pollMs = 1000, log = console.log
+  file, port = 0, settings, configFile = CONFIG_FILE, backupDir = BACKUP_DIR, rewrite = defaultRewrite, pollMs = 1000, log = console.log,
+  author = defaultAuthor()
 }) {
   const target = realpathSync(path.resolve(file));
   if (!statSync(target).isFile()) throw new Error(`not a file: ${file}`);
@@ -92,7 +104,8 @@ export async function startEditor({
     redo: [],
     proposals: new Map(),
     clients: new Set(),
-    backedUp: false
+    backedUp: false,
+    author: String(author || "Reviewer").trim().slice(0, 80) || "Reviewer"
   };
   session.version = hash(session.source);
   let stat = statSync(target);
@@ -156,7 +169,8 @@ export async function startEditor({
         file: target, name: path.basename(target), version: session.version, settings: session.settings,
         providers: PROVIDERS, efforts: EFFORTS, models: MODEL_SUGGESTIONS,
         audience: (html && attr(html, "data-audience")) || "internal",
-        canUndo: session.undo.length > 0, canRedo: session.redo.length > 0
+        canUndo: session.undo.length > 0, canRedo: session.redo.length > 0,
+        author: session.author, comments: publicThreads(session.source)
       };
     },
     edit({ id, version, text, html }) {
@@ -205,7 +219,7 @@ export async function startEditor({
       const result = await rewrite(session.settings, { prompt, signal });
       let restored;
       try {
-        restored = restore(validateRewrite(result.html, fragment), kept);
+        restored = keepPins(outer, restore(validateRewrite(result.html, fragment), kept));
       } catch (error) {
         throw new HttpError(422, `The AI proposal was rejected: ${error.message}. Try again or rephrase.`, { provider: result.provider, model: result.model });
       }
@@ -273,8 +287,43 @@ export async function startEditor({
       const found = locate(session.source, String(id));
       if (!found) throw new HttpError(404, "Not found.");
       return describe(found, found.doc);
+    },
+    comment({ id, version, x, y, text }) {
+      requireVersion(version);
+      const found = locate(session.source, String(id));
+      if (!found) throw new HttpError(404, "That part of the report no longer exists. Reloading.");
+      const added = commentWrite(() => addThread(session.source, found.doc, found.element, { x, y, text, by: session.author, at: minuteStamp(), kind: found.kind }));
+      return { ...commentResult(), thread: added.id };
+    },
+    reply({ thread, version, text }) {
+      requireVersion(version);
+      commentWrite(() => ({ source: replyToThread(session.source, String(thread), { text, by: session.author, at: minuteStamp() }) }));
+      return commentResult();
+    },
+    resolve({ thread, version, resolved }) {
+      requireVersion(version);
+      commentWrite(() => ({ source: setThreadStatus(session.source, String(thread), resolved === false ? "open" : "resolved") }));
+      return commentResult();
+    },
+    uncomment({ thread, version }) {
+      requireVersion(version);
+      commentWrite(() => ({ source: deleteThread(session.source, String(thread)) }));
+      return commentResult();
     }
   };
+  function commentWrite(change) {
+    let result;
+    try {
+      result = change();
+    } catch (error) {
+      throw new HttpError(/no longer exists/.test(error.message) ? 404 : 400, error.message);
+    }
+    if (result.source !== session.source) write(result.source);
+    return result;
+  }
+  function commentResult() {
+    return { version: session.version, comments: publicThreads(session.source), canUndo: session.undo.length > 0, canRedo: session.redo.length > 0 };
+  }
 
   const servePage = () => {
     const state = JSON.stringify({ version: session.version }).replace(/</g, "\\u003c");
@@ -334,7 +383,10 @@ export async function startEditor({
         req.on("close", () => { clearInterval(keepAlive); session.clients.delete(res); });
         return undefined;
       }
-      const routes = { "/api/edit": "edit", "/api/ai": "ai", "/api/apply": "apply", "/api/delete": "remove", "/api/undo": "undo", "/api/redo": "redo", "/api/settings": "saveSettings", "/api/describe": "describe" };
+      const routes = {
+        "/api/edit": "edit", "/api/ai": "ai", "/api/apply": "apply", "/api/delete": "remove", "/api/undo": "undo", "/api/redo": "redo", "/api/settings": "saveSettings", "/api/describe": "describe",
+        "/api/comments/add": "comment", "/api/comments/reply": "reply", "/api/comments/resolve": "resolve", "/api/comments/delete": "uncomment"
+      };
       if ((req.method === "POST" || req.method === "PUT") && routes[url.pathname]) {
         const body = await readBody(req);
         const controller = new AbortController();
@@ -385,6 +437,7 @@ function parseArgs(argv) {
     else if (arg === "--provider") options.overrides.provider = value();
     else if (arg === "--model") options.overrides.model = value();
     else if (arg === "--effort") options.overrides.effort = value();
+    else if (arg === "--author") options.author = value();
     else if (arg === "--no-open") options.open = false;
     else if (arg === "--help" || arg === "-h") options.help = true;
     else if (!options.file) options.file = arg;
@@ -396,12 +449,12 @@ function parseArgs(argv) {
 async function main() {
   const options = parseArgs(process.argv.slice(2));
   if (options.help || !options.file) {
-    console.log("Usage: report-editor.mjs <file.html> [--port 0] [--provider codex|openrouter] [--model gpt-6-luna] [--effort low] [--no-open]");
+    console.log("Usage: report-editor.mjs <file.html> [--port 0] [--provider codex|openrouter] [--model gpt-6-luna] [--effort low] [--author \"Name\"] [--no-open]");
     process.exitCode = options.help ? 0 : 2;
     return;
   }
   const settings = { ...loadSettings(), ...options.overrides };
-  const editor = await startEditor({ file: options.file, port: options.port || 0, settings });
+  const editor = await startEditor({ file: options.file, port: options.port || 0, settings, ...(options.author ? { author: options.author } : {}) });
   const { provider, model, effort } = editor.session.settings;
   console.log(`Editing ${editor.session.file}\nOpen: ${editor.url}\nAI: ${provider} / ${model} (effort ${effort})\nPress Ctrl+C to stop.`);
   if (options.open) {

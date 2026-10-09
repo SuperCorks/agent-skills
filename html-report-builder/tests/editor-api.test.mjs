@@ -287,6 +287,60 @@ test("deleting removes whole sections, cards, rows, and paragraphs, and unlinks 
   assert.equal(readFileSync(file(), "utf8"), beforeSection);
 });
 
+test("comments pin to any part, survive edits, rewrites, and deletes, and never shift block ids", async () => {
+  writeFileSync(file(), REPORT);
+  const started = Date.now();
+  while (editor.session.source !== REPORT) {
+    if (Date.now() - started > 2000) throw new Error("the editor did not pick up the new file");
+    await new Promise((resolve) => setTimeout(resolve, 20));
+  }
+  const page = (await call("/")).text;
+  const ids = (html) => [...html.matchAll(/data-hre="([bc]\d+)"/g)].map((m) => m[1]).join(" ");
+  const post = async (route, body) => call(`/api/comments/${route}`, { method: "POST", body: { version: (await state()).version, ...body } });
+
+  const added = await post("add", { id: blockId(page, "Ship it."), x: 0.3, y: 0.6, text: "Ship what, exactly?" });
+  assert.equal(added.status, 200, added.text);
+  assert.equal(added.json.thread, "cm1");
+  assert.deepEqual(added.json.comments.map((t) => [t.id, t.status, t.quote, t.pinned, t.x, t.y]), [["cm1", "open", "Ship it.", true, 0.3, 0.6]]);
+  assert.match(readFileSync(file(), "utf8"), /<p data-hr-comment="cm1">Ship it\.<\/p>/);
+  assert.equal(ids((await call("/")).text), ids(page), "the store and pins never shift block or scope ids");
+  assert.equal((await state()).comments.length, 1);
+  assert.equal((await state()).author.length > 0, true);
+
+  const finding = await post("add", { id: scopeId(page, 'class="finding risk" id="f1"'), x: 0.9, y: 0.1, text: "Add the query." });
+  assert.equal(finding.json.thread, "cm2");
+  assert.equal(finding.json.comments[1].quote, "Rate limits");
+  assert.equal((await post("reply", { thread: "cm1", text: "The sync worker." })).json.comments[0].entries.length, 2);
+  assert.equal((await post("resolve", { thread: "cm1" })).json.comments[0].status, "resolved");
+  assert.equal((await post("resolve", { thread: "cm1", resolved: false })).json.comments[0].status, "open");
+  assert.equal((await post("reply", { thread: "cm9", text: "x" })).status, 404);
+  assert.equal((await post("add", { id: blockId(page, "Ship it."), text: "  " })).status, 400);
+  assert.equal((await call("/api/comments/add", { method: "POST", body: { id: blockId(page, "Ship it."), version: "stale", text: "x" } })).status, 409);
+
+  const edited = await call("/api/edit", { method: "POST", body: { id: blockId(page, "Ship it."), version: (await state()).version, text: "Ship it.", html: "Ship the worker." } });
+  assert.equal(edited.status, 200, edited.text);
+  assert.match(readFileSync(file(), "utf8"), /<p data-hr-comment="cm1">Ship the worker\.<\/p>/, "text edits keep the pin");
+
+  nextRewrite = (fragment) => fragment.replace(/ data-hr-comment="cm2"/, "").replace("Evidence one.", "Evidence one, confirmed.");
+  const proposal = await call("/api/ai", { method: "POST", body: { id: scopeId(page, 'class="finding risk" id="f1"'), version: (await state()).version, instruction: "Confirm it." } });
+  nextRewrite = null;
+  assert.equal(proposal.status, 200, proposal.text);
+  await call("/api/apply", { method: "POST", body: { proposalId: proposal.json.proposalId } });
+  assert.match(readFileSync(file(), "utf8"), /<article data-hr-comment="cm2" class="finding risk" id="f1">/, "a rewrite that drops a pin gets it back");
+
+  const beforeDelete = readFileSync(file(), "utf8");
+  const deleted = await call("/api/delete", { method: "POST", body: { id: scopeId((await call("/")).text, 'id="next"'), version: (await state()).version } });
+  assert.equal(deleted.status, 200, deleted.text);
+  assert.deepEqual((await state()).comments.map((t) => [t.id, t.pinned]), [["cm1", false], ["cm2", true]], "deleting the commented part detaches its thread");
+  assert.equal((await call("/api/undo", { method: "POST", body: {} })).status, 200);
+  assert.equal(readFileSync(file(), "utf8"), beforeDelete);
+  assert.equal((await state()).comments[0].pinned, true, "undo re-attaches it");
+
+  assert.equal((await post("delete", { thread: "cm1" })).status, 200);
+  assert.equal((await post("delete", { thread: "cm2" })).status, 200);
+  assert.doesNotMatch(readFileSync(file(), "utf8"), /data-hr-comment/);
+});
+
 function fakeCodex() {
   const bin = path.join(dir, "codex");
   writeFileSync(bin, `#!/bin/sh\nexec "${process.execPath}" "${path.join(HERE, "fixtures", "fake-codex.mjs")}" "$@"\n`);

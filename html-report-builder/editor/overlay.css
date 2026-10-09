@@ -8,4 +8,5 @@
 .answer.hre-editing::after { content: none !important; }
 .hre-editing a { cursor: text; }
 #hre-host { all: initial; }
+.hre-commenting, .hre-commenting * { cursor: crosshair !important; }
 @media print { [data-hr-ui] { display: none !important; } }
