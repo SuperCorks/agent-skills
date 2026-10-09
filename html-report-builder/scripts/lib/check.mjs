@@ -1,9 +1,13 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
-import { ancestors, attr, classes, normalizeText, parse, textContent } from "./scan.mjs";
+import { ancestors, attr, classes, normalizeText, parse, textContent, visibleTextContent } from "./scan.mjs";
 import { RUNTIME_VERSION, TEMPLATES, loadRuntime } from "./runtime.mjs";
 import { isLocalReference } from "./build.mjs";
 import { readComments } from "./comments.mjs";
+import { createHash } from "node:crypto";
+import { chartsIn } from "./charts.mjs";
+import { diagramsIn } from "./diagrams.mjs";
+import { LIBRARIES } from "./vendor.mjs";
 
 const IMAGE_WARN_BYTES = 300 * 1024;
 const IMAGES_TOTAL_WARN_BYTES = 2 * 1024 * 1024;
@@ -86,7 +90,9 @@ export function checkSource(source, { file, mode = "local" } = {}) {
   if (external.length) errors.push(`external or non-embedded assets: ${summarize(external, 6)}${mode === "local" ? " (local images are inlined by `report.mjs build`)" : ""}`);
   if (imageBytes > IMAGES_TOTAL_WARN_BYTES) warnings.push(`inlined media totals ${(imageBytes / 1048576).toFixed(1)} MB (over 2 MB)`);
 
+  const generated = (element) => ancestors(element).some((a) => attr(a, "data-hr-generated") !== null);
   for (const style of named("style")) {
+    if (generated(style)) continue;
     const css = source.slice(style.innerStart, style.innerEnd);
     if (/@import/i.test(css)) errors.push("CSS contains @import");
     const urls = [...css.matchAll(/url\s*\(\s*([^)]+?)\s*\)/gi)].map((m) => m[1].replace(/^["']|["']$/g, "")).filter((u) => !u.startsWith("data:") && !u.startsWith("#"));
@@ -98,6 +104,13 @@ export function checkSource(source, { file, mode = "local" } = {}) {
   }
   for (const script of named("script")) {
     const js = source.slice(script.innerStart, script.innerEnd);
+    // The inlined Plotly is trusted only when it is byte-for-byte the pinned release.
+    if (attr(script, "data-hr-runtime") === "plotly") {
+      const digest = createHash("sha256").update(js.replace(/<\\\/script/gi, "</script")).digest("hex");
+      if (digest !== LIBRARIES.plotly.sha256) errors.push("the inlined Plotly is not the pinned release: run `report.mjs build`");
+      continue;
+    }
+    if (attr(script, "data-hr-diagram") !== null && (attr(script, "type") || "").toLowerCase() === "text/x-mermaid") continue;
     if (NETWORK_JS.test(js)) errors.push("JavaScript contains a network-capable API");
     if (attr(script, "data-hr-runtime") === null && js.trim() && (attr(script, "type") || "").toLowerCase() !== "application/json") warnings.push("authored <script> found; reports should rely on the runtime script");
   }
@@ -202,6 +215,19 @@ export function checkSource(source, { file, mode = "local" } = {}) {
       warnings.push(`client report stores ${comments.threads.length} review comment(s) (${open} open): \`report.mjs export\` removes them; delete them before sharing this file directly`);
     }
   }
+  const charts = chartsIn(source, doc);
+  charts.forEach((chart, index) => {
+    const label = chart.caption ? `chart "${chart.caption.slice(0, 50)}"` : `chart ${index + 1}`;
+    if (chart.error) errors.push(`${label} has invalid JSON: ${chart.error}`);
+    if (!chart.figure) errors.push(`${label} must sit directly inside a <figure class="chart">`);
+    else if (!chart.caption) warnings.push(`${label} has no <figcaption>; the caption is the chart's title`);
+    if (chart.spec && chart.figure && (!chart.snapshot || attr(chart.snapshot, "data-hr-hash") !== chart.hash)) warnings.push(`${label} has a missing or stale snapshot for print and PDF: run \`report.mjs build\` with Chrome available`);
+  });
+  if (charts.length && !named("script").some((s) => attr(s, "data-hr-runtime") === "plotly")) warnings.push("charts are not interactive: run `report.mjs build` once with internet to download Plotly");
+  diagramsIn(source, doc).forEach((diagram, index) => {
+    if (!diagram.figure) errors.push(`diagram ${index + 1} must sit directly inside a <figure class="diagram">`);
+    else if (!diagram.rendered || attr(diagram.rendered, "data-hr-hash") !== diagram.hash) warnings.push(`diagram ${index + 1} has a missing or stale drawing: run \`report.mjs build\` with Chrome available`);
+  });
   return { errors: [...new Set(errors)], warnings: [...new Set(warnings)], template, audience };
 }
 
@@ -223,7 +249,7 @@ function checkDeck(doc, main, warnings) {
     else if (!kinds.some((k) => ["cover", "divider"].includes(k)) && normalizeText(textContent(doc, title)).split(" ").length < 4) {
       warnings.push(`${label} title "${normalizeText(textContent(doc, title))}" is a label; state the slide's takeaway as a sentence`);
     }
-    const words = normalizeText(textContent(doc, slide)).split(" ").filter(Boolean).length;
+    const words = normalizeText(visibleTextContent(doc, slide)).split(" ").filter(Boolean).length;
     if (words > SLIDE_WORD_LIMIT) warnings.push(`${label} has ${words} words (aim for ${SLIDE_WORD_LIMIT} or fewer); move detail into its notes or split the slide`);
   });
   main.children.forEach((child, index) => {

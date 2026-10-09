@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { ancestors, attr, classes, lineOf, lineStarts, normalizeText, parse, textContent } from "./scan.mjs";
+import { ancestors, attr, classes, lineOf, lineStarts, normalizeText, parse, textContent, visibleTextContent } from "./scan.mjs";
 import { tocSections } from "./build.mjs";
 import { readComments } from "./comments.mjs";
 
@@ -38,7 +38,7 @@ export function outlineData(source) {
     const layout = ["cover", "statement", "divider"].find((k) => classes(slide).includes(k)) || null;
     return {
       n: i + 1, id: attr(slide, "id"), layout, title: heading ? findText(heading) : "", from: line(slide.start), to: line((next && notes ? next : slide).end - 1),
-      words: findText(slide).split(" ").filter(Boolean).length, notesWords: notes ? notes.split(" ").filter(Boolean).length : 0
+      words: normalizeText(visibleTextContent(doc, slide)).split(" ").filter(Boolean).length, notesWords: notes ? notes.split(" ").filter(Boolean).length : 0
     };
   });
   const where = (element) => {

@@ -18,6 +18,11 @@
   --warn: light-dark(#9a5300, #f1b45c);
   --risk: light-dark(#b3261e, #ff8f85);
   --accent-soft: color-mix(in srgb, var(--accent) 10%, var(--surface));
+  /* Chart series, in this order, checked for colourblind separation on both surfaces. */
+  --series-1: light-dark(#2155cf, #5b86f0);
+  --series-2: light-dark(#eb6834, #d95926);
+  --series-3: light-dark(#1baf7a, #199e70);
+  --series-4: light-dark(#eda100, #c98500);
   --radius: 10px;
   --gap: 1rem;
 }
@@ -109,6 +114,11 @@ main > section:first-child { border-top: 0; padding-top: .5rem; }
 .card > :last-child, .question > :last-child, .finding > :last-child, .option > :last-child, .lane > :last-child, .callout > :last-child { margin-bottom: 0; }
 .grid, .options, .compare, .lanes { display: grid; gap: var(--gap); margin: 1rem 0; grid-template-columns: repeat(auto-fit, minmax(min(20rem, 100%), 1fr)); }
 .lanes { grid-template-columns: repeat(auto-fit, minmax(min(15rem, 100%), 1fr)); }
+.grid > .wide { grid-column: 1 / -1; }
+.grid.center { align-items: center; }
+.card > ul:not([class]) { list-style: none; padding-left: 0; }
+.card > ul:not([class]) > li { position: relative; padding-left: 1.5rem; margin: .3rem 0; }
+.card > ul:not([class]) > li::before { content: "\2022"; position: absolute; left: .3rem; color: var(--muted); font-weight: 700; }
 .grid.three, .grid.four { grid-template-columns: repeat(auto-fit, minmax(min(12rem, 100%), 1fr)); }
 @media (min-width: 700px) { .grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); } .grid.four { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (min-width: 900px) { .grid.four { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
@@ -154,6 +164,30 @@ main > section:first-child { border-top: 0; padding-top: .5rem; }
 }
 .internal { border: 1px dashed var(--warn); border-radius: var(--radius); padding: .75rem 1rem; margin: 1rem 0; }
 .internal::before { content: "Internal"; display: block; font-size: .75rem; font-weight: 700; color: var(--warn); }
+/* A typed answer marks its question card as answered. */
+.question:has(> .answer:not(:empty)) { border-left-color: var(--ok); }
+.question:has(> .answer:not(:empty)) > h3::after {
+  content: "Answered"; margin-left: .6rem; padding: 0 .5rem; border-radius: 999px; font-size: .72rem; font-weight: 700; vertical-align: .2em;
+  color: var(--ok); background: color-mix(in srgb, var(--ok) 12%, var(--surface));
+}
+.question > .answer:not(:empty) { border-style: solid; border-color: color-mix(in srgb, var(--ok) 40%, var(--line)); background: color-mix(in srgb, var(--ok) 6%, var(--surface)); }
+
+/* Key points (the numbered short version under a verdict), chips, and terms */
+.keypoints { list-style: none; padding: 0; margin: 1rem 0; counter-reset: kp; }
+.keypoints > li { counter-increment: kp; position: relative; max-width: none; margin: 0; padding: .75rem 0 .75rem 2.9rem; border-top: 1px solid var(--line); }
+.keypoints > li:last-child { border-bottom: 1px solid var(--line); }
+.keypoints > li::before {
+  content: counter(kp); position: absolute; left: 0; top: .65rem; width: 1.9rem; height: 1.9rem; display: grid; place-items: center;
+  border-radius: 50%; font-weight: 700; color: var(--tone, var(--accent)); background: color-mix(in srgb, var(--tone, var(--accent)) 12%, var(--surface));
+}
+.chips { list-style: none; padding: 0; margin: .5rem 0 .75rem; display: flex; flex-wrap: wrap; gap: .35rem; }
+.chips > li { margin: 0; max-width: none; padding: .05rem .55rem; font-size: .8125rem; border: 1px solid var(--line); border-radius: 6px; background: var(--sunken); }
+.chips > li:is(.ok, .warn, .risk, .info) { border-color: color-mix(in srgb, var(--tone) 45%, var(--line)); background: color-mix(in srgb, var(--tone) 9%, var(--surface)); }
+.terms { margin: 1rem 0; }
+.terms > div { display: grid; grid-template-columns: minmax(8rem, 13rem) 1fr; gap: .2rem 1.25rem; padding: .6rem 0; border-top: 1px solid var(--line); }
+.terms > div:last-child { border-bottom: 1px solid var(--line); }
+.terms dt { font-weight: 650; }
+.terms dd { margin: 0; }
 
 /* Tables */
 .table-wrap { overflow-x: auto; margin: 1rem 0; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
@@ -163,6 +197,14 @@ th, td { padding: .6rem .8rem; text-align: left; vertical-align: top; border-bot
 th { font-size: .8125rem; font-weight: 650; color: var(--muted); background: var(--sunken); }
 tbody tr:last-child > * { border-bottom: 0; }
 .num { text-align: right; font-variant-numeric: tabular-nums; }
+/* Status marks in cells: the tone picks the mark and the cell text names the state. */
+td:is(.ok, .warn, .risk, .info)::before { display: inline-block; width: 1.3em; font-weight: 700; color: var(--tone); }
+td.ok::before { content: "\2713"; }
+td.warn::before { content: "\25D0"; }
+td.risk::before { content: "\2715"; }
+td.info::before { content: "\25CB"; }
+col.recommended { background: var(--accent-soft); }
+th.recommended { color: var(--accent); }
 
 /* Steps, timeline, lanes, flow */
 .steps { list-style: none; padding: 0; margin: 1rem 0; counter-reset: step; }
@@ -177,6 +219,8 @@ tbody tr:last-child > * { border-bottom: 0; }
 .steps > li:last-child { padding-bottom: 0; }
 .steps > li:last-child::after { display: none; }
 .steps > li > h3, .steps > li > h4 { margin: .2rem 0 .35rem; }
+.gate { margin: .4rem 0 0; font-size: .9375rem; font-weight: 600; }
+.gate::before { content: "Exit: "; color: var(--muted); font-weight: 500; }
 .timeline > li::before { content: ""; width: .85rem; height: .85rem; left: .52rem; top: .4rem; }
 .timeline > li > time { display: block; font-size: .8125rem; color: var(--muted); font-variant-numeric: tabular-nums; }
 .lane { padding: .85rem 1rem; background: var(--sunken); }
@@ -186,6 +230,10 @@ tbody tr:last-child > * { border-bottom: 0; }
 .flow > li { position: relative; padding: .55rem .85rem; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; max-width: 17rem; }
 .flow > li:not(:last-child)::after { content: "\2192"; position: absolute; right: -1.65rem; top: 50%; transform: translateY(-50%); color: var(--muted); }
 .flow > li > small { display: block; }
+.flow > li:is(.ok, .warn, .risk, .info) { border-color: var(--tone); box-shadow: inset 4px 0 0 var(--tone); }
+.compare .flow { flex-direction: column; flex-wrap: nowrap; gap: 1.35rem; margin: .5rem 0 0; }
+.compare .flow > li { max-width: none; }
+.compare .flow > li:not(:last-child)::after { content: "\2193"; right: auto; left: 1rem; top: auto; bottom: -1.4rem; transform: none; }
 
 /* Compare, options, checklists */
 .compare > .before, .compare > .after { margin: 0; padding: .85rem 1rem; background: var(--surface); border: 1px solid var(--line); border-top: 3px solid var(--risk); border-radius: var(--radius); min-width: 0; }
@@ -195,6 +243,7 @@ tbody tr:last-child > * { border-bottom: 0; }
 .compare > .before::before { content: "Before"; color: var(--risk); }
 .compare > .after::before { content: "After"; color: var(--ok); }
 .compare > :is(.before, .after):has(> :is(h3, h4):first-child)::before { content: none; }
+.compare > :is(.before, .after) > :is(h3, h4):first-child { margin-top: 0; }
 .option { position: relative; padding: 1rem 1.25rem; }
 .option.recommended { border: 2px solid var(--accent); }
 .option.recommended::before {
@@ -213,6 +262,10 @@ tbody tr:last-child > * { border-bottom: 0; }
   border: 1.5px solid var(--muted); font-size: .7rem; line-height: .85rem; text-align: center; font-weight: 800;
 }
 .checklist > li.done::before { content: "\2713"; color: var(--surface); background: var(--ok); border-color: var(--ok); }
+ol.checklist { counter-reset: check; }
+ol.checklist > li { counter-increment: check; padding-left: 1.9rem; }
+ol.checklist > li::before { content: counter(check); top: .2rem; width: 1.3rem; height: 1.3rem; border-radius: 50%; font-size: .72rem; line-height: 1.05rem; color: var(--muted); border-color: color-mix(in srgb, var(--muted) 55%, transparent); font-variant-numeric: tabular-nums; }
+ol.checklist > li.done::before { content: "\2713"; color: var(--surface); }
 
 /* Charts */
 /* Rows share one column grid (subgrid) so every track starts and ends at the same place. */
@@ -231,6 +284,24 @@ tbody tr:last-child > * { border-bottom: 0; }
 .roadmap > .scale { color: var(--muted); font-size: .8rem; }
 .roadmap > .scale::before { background: none; height: auto; }
 .roadmap > .scale > small { grid-column: 2; grid-row: 1; display: flex; justify-content: space-between; }
+/* Plotly charts: the build's SVG snapshot until the live chart draws; print always uses the snapshot. */
+.chart { margin: 1rem 0; padding: .75rem 1rem .6rem; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+.chart > .chart-static { display: block; width: 100%; height: auto; border: 0; border-radius: 0; }
+.chart > .chart-live { position: relative; width: 100%; }
+.chart-live > .chart-plot { position: absolute; top: 0; left: 0; right: 0; transform-origin: 0 0; }
+.chart.is-live > .chart-static { display: none; }
+.chart > figcaption { margin-top: .35rem; }
+/* Mermaid diagrams: light and dark drawings from the build, chosen by the colour scheme. */
+.diagram { margin: 1rem 0; }
+.diagram-svg > div { overflow-x: auto; }
+.diagram-svg svg { display: block; max-width: 100%; height: auto; margin: 0 auto; }
+.diagram-dark { display: none; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .diagram-light { display: none; }
+  :root:not([data-theme="light"]) .diagram-dark { display: block; }
+}
+:root[data-theme="dark"] .diagram-light { display: none; }
+:root[data-theme="dark"] .diagram-dark { display: block; }
 progress { appearance: none; width: min(100%, 20rem); height: .6rem; border: 0; border-radius: 999px; overflow: hidden; vertical-align: middle; background: var(--sunken); }
 progress::-webkit-progress-bar { background: var(--sunken); }
 progress::-webkit-progress-value { background: var(--accent); }
@@ -249,6 +320,20 @@ progress::-moz-progress-bar { background: var(--accent); }
   content: ""; display: block; height: 28px; border-bottom: 1px solid #dde1e8;
   background: radial-gradient(circle at 16px 14px, #cfd3da 4px, transparent 4.5px), radial-gradient(circle at 30px 14px, #cfd3da 4px, transparent 4.5px), radial-gradient(circle at 44px 14px, #cfd3da 4px, transparent 4.5px), #eef0f4;
 }
+/* Pins: numbered markers over a screenshot or mockup at --x and --y (0 to 1); a list after it explains each number. */
+.pins { position: relative; width: fit-content; max-width: 100%; margin: .5rem auto; }
+.pins > img { display: block; border: 1px solid var(--line); border-radius: 8px; }
+.pins > span {
+  position: absolute; left: calc(var(--x, 0) * 100%); top: calc(var(--y, 0) * 100%); z-index: 1; width: 1.6rem; height: 1.6rem; margin: -.8rem 0 0 -.8rem;
+  display: grid; place-items: center; border-radius: 50%; font: 700 .8rem/1 var(--font); color: var(--surface); background: var(--tone, var(--accent));
+  box-shadow: 0 0 0 2px #fff, 0 2px 6px rgb(0 0 0 / .25);
+}
+.pins .device.phone { width: 15.5rem; margin: 0; }
+/* Shots: a strip of screens for one story that scrolls sideways. */
+.shots { display: flex; gap: 1rem; overflow-x: auto; scroll-snap-type: x mandatory; margin: .75rem 0; padding: .25rem .25rem .75rem; }
+.shots > figure { flex: 0 0 auto; width: 12.5rem; margin: 0; scroll-snap-align: start; }
+.shots .device.phone { width: 100%; margin: 0; border-width: 6px; border-radius: 22px; }
+.shots img { display: block; width: 100%; border: 1px solid var(--line); border-radius: 8px; }
 
 details { padding: .55rem 1rem; margin: 1rem 0; }
 summary { cursor: pointer; font-weight: 600; }
@@ -266,6 +351,7 @@ details[open] > summary { margin-bottom: .5rem; }
   .flow { flex-direction: column; gap: 1.6rem; }
   .flow > li { max-width: none; }
   .flow > li:not(:last-child)::after { content: "\2193"; right: auto; left: 1rem; top: auto; bottom: -1.45rem; transform: none; }
+  .terms > div { grid-template-columns: 1fr; }
 }
 @media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
 @media print {
@@ -273,8 +359,12 @@ details[open] > summary { margin-bottom: .5rem; }
   body { display: block; max-width: none; padding: 0; background: #fff; font-size: 11pt; }
   .toc, .hr-copy, [data-hr-ui] { display: none !important; }
   main > section { border-top: 0; padding: 1rem 0; }
-  .card, .question, .finding, .callout, .tile, .option, .device, figure, tr, .steps > li, pre, .bars > div { break-inside: avoid; }
+  .card, .question, .finding, .callout, .tile, .option, .device, figure, tr, .steps > li, pre, .bars > div, .keypoints > li, .terms > div { break-inside: avoid; }
   h2, h3 { break-after: avoid; }
   a { color: inherit; }
   .answer:empty { display: none; }
+  .chart > .chart-live { display: none !important; }
+  .chart > .chart-static { display: block !important; }
+  .diagram-light { display: block !important; }
+  .diagram-dark { display: none !important; }
 }

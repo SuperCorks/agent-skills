@@ -28,7 +28,8 @@ These rules come from repeated reviewer corrections on HTML plans and reports. A
 - Product or UI work needs mockups: `.device` frames built with the product's own design language, or real screenshots.
 - Compare like with like: mobile with mobile, the same component at the same size. Do not compare a full page with a cropped element.
 - Use sharp images: capture at device pixel ratio 2 and crop to the region that matters; compress before referencing. Keep each inlined image under 300 KB.
-- Prefer CSS components (`.flow`, `.steps`, `.bars`) and small inline SVG over images for diagrams and charts.
+- Data charts are Plotly charts (see Charts in `components.md`, and the templates for common shapes). The heading or slide title states the takeaway; the `figcaption` names the measure, unit, and period. Keep one y-axis and at most four series, start bars at zero, and show a legend only for two or more series. Label only the values that matter (the latest, the target, the outlier) and draw thresholds and events as shapes. Colour with `token:` names: grey for context, the accent or a tone for the point. Prefer a stacked bar to a pie. Put the data in the JSON, plus a `details` table when readers need exact numbers.
+- Diagrams with branches or more than about five parts are Mermaid; a straight sequence of up to five steps is a `.flow`, phases are `.steps`, and a few simple comparisons can stay `.bars`.
 - Keep key content visible. Use `details` only for optional depth such as queries or raw logs.
 
 ## Keep the document a single source of truth

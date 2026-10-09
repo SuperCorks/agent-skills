@@ -6,12 +6,15 @@ import { fileURLToPath } from "node:url";
 import { buildFile, exportFile } from "./lib/build.mjs";
 import { checkFile } from "./lib/check.mjs";
 import { formatOutline, outlineFile } from "./lib/outline.mjs";
+import { renderMediaFile } from "./lib/media.mjs";
+import { pdfFile } from "./lib/pdf.mjs";
 
 const USAGE = `Usage:
-  report.mjs build <file.html>             refresh runtime CSS/JS and TOC, inline local images, then check
+  report.mjs build <file.html> [--redraw]  refresh runtime and TOC, draw chart snapshots and diagrams, inline images, check
   report.mjs check <file.html> [--json]    validate without changing the file
   report.mjs export <file.html> --out <dir>  publish copy with images as files in <dir>/<slug>.assets/
-  report.mjs outline <file.html> [--json]  section line ranges, questions with answers, findings, review comments`;
+  report.mjs outline <file.html> [--json]  section line ranges, questions with answers, findings, review comments
+  report.mjs pdf <file.html> [--out file.pdf] [--skip s3,s7] [--size Letter|A4]  print to PDF (decks: one slide per page)`;
 
 // import.meta.url is always a real path, while argv[1] keeps any symlink used to reach the
 // script (a symlinked skills folder). Comparing them unresolved would exit silently.
@@ -31,7 +34,7 @@ function printCheck(result, label) {
   else console.log(`${label}: passed${result.warnings.length ? ` with ${result.warnings.length} warning(s)` : ""}.`);
 }
 
-export function main(argv = process.argv.slice(2)) {
+export async function main(argv = process.argv.slice(2)) {
   const [command, file, ...rest] = argv;
   const flag = (name) => rest.includes(name);
   const option = (name) => {
@@ -45,9 +48,12 @@ export function main(argv = process.argv.slice(2)) {
   const target = path.resolve(file);
   try {
     if (command === "build") {
+      const media = await renderMediaFile(target, { force: flag("--redraw") });
+      for (const note of media.notes) console.log(`NOTE: ${note}`);
+      if (media.drawn.charts || media.drawn.diagrams) console.log(`Drew ${media.drawn.charts} chart snapshot(s) and ${media.drawn.diagrams} diagram(s)`);
       const result = buildFile(target);
       for (const note of result.notes) console.log(`NOTE: ${note}`);
-      console.log(result.changed ? `Built ${file}` : `${file} already up to date`);
+      console.log(result.changed || media.changed ? `Built ${file}` : `${file} already up to date`);
       const checked = checkFile(target);
       printCheck(checked, "Check");
       return checked.errors.length ? 1 : 0;
@@ -69,6 +75,13 @@ export function main(argv = process.argv.slice(2)) {
       if (!checked.errors.length) console.log(`Upload the whole folder ${path.resolve(out)} (the .html plus its .assets folder).`);
       return checked.errors.length ? 1 : 0;
     }
+    if (command === "pdf") {
+      const skip = (option("--skip") || "").split(",").map((id) => id.trim()).filter(Boolean);
+      const result = await pdfFile(target, { out: option("--out"), skip, size: option("--size") || "Letter" });
+      console.log(`Wrote ${result.file}${skip.length ? ` without ${skip.join(", ")}` : ""}`);
+      if (result.cut.length) console.log(`WARNING: content is cut off on ${result.cut.map((id) => `#${id}`).join(", ")} in the PDF: shorten those slides or move detail to the notes`);
+      return 0;
+    }
     if (command === "outline") {
       const data = outlineFile(target);
       console.log(flag("--json") ? JSON.stringify(data, null, 2) : formatOutline(data));
@@ -82,4 +95,4 @@ export function main(argv = process.argv.slice(2)) {
   return 2;
 }
 
-if (isEntrypoint(import.meta.url)) process.exitCode = main();
+if (isEntrypoint(import.meta.url)) main().then((code) => { process.exitCode = code; });

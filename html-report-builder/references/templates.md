@@ -25,6 +25,33 @@ Add extra sections when the work needs them (for example `ux`, `data`, `mechanis
 
 When the source has nothing for a required section, keep it short and say what is missing (for example, "No owner assigned yet; Red Krypton proposes ...") rather than inventing content.
 
+## Section templates
+
+`section-templates.md` has copyable markup for common sections; read only the ones you use, and keep the ids of the report template you started from.
+
+| # | Section | Use for | Built from |
+| --- | --- | --- | --- |
+| 1 | Key findings | The verdict, key numbers, and numbered key points at the top | `.callout`, `.tiles`, `.keypoints` |
+| 2 | Decisions needed | Questions with a recommended default; answered cards turn green | `.question` |
+| 3 | Scope | In and out side by side, assumptions across the row | `.grid`, `.card.wide`, `.pros`, `.cons` |
+| 4 | Findings | Findings by severity with what each affects | `.finding`, `.chips` |
+| 5 | Source-of-truth matrix | Each metric against each system | table, cell tones |
+| 6 | Trend | A measure over time with a threshold and an event | Plotly line |
+| 7 | Funnel | Counts that narrow step by step | Plotly centred bars |
+| 8 | Mix by group | How each group splits into parts | Plotly stacked bars, `details` table |
+| 9 | Against targets | Measures against a target, misses marked | Plotly bars, target line |
+| 10 | Timeline | An investigation or incident in order | `.steps.timeline` |
+| 11 | Current versus target | Two step-by-step paths | `.compare` with `.flow` |
+| 12 | Options compared | Options against criteria, recommendation underneath | table, `col.recommended`, `.rec` |
+| 13 | Phases | Phases with owners, parallel work, and exit criteria | `.steps`, `.lanes`, `.gate` |
+| 14 | Architecture | Layers, what is new and what is retired, and the systems | Mermaid, table |
+| 15 | QA and acceptance | The QA matrix and the acceptance checklist | table, cell tones, `.checklist` |
+| 16 | Risks | Likelihood, impact, mitigation, and owner | table, `.pill` |
+| 17 | Screenshot review | Before and after screens with numbered pins | `.compare`, `.pins` |
+| 18 | User story | A story's trigger, screens, and checks | `.card`, `.shots`, `.checklist` |
+| 19 | Next steps | Who does what next, numbered | `ol.checklist` |
+| 20 | Limits and sources | What the evidence cannot show, definitions, sources | `.callout`, `.terms`, `.sources` |
+
 ## Variants
 
 - Client-facing plan: start from `plan.html`, set `data-audience="client"`, add `data-numbered` if the reader will refer to sections by number, and drop engineering-only sections (`sources`, `handoff`) or move their content into an internal copy.

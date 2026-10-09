@@ -3,6 +3,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { attr, classes, escapeHtml, normalizeText, parse, splice, textContent } from "./scan.mjs";
 import { stripComments } from "./comments.mjs";
+import { libraryTag, readLibrary } from "./vendor.mjs";
 import { RUNTIME_VERSION, loadRuntime } from "./runtime.mjs";
 
 const MIME = {
@@ -108,20 +109,29 @@ export function buildSource(source, { file, inlineImages = true } = {}) {
   const body = find((e) => e.name === "body");
   const main = find((e) => e.name === "main");
   const html = find((e) => e.name === "html");
-  const runtime = loadRuntime(html ? attr(html, "data-template") : null);
+  const charted = doc.elements.some((e) => e.name === "script" && attr(e, "data-hr-chart") !== null);
+  const runtime = loadRuntime(html ? attr(html, "data-template") : null, { charts: charted });
 
   const styleLine = `<style data-hr-runtime="${RUNTIME_VERSION}">${runtime.css}</style>`;
   const scriptLine = `<script data-hr-runtime="${RUNTIME_VERSION}">${runtime.js}</script>`;
   const style = find((e) => e.name === "style" && attr(e, "data-hr-runtime") !== null);
-  const script = find((e) => e.name === "script" && attr(e, "data-hr-runtime") !== null);
+  const script = find((e) => e.name === "script" && attr(e, "data-hr-runtime") !== null && attr(e, "data-hr-runtime") !== "plotly");
+  const plotlyScript = find((e) => e.name === "script" && attr(e, "data-hr-runtime") === "plotly");
+  // Plotly (pinned, hash-checked) goes in only while the report has charts, just before the runtime.
+  const plotly = charted ? readLibrary("plotly") : null;
+  const plotlyLine = plotly ? `<script data-hr-runtime="plotly" data-hr-lib="${libraryTag("plotly")}">${plotly.replace(/<\/script/gi, "<\\/script")}</script>` : null;
+  if (charted && !plotly && !plotlyScript) notes.push("charts are not interactive yet: run `report.mjs build` once with internet to download Plotly");
+  if (plotlyScript && plotlyLine && source.slice(plotlyScript.start, plotlyScript.end) !== plotlyLine) edits.push({ start: plotlyScript.start, end: plotlyScript.end, text: plotlyLine });
+  if (plotlyScript && !charted) edits.push(removeLine(source, plotlyScript));
+  const addPlotly = plotlyLine && !plotlyScript;
   const nav = find((e) => e.name === "nav" && attr(e, "data-hr-generated") === "toc");
 
   if (style) edits.push({ start: style.start, end: style.end, text: styleLine });
   else if (head && head.close) edits.push(insertLineBefore(source, head.innerEnd, styleLine));
   else notes.push("no explicit </head>; runtime CSS not inserted");
 
-  if (script) edits.push({ start: script.start, end: script.end, text: scriptLine });
-  else if (body && body.close) edits.push(insertLineBefore(source, body.innerEnd, scriptLine));
+  if (script) edits.push({ start: script.start, end: script.end, text: addPlotly ? `${plotlyLine}\n${scriptLine}` : scriptLine });
+  else if (body && body.close) edits.push(insertLineBefore(source, body.innerEnd, addPlotly ? `${plotlyLine}\n${scriptLine}` : scriptLine));
   else notes.push("no explicit </body>; runtime script not inserted");
 
   const tocOff = html && attr(html, "data-toc") === "off";

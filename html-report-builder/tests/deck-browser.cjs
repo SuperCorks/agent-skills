@@ -181,9 +181,11 @@ module.exports = async function deckTests({ browser, root, pass, watch }) {
     await page.emulateMedia({ media: "print" });
     const printed = await page.evaluate(() => {
       const slide = document.querySelector(".slide");
-      return { breakAfter: getComputedStyle(slide).breakAfter, zoom: getComputedStyle(slide).zoom, notes: getComputedStyle(document.querySelector(".notes")).display, ui: getComputedStyle(document.querySelector(".hr-deck-ui")).display };
+      return { zoom: getComputedStyle(slide).zoom, notes: getComputedStyle(document.querySelector(".notes")).display, ui: getComputedStyle(document.querySelector(".hr-deck-ui")).display, slides: document.querySelectorAll(".slide").length };
     });
-    assert.deepEqual(printed, { breakAfter: "page", zoom: "1", notes: "none", ui: "none" });
+    assert.deepEqual(printed, { zoom: "1", notes: "none", ui: "none", slides: 11 });
+    const pdf = await page.pdf({ preferCSSPageSize: true, printBackground: true });
+    assert.equal(pdf.toString("latin1").match(/\/Type\s*\/Page[^s]/g).length, 11, "one page per slide, with no blank page after the last");
     pass("deck print: one slide per page at full size, notes and controls hidden");
     await page.close();
   }

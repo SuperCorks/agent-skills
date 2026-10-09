@@ -2,7 +2,7 @@
 
 Write plain semantic HTML with these classes. Do not write CSS or JavaScript: `report.mjs build` inlines the shared runtime. Unknown classes get no styling and `check` warns about them. Mockup-only styles are the exception: put them in one `<style>` in `<head>` whose selectors all use `.mock-*` classes (`check` warns about any other selector). Never reuse a component class name such as `.options` or `.card` inside a mockup.
 
-Tone modifiers `ok`, `warn`, `risk`, `info` work on `callout`, `pill`, `tile`, `question`, `finding`, `steps > li`, and `bars > div`. A `callout` without a tone is neutral.
+Tone modifiers `ok`, `warn`, `risk`, `info` work on `callout`, `pill`, `tile`, `question`, `finding`, `steps > li`, `keypoints > li`, `chips > li`, `flow > li`, `pins > span`, `bars > div`, and table cells (where they draw a mark). A `callout` without a tone is neutral.
 
 Evidence pills (internal reports only) say how a claim is known:
 
@@ -45,9 +45,21 @@ The TOC is generated from every `<section id>` in `<main>` that has an `<h2>`. `
 </div>
 ```
 
+## Key points
+
+The numbered short version under a verdict: three to five points, each a bold sentence and one line of support. A tone marks good (`ok`) or bad (`risk`) news.
+
+```html
+<ol class="keypoints">
+  <li class="risk"><b>Theme 4.2 broke Safari autofill on the card form.</b> Errors rose from about 40 to 180 a day on September 12.</li>
+  <li><b>Shipping cost appears only at payment,</b> so 45% of shoppers who reach shipping leave before paying.</li>
+  <li class="ok"><b>The hotfix holds.</b> Errors are back to about 40 a day.</li>
+</ol>
+```
+
 ## Question card
 
-Number ids `q1`, `q2`, ... in document order; the page shows "Q1" from the order. The title is a full question. `.rec`, `.owner`, `.links`, and `.answer` add their own labels; keep `.answer` empty for the reader to fill in the editor.
+Number ids `q1`, `q2`, ... in document order; the page shows "Q1" from the order. The title is a full question. `.rec`, `.owner`, `.links`, and `.answer` add their own labels; keep `.answer` empty for the reader to fill in the editor. Once an answer is filled in, the card turns green and shows "Answered", so the section doubles as the decision record.
 
 ```html
 <article class="question" id="q1">
@@ -80,9 +92,17 @@ Number ids `f1`, `f2`, ... Tone sets severity: `risk` high, `warn` medium, no to
 <p><span class="pill ok">Done</span> <span class="pill warn">At risk</span> <span class="pill risk">Blocked</span> <span class="pill info">Planned</span> <span class="pill">Neutral</span></p>
 ```
 
+## Chips
+
+Short values in a row: the pages, forms, or accounts a finding affects, tags, or settings. Tone the ones that matter.
+
+```html
+<ul class="chips"><li class="risk">/checkouts/*/payment</li><li class="warn">/cart</li><li>/account (not affected)</li></ul>
+```
+
 ## Cards and grid
 
-`.grid` fits two cards per row on desktop and one on mobile. `.grid.three` and `.grid.four` give exactly three or four columns on wide screens for short cards.
+`.grid` fits two cards per row on desktop and one on mobile; a `.wide` child spans the whole row. Plain lists inside a card line their bullets up with the card's heading. `.grid.three` and `.grid.four` give exactly three or four columns on wide screens for short cards, and `.grid.center` centres items of different heights against each other.
 
 ```html
 <div class="grid">
@@ -97,22 +117,31 @@ Number ids `f1`, `f2`, ... Tone sets severity: `risk` high, `warn` medium, no to
 
 ## Table
 
-Always wrap tables. `.num` right-aligns numbers.
+Always wrap tables. `.num` right-aligns numbers. A tone on a cell draws a status mark (`ok` ✓, `warn` ◐, `risk` ✕, `info` ○); the cell text still names the state, so meaning never rests on the mark. `col.recommended` and `th.recommended` tint the recommended column of a comparison.
 
 ```html
 <div class="table-wrap"><table>
   <thead><tr><th>Check</th><th>Expected</th><th class="num">Count</th></tr></thead>
   <tbody><tr><td>Orders synced</td><td>Matches the admin report</td><td class="num">1,204</td></tr></tbody>
 </table></div>
+<div class="table-wrap"><table>
+  <colgroup><col><col><col class="recommended"></colgroup>
+  <thead><tr><th></th><th>A. Patch</th><th class="recommended">B. Headless</th></tr></thead>
+  <tbody>
+    <tr><td>Fixes Safari errors</td><td class="warn">Until the next update</td><td class="ok">Yes</td></tr>
+    <tr><td>Adds express wallets</td><td class="risk">No</td><td class="ok">Yes</td></tr>
+    <tr><td>GA4 matches Shopify</td><td class="info">Not measured</td><td class="ok">Within 2%</td></tr>
+  </tbody>
+</table></div>
 ```
 
 ## Steps, timeline, lanes
 
-`ol.steps` for sequential phases; tone on an `li` marks state. `.timeline` replaces numbers with dots and a `time`. `.lanes` shows parallel work, on its own or inside a step.
+`ol.steps` for sequential phases; tone on an `li` marks state. A `.gate` states the exit criterion that lets the next phase start (it adds "Exit:"). `.timeline` replaces numbers with dots and a `time`. `.lanes` shows parallel work, on its own or inside a step.
 
 ```html
 <ol class="steps">
-  <li class="ok"><h3>Phase 1: Queue the sync</h3><p>Move the job to the queue. Exit when nightly runs are green for a week.</p></li>
+  <li class="ok"><h3>Phase 1: Queue the sync</h3><p>Move the job to the queue.</p><p class="gate">nightly runs green for a week</p></li>
   <li><h3>Phase 2: Alerts</h3><p>Alert after 24 hours of retries.</p></li>
 </ol>
 <ol class="steps timeline">
@@ -127,7 +156,7 @@ Always wrap tables. `.num` right-aligns numbers.
 
 ## Flow diagram
 
-Arrows are drawn between items; on mobile the flow stacks vertically. Keep it to five items or fewer; use `.steps` for longer sequences.
+Arrows are drawn between items; on mobile the flow stacks vertically, and inside a `.compare` it always does (two paths side by side). A tone marks a step that changes. Keep it to five items or fewer; use `.steps` for longer sequences and a Mermaid diagram for branching.
 
 ```html
 <ol class="flow">
@@ -147,6 +176,10 @@ Compare like with like: mobile with mobile, the same region at the same size. Th
   <figure class="before"><p>Current: three taps to reorder.</p></figure>
   <figure class="after"><p>Proposed: one tap from the order card.</p></figure>
 </div>
+<div class="compare">
+  <figure class="before"><h3>Today</h3><ol class="flow"><li>Cart</li><li class="risk">Shipping cost appears</li><li>Payment</li></ol></figure>
+  <figure class="after"><h3>With the pilot</h3><ol class="flow"><li class="ok">Cart with shipping estimate</li><li class="ok">Shop Pay or Apple Pay</li></ol></figure>
+</div>
 ```
 
 ## Options
@@ -162,12 +195,50 @@ Mark one `.recommended`. When alternatives are one-liners without pros and cons,
 
 ## Checklist
 
+An `ol.checklist` numbers its steps (use it for next steps, with the owner in `small`); a done step shows a check in place of its number.
+
 ```html
 <ul class="checklist">
   <li class="done">Queue worker deployed to staging</li>
   <li>Alert rule reviewed by the client</li>
 </ul>
+<ol class="checklist">
+  <li class="done">Hotfix released <small>Red Krypton</small></li>
+  <li>Approve the pilot's share of traffic <small>Dana Whitfield, by October 24</small></li>
+</ol>
 ```
+
+## Charts (Plotly)
+
+Data charts are interactive Plotly charts. Write the Plotly spec as JSON inside the figure and the chart's title as its `figcaption`; colours and fonts come from the report, so leave them out. Use `"token:accent"`, `"token:risk"`, `"token:ok"`, `"token:warn"`, `"token:muted"`, or `"token:series-1"` to `"token:series-4"` for colours that follow light and dark mode. Plotly's cartesian bundle draws `bar` (also funnels, as centred bars with a `base`), `scatter` (lines and markers), `pie`, `heatmap`, `histogram`, `box`, and `violin`. Keep one y-axis, at most four series, and a legend only for two or more.
+
+```html
+<figure class="chart">
+  <script type="application/json" data-hr-chart>{"data":[{"type":"scatter","mode":"lines","x":["2026-09-01","2026-09-02","2026-09-03"],"y":[38,44,180]}],"layout":{"yaxis":{"rangemode":"tozero"},"shapes":[{"type":"line","xref":"paper","x0":0,"x1":1,"y0":100,"y1":100,"line":{"color":"token:risk"}}]}}</script>
+  <figcaption>Daily card errors at checkout, September 2026</figcaption>
+</figure>
+```
+
+`report.mjs build` adds a static SVG snapshot of each chart (`chart-static`, regenerated only when the spec changes) for print, PDF, and readers without JavaScript, and inlines the pinned Plotly only while the report has charts; the page then draws the interactive chart (`chart-live` holding `chart-plot`, then `is-live`). The first charted build downloads Plotly once. Drawing snapshots needs a headless browser: Google Chrome, or Playwright's Chromium, which the build downloads once (about 100 MB) when Chrome is missing. Trend, funnel, mix, target, range, and spectrum examples are in `section-templates.md` and `slide-templates.md`.
+
+## Diagrams (Mermaid)
+
+Architecture, data-flow, sequence, and state diagrams are Mermaid. Mark added parts with `:::new` (heavier green border; also start the label with "+") and retired parts with `:::retired` (dashed and struck through); `:::accent` highlights a node.
+
+```html
+<figure class="diagram">
+  <script type="text/x-mermaid" data-hr-diagram>flowchart LR
+  subgraph Storefront
+    theme[Shopify theme] --> checkout[+ Headless checkout]:::new
+  end
+  checkout --> queue[+ Webhook queue]:::new
+  csv[Nightly CSV]:::retired -.-> erp[NetSuite]
+  queue --> erp</script>
+  <figcaption>Order data after the pilot</figcaption>
+</figure>
+```
+
+`report.mjs build` draws a light and a dark SVG (`diagram-svg`, `diagram-light`, `diagram-dark`), redrawn only when the source changes, so diagrams need no script in the page. A wide diagram scrolls sideways on a phone rather than shrinking its labels.
 
 ## Bars and progress
 
@@ -230,6 +301,35 @@ Reference image files with a relative path; `build` inlines them for local repor
   <img src="2026-10-03-sync-plan.assets/orders-mobile.png" alt="Orders screen on mobile showing the sync badge">
   <figcaption>Current orders screen, iPhone 15 width.</figcaption>
 </figure>
+```
+
+## Pins and shots
+
+`.pins` puts numbered markers on a screenshot or a `.device` mockup: each `span` sits at `--x` and `--y`, fractions from 0 to 1 across the image, and a list after it explains each number. `.shots` is a strip of screens for one story that scrolls sideways; caption each screen with its step.
+
+```html
+<div class="pins">
+  <img src="2026-10-03-sync-plan.assets/orders-mobile.png" alt="Orders screen with the sync badge and the retry button">
+  <span style="--x:.2;--y:.25">1</span>
+  <span class="risk" style="--x:.7;--y:.6">2</span>
+</div>
+<ol><li>The sync badge shows the last run.</li><li>Retry does nothing while a run is queued.</li></ol>
+<div class="shots">
+  <figure><img src="2026-10-03-sync-plan.assets/orders-mobile.png" alt="Orders list"><figcaption>1. Orders list</figcaption></figure>
+  <figure><img src="2026-10-03-sync-plan.assets/orders-mobile.png" alt="Order detail"><figcaption>2. Order detail</figcaption></figure>
+  <figure><img src="2026-10-03-sync-plan.assets/orders-mobile.png" alt="Sync log"><figcaption>3. Sync log</figcaption></figure>
+</div>
+```
+
+## Terms
+
+A glossary or label-value list: one `div` per term.
+
+```html
+<dl class="terms">
+  <div><dt>Card error</dt><dd>A payment attempt the card form rejects before it reaches the bank.</dd></div>
+  <div><dt>Paid orders per session</dt><dd>Paid orders divided by sessions that started checkout.</dd></div>
+</dl>
 ```
 
 ## Sources list

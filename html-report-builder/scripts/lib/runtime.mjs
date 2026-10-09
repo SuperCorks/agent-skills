@@ -54,16 +54,20 @@ export function oneLineJs(js) {
 }
 
 const cache = new Map();
-/** Runtime CSS/JS for a template: every report gets report.css/js; decks add deck.css/js. */
-export function loadRuntime(template = null) {
+/**
+ * Runtime CSS/JS for a template: every report gets report.css/js; decks add deck.css/js; reports
+ * with charts add charts.js (Plotly itself is a separate, pinned script).
+ */
+export function loadRuntime(template = null, { charts = false } = {}) {
   const deck = Boolean(TEMPLATES[template]?.deck);
-  if (cache.has(deck)) return cache.get(deck);
+  const key = `${deck}:${charts}`;
+  if (cache.has(key)) return cache.get(key);
   const read = (name) => readFileSync(path.join(ASSETS_DIR, name), "utf8");
   const css = minifyCss(read("report.css") + (deck ? `\n${read("deck.css")}` : ""));
-  const js = oneLineJs(read("report.js")) + (deck ? ` ${oneLineJs(read("deck.js"))}` : "");
+  const js = oneLineJs(read("report.js")) + (deck ? ` ${oneLineJs(read("deck.js"))}` : "") + (charts ? ` ${oneLineJs(read("charts.js"))}` : "");
   if (/<\/(style|script)/i.test(css + js)) throw new Error("runtime assets must not contain closing style/script tags");
   const runtime = { css, js, classes: cssClasses(css) };
-  cache.set(deck, runtime);
+  cache.set(key, runtime);
   return runtime;
 }
 

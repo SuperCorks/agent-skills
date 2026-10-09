@@ -25,8 +25,15 @@ main > section.slide { padding-top: 46px; border-top: 1px solid var(--line); }
 .slide h3 { font-size: 22px; margin: 0 0 6px; }
 .slide .eyebrow { font-size: 15px; letter-spacing: .01em; }
 .slide .lede { font-size: 24px; max-width: 34ch; }
-.slide ul:not(.pros):not(.cons):not(.checklist):not(.sources), .slide ol:not(.steps):not(.flow) { padding-left: 1.2em; }
+.slide ul:not(.pros):not(.cons):not(.checklist):not(.sources):not(.chips):not(.card > ul), .slide ol:not(.steps):not(.flow):not(.checklist):not(.keypoints):not(.agenda) { padding-left: 1.2em; }
+.slide .chart { margin: 0; padding: 0; background: none; border: 0; }
+.slide .chart > figcaption { font-size: 15px; }
+.slide .diagram { margin: 0; }
+.slide .diagram-svg svg { max-height: 330px; }
+.slide.divider ol.checklist > li::before { color: inherit; border-color: color-mix(in srgb, var(--page) 55%, transparent); }
+.slide.divider ol.checklist > li.done::before { color: var(--ink); background: var(--page); border-color: var(--page); }
 .slide li + li { margin-top: 8px; }
+.slide :is(.chips, .keypoints, .agenda) > li + li { margin-top: 0; }
 .slide .grid, .slide .options, .slide .compare, .slide .lanes, .slide .tiles, .slide .bars, .slide .steps, .slide .flow, .slide .table-wrap, .slide .callout { margin: 0; }
 .slide .card, .slide .option, .slide .lane { padding: 16px 20px; }
 .slide .tile > span, .slide small { font-size: 15px; }
@@ -58,6 +65,54 @@ main > section.slide { padding-top: 46px; border-top: 1px solid var(--line); }
 .slide.divider h2 { font-size: 48px; }
 .slide.divider .eyebrow, .slide.divider p { color: color-mix(in srgb, var(--page) 75%, var(--ink)); }
 .slide.divider::after { color: color-mix(in srgb, var(--page) 60%, var(--ink)); }
+/* Closing slide: numbered next steps and a contact row on the divider. */
+.slide.divider ol { font-size: 21px; }
+.slide.divider .meta { margin-top: 6px; font-size: 16px; }
+.slide.divider .meta dt { color: color-mix(in srgb, var(--page) 60%, var(--ink)); }
+.slide .grid.center { align-items: center; }
+/* Shared components at slide size */
+.slide .card:has(> .gate) { display: flex; flex-direction: column; }
+.slide .gate { margin-top: auto; padding-top: 10px; border-top: 1px solid var(--line); font-size: 17px; }
+.slide .compare .flow { flex-direction: column; flex-wrap: nowrap; gap: 22px; margin: 0; }
+.slide .compare .flow > li { flex: none; padding: 7px 12px; font-size: 17px; }
+.slide .compare .flow > li:not(:last-child)::after { right: auto; left: 14px; bottom: -24px; }
+.slide .terms { margin: 0; }
+.slide .terms > div { grid-template-columns: 7em 1fr; column-gap: 16px; padding: 10px 0; }
+.slide .terms dt { font-size: 17px; font-weight: 400; color: var(--muted); }
+.slide .terms dd { font-size: 18px; font-weight: 550; }
+/* Agenda: numbered chapters in two columns; .current marks the chapter being opened. */
+.agenda { list-style: none; padding: 0; columns: 2; column-gap: 40px; counter-reset: agenda; }
+.agenda > li { counter-increment: agenda; break-inside: avoid; display: grid; grid-template-columns: 44px 1fr; padding: 12px 0; border-top: 1px solid var(--line); }
+.agenda > li::before { content: counter(agenda, decimal-leading-zero); grid-row: 1 / span 2; color: var(--muted); font-weight: 650; font-variant-numeric: tabular-nums; }
+.agenda > li > small { grid-column: 2; font-size: 16px; }
+.agenda > li.current::before, .agenda > li.current > b { color: var(--accent); }
+/* Big number: one figure carries the slide, with its meaning under it. */
+.bignum { margin: 0; display: flex; flex-direction: column; gap: 12px; }
+.bignum > b { font-size: 120px; line-height: .9; letter-spacing: -.04em; font-weight: 700; color: var(--tone, var(--accent)); }
+.bignum > span { font-size: 24px; line-height: 1.3; max-width: 17ch; }
+/* Matrix: a 2x2 with quadrants in reading order (top-left first) and axes from data-x and data-y. */
+.matrix { position: relative; display: grid; grid-template-columns: 1fr 1fr; gap: 2px; padding-bottom: 26px; }
+.slide .matrix { margin-left: 28px; }
+.matrix > div { min-width: 0; padding: 12px 16px; background: var(--sunken); }
+.matrix > div:is(.ok, .warn, .risk, .info) { background: color-mix(in srgb, var(--tone) 13%, var(--surface)); }
+.matrix > div:nth-child(1) { border-radius: 8px 0 0 0; }
+.matrix > div:nth-child(2) { border-radius: 0 8px 0 0; }
+.matrix > div:nth-child(3) { border-radius: 0 0 0 8px; }
+.matrix > div:nth-child(4) { border-radius: 0 0 8px 0; }
+.matrix h3 { margin: 0 0 4px; font-size: 19px; }
+.matrix ul { margin: 0; font-size: 17px; }
+.matrix li + li { margin-top: 2px; }
+.matrix::before { content: attr(data-y) " \2192"; position: absolute; left: -28px; top: 0; bottom: 26px; writing-mode: vertical-rl; transform: rotate(180deg); text-align: center; font-size: 14px; color: var(--muted); }
+.matrix::after { content: attr(data-x) " \2192"; position: absolute; left: 0; right: 0; bottom: 0; text-align: center; font-size: 14px; color: var(--muted); }
+/* Person: a card with initials (data-initials) or a first-child photo. */
+.person[data-initials]::before { content: attr(data-initials); display: grid; place-items: center; width: 52px; height: 52px; margin-bottom: 12px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); font-weight: 700; font-size: 18px; }
+.person > img:first-child { width: 52px; height: 52px; margin-bottom: 12px; border-radius: 50%; object-fit: cover; }
+.person > h3 { margin: 0; }
+.person > h3 + p { margin: 0 0 8px; }
+/* Footnotes: sources pinned to the bottom of a slide. */
+.slide .footnotes { margin-top: auto; font-size: 13px; color: var(--muted); }
+.slide .takeaway + .footnotes { margin-top: 0; }
+.slide:is(.cover, .statement, .divider) > .footnotes { position: absolute; left: 64px; bottom: 22px; margin: 0; }
 .notes {
   margin: -.5rem 0 2.25rem; padding: .7rem 1rem; font-size: .9375rem; color: var(--muted);
   border-left: 3px solid var(--line); background: color-mix(in srgb, var(--surface) 55%, transparent); border-radius: 0 8px 8px 0;
@@ -84,7 +139,7 @@ main > section.slide { padding-top: 46px; border-top: 1px solid var(--line); }
 /* Present mode: one slide, letterboxed to the viewport. */
 .hr-presenting, .hr-presenting body { overflow: hidden; background: #000; }
 .hr-presenting body { display: block; max-width: none; padding: 0; }
-.hr-presenting body > :not(main):not(.hr-deck-ui):not(script):not(style) { display: none !important; }
+.hr-presenting body > :not(main):not(.hr-deck-ui):not(script):not(style):not(#js-plotly-tester) { display: none !important; }
 .hr-presenting main.deck { position: fixed; inset: 0; display: grid; place-items: center; }
 .hr-presenting .slide { display: none; margin: 0; border-radius: 0; border: 0; box-shadow: none; outline: 0; }
 .hr-presenting .slide.hr-current { display: flex; }
@@ -132,10 +187,20 @@ main > section.slide { padding-top: 46px; border-top: 1px solid var(--line); }
   html:not(.hr-presenting) .slide[data-hr-overflow] { outline: 0; }
   html:not(.hr-presenting) .slide[data-hr-overflow]::before { content: none; }
   html:not(.hr-presenting) main.deck { padding-bottom: 2.5rem; }
+  html:not(.hr-presenting) .agenda { columns: 1; }
+  html:not(.hr-presenting) .bignum > b { font-size: 64px; }
+  html:not(.hr-presenting) .bignum > span { font-size: 18px; }
+  html:not(.hr-presenting) .matrix > div { padding: 10px; }
+  html:not(.hr-presenting) .matrix h3 { font-size: 16px; }
+  html:not(.hr-presenting) .matrix ul { font-size: 14px; }
+  html:not(.hr-presenting) .slide .terms > div { grid-template-columns: 6em 1fr; }
+  html:not(.hr-presenting) .slide:is(.cover, .statement, .divider) > .footnotes { position: static; }
 }
 @media print {
   @page { size: 960px 540px; margin: 0; }
-  .slide { zoom: 1 !important; margin: 0; border: 0; border-radius: 0; box-shadow: none; outline: 0; break-after: page; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  .slide { zoom: 1 !important; margin: 0; border: 0; border-radius: 0; box-shadow: none; outline: 0; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  .slide ~ .slide { break-before: page; }
+  .slide[data-hr-overflow] { outline: 0; }
   .slide[data-hr-overflow]::before { content: none; }
   .notes, .hr-deck-ui, .toc { display: none !important; }
   main.deck { margin: 0; }

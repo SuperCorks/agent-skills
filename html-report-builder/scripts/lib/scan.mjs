@@ -284,6 +284,20 @@ export function textContent(doc, element) {
   return text;
 }
 
+/** Text a reader sees in an element: no scripts, styles, SVG labels, or generated blocks. */
+export function visibleTextContent(doc, element) {
+  const skipped = doc.elements
+    .filter((e) => e !== element && e.start >= element.start && e.end <= element.end && (["script", "style", "template", "svg"].includes(e.name) || attr(e, "data-hr-generated") !== null))
+    .map((e) => [e.start, e.end]);
+  let text = "";
+  for (const token of tokensIn(doc, element.innerStart, element.innerEnd)) {
+    if (token.type !== "text" || token.raw) continue;
+    if (skipped.some(([start, end]) => token.start >= start && token.end <= end)) continue;
+    text += decodeEntities(doc.source.slice(token.start, token.end));
+  }
+  return text;
+}
+
 export function normalizeText(text) {
   return text.replace(/[ \s]+/g, " ").trim();
 }

@@ -59,8 +59,10 @@ const { chromium } = require("playwright");
       await page.waitForFunction(() => document.querySelector(".toc a[aria-current]")?.getAttribute("href") === "#c-checklist", null, { timeout: 5000 });
       await page.emulateMedia({ media: "print" });
       assert.equal(await page.locator(".toc").isVisible(), false, "TOC hidden in print");
+      const steps = await page.$$eval("ol.checklist > li", (items) => items.map((li) => getComputedStyle(li, "::before").content));
+      assert.deepEqual(steps, ['"\u2713"', "counter(check)"], "numbered steps, with a check for a done one");
       assert.deepEqual(errors, []);
-      pass("runtime: copy buttons, TOC scrollspy, print hides navigation");
+      pass("runtime: copy buttons, TOC scrollspy, print hides navigation, numbered checklist");
       await page.close();
     }
 
@@ -92,6 +94,10 @@ const { chromium } = require("playwright");
 
     const deckTests = path.join(__dirname, "deck-browser.cjs");
     if (await fs.stat(deckTests).then(() => true, () => false)) await require(deckTests)({ browser, root, pass, watch });
+    const chartTests = path.join(__dirname, "charts-browser.cjs");
+    if (await fs.stat(chartTests).then(() => true, () => false)) await require(chartTests)({ browser, root, pass, watch });
+    const templateTests = path.join(__dirname, "templates-browser.cjs");
+    if (await fs.stat(templateTests).then(() => true, () => false)) await require(templateTests)({ browser, root, pass, watch });
     const editorTests = path.join(__dirname, "editor-browser.cjs");
     if (await fs.stat(editorTests).then(() => true, () => false)) await require(editorTests)({ browser, root, pass, watch });
     const readAloudTests = path.join(__dirname, "read-aloud-browser.cjs");

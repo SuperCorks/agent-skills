@@ -92,7 +92,7 @@ test("export writes images as relative files and passes the export check", () =>
 
 test("runtime stays within budget and its script parses as one line", () => {
   const runtime = loadRuntime();
-  assert.ok(runtime.css.length <= 15 * 1024, `css ${runtime.css.length} bytes`);
+  assert.ok(runtime.css.length <= 21 * 1024, `css ${runtime.css.length} bytes`);
   assert.ok(runtime.js.length <= 3 * 1024, `js ${runtime.js.length} bytes`);
   assert.doesNotThrow(() => new Function(runtime.js));
   assert.doesNotMatch(runtime.js, /\n/);
