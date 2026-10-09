@@ -33,8 +33,8 @@ test("only decks get the deck runtime", () => {
   assert.match(built, /hr-presenting/);
   assert.match(built, /\.slide\{/);
   const runtime = loadRuntime("slides");
-  assert.ok(runtime.css.length - loadRuntime().css.length <= 7 * 1024, "deck CSS budget");
-  assert.ok(runtime.js.length - loadRuntime().js.length <= 5 * 1024, "deck JS budget");
+  assert.ok(runtime.css.length - loadRuntime().css.length <= 8 * 1024, "deck CSS budget");
+  assert.ok(runtime.js.length - loadRuntime().js.length <= 9 * 1024, "deck JS budget");
   assert.doesNotThrow(() => new Function(runtime.js));
 });
 

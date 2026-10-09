@@ -76,7 +76,7 @@ main > section.slide { padding-top: 46px; border-top: 1px solid var(--line); }
 }
 .hr-deck-ui button { font: inherit; color: inherit; background: transparent; border: 0; border-radius: 7px; padding: 7px 10px; cursor: pointer; }
 .hr-deck-ui button:hover { background: var(--sunken); }
-.hr-deck-ui .hr-count { padding: 0 6px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.hr-deck-ui .hr-count { padding: 0 6px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .hr-deck-ui [data-presenting] { display: none; }
 .hr-presenting .hr-deck-ui [data-presenting] { display: inline-block; }
 .hr-presenting .hr-deck-ui [data-review] { display: none; }
@@ -97,6 +97,30 @@ main > section.slide { padding-top: 46px; border-top: 1px solid var(--line); }
 .hr-presenting .hr-deck-ui { left: auto; right: 16px; top: 16px; bottom: auto; color: #e7e9ee; background: rgb(23 26 33 / .85); border-color: #2b303b; opacity: .35; transition: opacity .2s; }
 .hr-presenting .hr-deck-ui:hover, .hr-presenting .hr-deck-ui:focus-within { opacity: 1; }
 .hr-presenting .hr-deck-ui button:hover { background: rgb(255 255 255 / .1); }
+.hr-presenting .hr-deck-ui .hr-count { color: #9ba4b4; }
+.hr-toc-present { display: none; }
+@media (max-width: 1099.98px) {
+  .toc .hr-toc-present {
+    position: sticky; right: 0; flex: none; display: inline-flex; align-items: center; justify-content: center; margin-left: auto;
+    min-width: 2.5rem; padding: .3rem .65rem; color: var(--accent); background: var(--page); border: 0; border-radius: 6px; cursor: pointer;
+    box-shadow: 1.5rem 0 0 var(--page), -.75rem 0 .75rem -.25rem var(--page);
+  }
+  .toc .hr-toc-present:hover { background: var(--sunken); }
+}
+.hr-presenting main.deck { touch-action: manipulation; }
+.hr-deck-hint { display: none; }
+
+/* Touch screens: full-strength controls along the bottom with 44px targets, hidden after a few
+   idle seconds (any tap shows them), and a nudge to turn a phone sideways. */
+@media (hover: none) and (pointer: coarse) {
+  .hr-deck-ui button { min-width: 44px; min-height: 44px; }
+  .hr-presenting .hr-deck-ui { top: auto; right: auto; left: 50%; bottom: max(12px, env(safe-area-inset-bottom)); transform: translateX(-50%); opacity: 1; background: #171a21; }
+  .hr-presenting.hr-idle .hr-deck-ui { opacity: 0; pointer-events: none; }
+  .hr-presenting.hr-show-notes .slide.hr-current + .notes { bottom: calc(max(12px, env(safe-area-inset-bottom)) + 66px); }
+}
+@media (hover: none) and (pointer: coarse) and (orientation: portrait) {
+  .hr-presenting .hr-deck-hint { display: block; position: absolute; left: 50%; bottom: calc(100% + 12px); transform: translateX(-50%); white-space: nowrap; font-weight: 500; color: #9ba4b4; }
+}
 
 /* Phones: slides reflow as cards instead of shrinking text to an unreadable size. */
 @media (max-width: 700px) {
@@ -107,6 +131,7 @@ main > section.slide { padding-top: 46px; border-top: 1px solid var(--line); }
   html:not(.hr-presenting) .slide .tile > b { font-size: 24px; }
   html:not(.hr-presenting) .slide[data-hr-overflow] { outline: 0; }
   html:not(.hr-presenting) .slide[data-hr-overflow]::before { content: none; }
+  html:not(.hr-presenting) main.deck { padding-bottom: 2.5rem; }
 }
 @media print {
   @page { size: 960px 540px; margin: 0; }

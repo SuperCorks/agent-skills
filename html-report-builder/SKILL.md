@@ -68,7 +68,7 @@ This writes `<slug>.html` plus `<slug>.assets/` and checks the copy. Upload the 
 
 ## Presenting decks
 
-A `slides` report opens as stacked 16:9 slides with speaker notes under each one. Press P (or click Present) to present: arrows move, N shows notes, F toggles fullscreen, Esc exits. Printing gives one slide per page. Details are in `references/slides.md`.
+A `slides` report opens as stacked 16:9 slides with speaker notes under each one. Press P (or click Present) to present: arrows move, N shows notes, F toggles fullscreen, Esc exits. On phones and tablets, swipe or tap to move and use Back to exit. Printing gives one slide per page. Details are in `references/slides.md`.
 
 ## Keeping the templates current
 

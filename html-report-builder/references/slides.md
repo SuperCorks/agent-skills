@@ -85,6 +85,7 @@ Fix a cut-off slide by shortening the title, trimming text into the notes, or sp
 
 - `report.mjs build` then open the file: slides appear stacked with notes beneath. A red outline marks a slide whose content is cut off; shorten it or split it.
 - **Present**: click Present or press P. Arrow keys, Space, Page Up and Down, Home and End move; N shows notes; F toggles fullscreen; Esc exits. The address bar tracks the current slide (`#s4`).
+- **On a phone or tablet**: the review view shows slides as readable cards with the slide list pinned at the top; the play icon at its right end presents from the slide in view. In present mode, swipe sideways or tap (the left third goes back, anywhere else goes forward). The controls sit along the bottom and hide after a few seconds; tap to bring them back. Back (the button or the edge swipe) exits present mode and returns to the slide being shown, not to the previous page. Android phones turn to landscape automatically; on an iPhone held upright, a hint suggests turning it sideways.
 - **Print or PDF**: the browser's print dialog gives one slide per page at 16:9 with notes hidden. Turn on background graphics.
 - `report.mjs outline` lists every slide with its word count and whether it has notes.
 - The local editor works on decks: click slide text or notes to edit them, or widen the scope to a whole slide and rewrite it with AI.
