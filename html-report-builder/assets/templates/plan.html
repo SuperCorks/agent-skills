@@ -22,7 +22,7 @@
 </section>
 <section id="scope">
   <h2>Scope</h2>
-  <!-- guide: in scope, non-goals, constraints, authority boundaries (who decides what). Use a .grid of two .card blocks or short lists. -->
+  <!-- guide: in scope, non-goals, constraints, authority boundaries (who decides what). A .grid of two .card blocks (in scope, not in scope), then a .card.wide for assumptions and constraints (section-templates.md 3). -->
 </section>
 <section id="questions" data-toc="Questions">
   <h2>Questions and decisions</h2>
@@ -42,21 +42,21 @@
 </section>
 <section id="current" data-toc="Current state">
   <h2>Current state</h2>
-  <!-- guide: what exists today and the gap, with file paths and observed behavior. -->
+  <!-- guide: what exists today and the gap, with file paths and observed behavior. Numbers over time or by group as a Plotly figure.chart (section-templates.md 6 to 9); a process as an ol.flow. -->
 </section>
 <section id="target" data-toc="Target">
   <h2>Target behavior</h2>
-  <!-- guide: desired outcome and the recommended path. Alternatives considered: .options cards, or a table when they are one-liners. Product UI: mockups in .device frames grouped in .devices, before/after in .compare (mobile vs mobile), states and responsive rules. -->
+  <!-- guide: desired outcome and the recommended path. Alternatives considered: .options cards, or a comparison table with toned cells and col.recommended when they are one-liners (section-templates.md 12). A process that changes: today and target as two .flow lists in a .compare (11). Product UI: mockups in .device frames grouped in .devices, before/after in .compare (mobile vs mobile) with numbered .pins (17), user stories with a .shots strip (18), states and responsive rules. -->
 </section>
 <section id="architecture">
   <h2>Architecture and data</h2>
-  <!-- guide: optional. Data flow as an ol.flow, contracts, data model and config impact in .table-wrap tables. Delete if not relevant. -->
+  <!-- guide: optional. Data flow as a Mermaid figure.diagram with layers as subgraphs and :::new and :::retired parts (section-templates.md 14), or an ol.flow for up to five steps; contracts, data model, and config impact in .table-wrap tables. Delete if not relevant. -->
 </section>
 <section id="phases">
   <h2>Phases</h2>
-  <!-- guide: ol.steps for sequential phases; .lanes with .lane columns for parallel work. Each phase: goal, concrete changes, exit criteria. -->
+  <!-- guide: ol.steps for sequential phases; .lanes with .lane columns for parallel work. Each phase: goal, concrete changes, an .owner, and the exit criterion in a .gate (section-templates.md 13). -->
   <ol class="steps">
-    <li><h3>Phase 1: name</h3><p>Goal, changes, exit criteria.</p></li>
+    <li><h3>Phase 1: name</h3><p>Goal and concrete changes.</p><p class="owner">Name or role</p><p class="gate">the check that lets phase 2 start</p></li>
   </ol>
 </section>
 <section id="rollout" data-toc="Rollout">
@@ -65,7 +65,7 @@
 </section>
 <section id="qa" data-toc="QA">
   <h2>QA and validation</h2>
-  <!-- guide: a .table-wrap table: check, how, expected result, environment. -->
+  <!-- guide: a .table-wrap table: check, how, expected result, environment, and a status cell toned ok, warn, or risk to draw its mark (section-templates.md 15). -->
 </section>
 <section id="acceptance">
   <h2>Acceptance criteria</h2>
@@ -75,11 +75,11 @@
 </section>
 <section id="risks">
   <h2>Risks and mitigations</h2>
-  <!-- guide: table with a .pill risk/warn/ok severity column, or .callout blocks for the top two. -->
+  <!-- guide: table with likelihood and impact as .pill risk/warn/ok, the mitigation, and the owner (section-templates.md 16), or .callout blocks for the top two. -->
 </section>
 <section id="handoff" data-toc="Start here">
   <h2>Implementation handoff</h2>
-  <!-- guide: what an implementing agent does first: branch, files, commands, and open decisions it must not assume. -->
+  <!-- guide: what an implementing agent does first: branch, files, commands, and open decisions it must not assume. When people other than the implementer must act, list them as a numbered ol.checklist with owners in small (section-templates.md 19). -->
 </section>
 </main>
 </body>

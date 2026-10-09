@@ -34,6 +34,7 @@ Create a durable planning artifact that turns messy source context into a decisi
 - Prefer `docs/plans/<yyyy-mm-dd-topic>.html` inside a repo.
 - If no repo docs location is obvious, use a local `outputs/` folder in the current workspace.
 - Load the `html-report-builder` skill and start from its `assets/templates/plan.html`. Use only the classes in its `references/components.md` and follow its `references/writing.md`. Write no CSS or JavaScript except mockup styles scoped to `.mock-*` classes; the builder inlines the shared runtime.
+- Build each section from the matching entry in the builder's `references/section-templates.md` (its `references/templates.md` lists all twenty; read only the entries you use), keeping the plan template's section ids: the decisions template goes in `questions`; current-versus-target paths in `current` and `target`; the options comparison in `target`; phases with owners, `.gate` exit criteria, and parallel lanes in `phases`; the Mermaid architecture diagram in `architecture`; the QA matrix and acceptance checklist in `qa` and `acceptance`; risks in `risks`. Draw metrics as Plotly charts and data flows as Mermaid diagrams, as those templates show.
 - Put open questions and recommended decisions immediately after scope so the reviewer sees decision needs before reading the full plan.
 - Include concrete paths, commands, links, identifiers, source names, and open decisions so a future agent can execute from the plan.
 - Link question cards to the relevant detail sections by their section ids.
@@ -41,9 +42,9 @@ Create a durable planning artifact that turns messy source context into a decisi
 - If `html-report-builder` is not installed, write one self-contained HTML file by hand instead: embedded CSS, no external runtime dependencies, clear headings, compact cards and tables, responsive and print-friendly layout, and stable `id` anchors on major sections.
 
 5. Verify and hand off:
-- Confirm `report.mjs build` (or `check`) passes.
+- Confirm `report.mjs build` (or `check`) passes. The first build of a plan with charts or diagrams downloads the pinned libraries once; if it notes that drawings were skipped (no network or browser), say so in the handoff.
 - When a browser tool is available, view the plan at about 1280 px and 390 px wide and check the console.
-- Offer the builder's local editor for review (`node <html-report-builder>/editor/report-editor.mjs <file>`): the reader can fix wording, answer question cards, and rewrite sections with AI directly in the file.
+- Offer the builder's local editor for review (`node <html-report-builder>/editor/report-editor.mjs <file>`): the reader can fix wording, answer question cards, pin review comments, and rewrite sections with AI directly in the file. When the reader wants a PDF, run `node <html-report-builder>/scripts/report.mjs pdf <file>`.
 - Do not change implementation code unless the user explicitly asks for implementation.
 - Respond with the artifact path, recommendation summary, top open decisions, and whether the plan is ready for implementation.
 - When revising an existing plan, run `report.mjs outline <file>` first, edit only the affected sections, keep question ids stable, fold in any answers the reader recorded, and rebuild.
@@ -89,7 +90,8 @@ For frontend, design, or product plans, include:
 - Figma/design references, node IDs, screenshots, or current/target comparisons when available.
 - A concise design context and reuse mapping: governing sources, reference routes/files, verified components and variants, layout/behavior rules, and justified extensions. Distinguish documented rules from inference and unresolved conflicts. Make mockups follow this context and include source checks and rendered comparison criteria in the implementation handoff.
 - Embedded HTML mockups or prototypes by default for any plan with a meaningful frontend, dashboard, or product UI surface, inside the builder's `.device` phone or desktop frames and styled with the product's own design language. Use low-fidelity wireframes when final visuals are unknown. Skip only when the user explicitly declines visuals or the plan is purely non-UI.
-- Before/after comparisons (`.compare`) that compare like with like: mobile with mobile, the same region at the same size, with sharp screenshots.
+- Before/after comparisons (`.compare`) that compare like with like: mobile with mobile, the same region at the same size, with sharp screenshots. Number what changes with `.pins` on the screens and explain each number underneath (section template 17).
+- User stories as one card each with the trigger, the screens in order in a `.shots` strip, and the acceptance checks (section template 18).
 - UX behavior, states, responsive behavior, empty/error/loading cases, and URL parameter behavior.
 - Content and data-model requirements per feature.
 - UI acceptance criteria precise enough for visual QA.
@@ -98,7 +100,8 @@ For frontend, design, or product plans, include:
 
 For data, QA, analytics, or dashboard plans, include:
 
-- Source-of-truth matrix covering warehouse tables and platform/admin reports.
+- Source-of-truth matrix covering warehouse tables and platform/admin reports, with status cells toned `ok`, `warn`, or `risk` so each shows its mark (section template 5).
+- Current numbers as Plotly charts with the data in the chart JSON: trends with thresholds, funnels, mixes, and measures against targets (section templates 6 to 9).
 - Raw data queries or exact query locations.
 - Card, chart, metric, page, and filter-by-filter QA matrix.
 - Previous-period reconciliation and source-platform comparison.
@@ -121,7 +124,7 @@ For compliance or research plans, include:
 
 For integration, API, or architecture plans, include:
 
-- System boundaries, data flow, ownership, and failure modes.
+- System boundaries, data flow, ownership, and failure modes, with the data flow drawn as a Mermaid diagram that marks new and retired parts (section template 14).
 - API contracts, webhook/event names, identifiers, and idempotency rules.
 - Security, privacy, rate-limit, and observability considerations.
 - Migration and compatibility notes.
