@@ -103,13 +103,19 @@ module.exports = async function readAloudTests({ browser, root, pass, watch }) {
 `);
   try {
     const { tab, errors, prepares, context } = await page(report);
-    await tab.hover("#summary h2");
+    const heading = await tab.locator("#summary h2").boundingBox();
+    await tab.mouse.move(heading.x + heading.width - 20, heading.y + heading.height / 2);
     const button = tab.locator('#hre-read >> css=.ra-sec[data-key="summary"]');
     await button.waitFor({ state: "visible" });
     const placed = await button.boundingBox();
-    const heading = await tab.locator("#summary h2").boundingBox();
-    assert.ok(placed.x + placed.width <= heading.x && Math.abs(placed.y + placed.height / 2 - (heading.y + heading.height / 2)) < 12, "the play button sits in the gutter beside the heading");
-    await button.click();
+    assert.ok(placed.x >= heading.x + heading.width && Math.abs(placed.y + placed.height / 2 - (heading.y + heading.height / 2)) < 12, `the play button sits in the margin to the right of the heading (${JSON.stringify(placed)} vs ${JSON.stringify(heading)})`);
+    // Cross the margin the way a hand does, in small steps: the button must stay up and clickable.
+    await tab.mouse.move(placed.x + placed.width / 2, placed.y + placed.height / 2, { steps: 12 });
+    await tab.waitForTimeout(800);
+    assert.ok(await button.isVisible(), "the button stays visible while the pointer is on it");
+    assert.equal(await button.evaluate((el) => getComputedStyle(el).opacity), "1");
+    await tab.mouse.down();
+    await tab.mouse.up();
     await tab.waitForFunction(() => document.getElementById("hre-host").shadowRoot.getElementById("ra-status").textContent.startsWith("Writing the spoken script"));
     await tab.waitForFunction(() => window.__fakeAudio.state.src);
     assert.match(await tab.evaluate(() => window.__fakeAudio.state.src), /^\/api\/read-aloud\/audio\/[a-f0-9]{32}\.mp3$/);
@@ -124,7 +130,7 @@ module.exports = async function readAloudTests({ browser, root, pass, watch }) {
     await tab.screenshot({ path: path.join(root, "read-aloud-report.png") });
     await until(() => prepares.some((p) => p.key === "data" && p.synthesize === false), "the next section's script is prefetched without audio");
     await until(() => prepares.some((p) => p.key === "data" && p.synthesize !== false), "its audio is requested near the end");
-    pass("read aloud: a section's play button starts reading, outlines the section, highlights a four-word window, and prefetches the next section");
+    pass("read aloud: a section's play button, right of its heading and reachable across the margin, starts reading, outlines the section, highlights a four-word window, and prefetches the next section");
 
     const before = transcribed.filter((label) => label === "Where buyers drop").length;
     await tab.evaluate(() => window.__fakeAudio.end());
@@ -186,7 +192,7 @@ module.exports = async function readAloudTests({ browser, root, pass, watch }) {
     await button.waitFor({ state: "visible" });
     const placed = await button.boundingBox();
     const slide = await tab.locator("#s1").boundingBox();
-    assert.ok(placed.x + placed.width <= slide.x + 2 && placed.y >= slide.y - 2 && placed.y < slide.y + 40, `the button sits beside the zoomed slide's top (${JSON.stringify(placed)} vs ${JSON.stringify(slide)})`);
+    assert.ok(placed.x >= slide.x + slide.width - 2 && placed.y >= slide.y - 2 && placed.y < slide.y + 40, `the button sits to the right of the zoomed slide's top (${JSON.stringify(placed)} vs ${JSON.stringify(slide)})`);
     await button.click();
     await tab.waitForFunction(() => window.__fakeAudio.state.src);
     assert.ok(await tab.evaluate(() => document.getElementById("s1").classList.contains("hre-reading") && document.querySelector("#s1 + aside.notes").classList.contains("hre-reading")), "the slide and its notes are one unit");
@@ -203,7 +209,7 @@ module.exports = async function readAloudTests({ browser, root, pass, watch }) {
     assert.equal(await tab.evaluate(() => window.__fakeAudio.state.paused), true, "presenting pauses reading");
     await tab.keyboard.press("Escape");
     assert.deepEqual(errors, []);
-    pass("read aloud on a deck: the slide and its notes are read as one unit, the button sits beside the zoomed slide, and presenting pauses it");
+    pass("read aloud on a deck: the slide and its notes are read as one unit, the button sits right of the zoomed slide, and presenting pauses it");
     await context.close();
   } finally {
     await deck.close();

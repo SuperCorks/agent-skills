@@ -1,5 +1,7 @@
 /* Editor toolbar, AI panel, and settings (inside a shadow root). */
 :host { all: initial; }
+/* The section play buttons sit on the page: follow its light or dark scheme. */
+:host(#hre-read) { color-scheme: inherit; }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 .bar, .panel, .settings, .toast, .banner { font: 13px/1.4 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; z-index: 2147483000; }
@@ -116,14 +118,17 @@ ins { color: #0f5a31; background: #ddf5e6; text-decoration: none; }
 :host(.reading) .toast { bottom: 130px; }
 #listen.active { color: #16181d; background: #7dd3fc; }
 #listen.warn::after { content: ""; display: inline-block; width: 7px; height: 7px; margin-left: 6px; border-radius: 50%; background: #f5a524; vertical-align: 1px; }
+/* Section play buttons sit on the page, so they use the report's own tokens. */
 .ra-sec {
-  position: absolute; width: 28px; height: 28px; padding: 0; display: grid; place-items: center; border-radius: 50%;
-  color: #fff; background: #0284c7; box-shadow: 0 0 0 2px #fff, 0 2px 8px rgb(0 0 0 / .25);
-  opacity: 0; pointer-events: none; transition: opacity .15s;
+  position: absolute; width: 30px; height: 30px; padding: 0; display: grid; place-items: center; cursor: pointer;
+  color: var(--accent, #2155cf); background: var(--surface, #fff); border: 1px solid var(--line, #dde1e8); border-radius: 8px;
+  box-shadow: 0 1px 2px rgb(0 0 0 / .06); opacity: 0; pointer-events: none; transition: opacity .15s, background-color .15s;
 }
-.ra-sec:hover { background: #0369a1; }
+.ra-sec:hover { background: var(--sunken, #eef0f4); border-color: var(--accent, #2155cf); }
+.ra-sec:focus-visible { outline: 2px solid var(--accent, #2155cf); outline-offset: 2px; }
 .ra-sec.show, .ra-sec.current, .ra-sec:focus-visible { opacity: 1; pointer-events: auto; }
-.ra-sec .ra-spin { border-color: rgb(255 255 255 / .4); border-top-color: #fff; }
+.ra-sec.current { color: var(--surface, #fff); background: var(--accent, #2155cf); border-color: var(--accent, #2155cf); }
+.ra-sec .ra-spin { border-color: color-mix(in srgb, currentColor 35%, transparent); border-top-color: currentColor; }
 @media (hover: none) { .ra-sec { opacity: .9; pointer-events: auto; } }
 .toast { position: fixed; left: 50%; bottom: 74px; transform: translateX(-50%); max-width: min(560px, calc(100vw - 24px)); padding: 8px 12px; color: #fff; background: #151922; border-radius: 8px; box-shadow: 0 6px 20px rgb(0 0 0 / .25); }
 .banner { position: fixed; top: 12px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; padding: 6px 8px 6px 14px; color: #fff; background: #9a5300; border-radius: 10px; }

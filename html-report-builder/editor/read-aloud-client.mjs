@@ -226,6 +226,8 @@ export function mountReadAloud({ root, host, toast, request }) {
   let lastUserScroll = 0;
   let lastAutoScroll = 0;
   let hoveredKey = null;
+  const BUTTON = 30;
+  const GAP = 8;
   let frame = 0;
   let preparingTimer = 0;
   let lastBar = 0;
@@ -295,7 +297,9 @@ export function mountReadAloud({ root, host, toast, request }) {
   const readHost = document.createElement("div");
   readHost.id = "hre-read";
   readHost.setAttribute("data-hr-ui", "");
-  readHost.style.cssText = "position:absolute;left:0;top:0;width:0;height:0;z-index:2147481000";
+  // As wide as the viewport and clipped sideways, so a button never widens the page, even for
+  // the frame before a resize repositions it.
+  readHost.style.cssText = "position:absolute;left:0;top:0;width:100%;height:0;overflow-x:clip;z-index:2147481000";
   document.body.append(readHost);
   const readRoot = readHost.attachShadow({ mode: "open" });
   readRoot.innerHTML = '<link rel="stylesheet" href="/__hre/toolbar.css"><div id="buttons"></div>';
@@ -464,9 +468,11 @@ export function mountReadAloud({ root, host, toast, request }) {
       const box = unit.kind === "slide" ? unit.elements[0].getBoundingClientRect() : anchor;
       if (!box.width && !box.height) { button.hidden = true; continue; }
       button.hidden = false;
-      const gutter = box.left >= 44;
-      const left = gutter ? box.left - 36 : box.right - 34;
-      const top = unit.kind === "slide" ? box.top + (gutter ? 6 : 8) : anchor.top + Math.min(anchor.height, 44) / 2 - 14;
+      // To the right of the section's heading or the slide's top, in the margin when there is
+      // room, else just inside the right edge.
+      const gutter = document.documentElement.clientWidth - box.right >= BUTTON + GAP + 4;
+      const left = gutter ? box.right + GAP : box.right - BUTTON - GAP;
+      const top = unit.kind === "slide" ? box.top + GAP : anchor.top + Math.min(anchor.height, 44) / 2 - BUTTON / 2;
       button.style.left = `${Math.round(left + window.scrollX)}px`;
       button.style.top = `${Math.round(top + window.scrollY)}px`;
     }
@@ -477,13 +483,21 @@ export function mountReadAloud({ root, host, toast, request }) {
   window.addEventListener("resize", scheduleLayout);
   window.addEventListener("load", scheduleLayout);
   if ("ResizeObserver" in window) new ResizeObserver(scheduleLayout).observe(document.body);
-  document.addEventListener("mouseover", (event) => {
-    const target = event.target;
-    const unit = target === readHost ? units.find((u) => u.key === hoveredKey) : units.find((u) => u.elements.some((element) => element.contains(target)));
-    const key = unit ? unit.key : null;
+  // A button stays up for a moment after the pointer leaves its section, so it can be reached
+  // across the margin; pointing at the button itself keeps it.
+  let hoverGrace = 0;
+  const setHovered = (key) => {
+    clearTimeout(hoverGrace);
     if (key === hoveredKey) return;
     hoveredKey = key;
     layoutButtons();
+  };
+  document.addEventListener("mouseover", (event) => {
+    const target = event.target;
+    const unit = target === readHost ? units.find((u) => u.key === hoveredKey) : units.find((u) => u.elements.some((element) => element.contains(target)));
+    if (unit) { setHovered(unit.key); return; }
+    clearTimeout(hoverGrace);
+    if (hoveredKey) hoverGrace = setTimeout(() => setHovered(null), 700);
   });
   new MutationObserver(() => {
     if (document.documentElement.classList.contains("hr-presenting")) session.pause("presenting");
