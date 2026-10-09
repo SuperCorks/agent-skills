@@ -6,7 +6,7 @@ import path from "node:path";
 import { after, before, test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { startEditor } from "../editor/report-editor.mjs";
-import { ProviderUnavailable, rewrite, rewriteWithCodex } from "../editor/providers.mjs";
+import { ProviderUnavailable, TASKS, buildTranscriptPrompt, rewrite, rewriteWithCodex } from "../editor/providers.mjs";
 import { buildSource } from "../scripts/lib/build.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -360,6 +360,19 @@ test("codex provider passes the pinned flags and parses the schema output", asyn
   assert.equal(args[args.indexOf("-m") + 1], "gpt-6-luna");
   assert.ok(args.includes('model_reasoning_effort="low"'));
   assert.match(prompt, /^You edit one fragment/);
+});
+
+test("the transcript task passes its own schema and rules to codex and returns the transcript", async () => {
+  const log = path.join(dir, "codex-transcript-log.json");
+  process.env.FAKE_CODEX_LOG = log;
+  const prompt = buildTranscriptPrompt({ title: "Plan", kind: "slide", label: "Cover", index: 1, total: 4, text: "# Recover lost sales" });
+  const result = await rewriteWithCodex({ prompt, model: "gpt-6-luna", effort: "low", codexBin: fakeCodex(), task: TASKS.transcript });
+  delete process.env.FAKE_CODEX_LOG;
+  assert.equal(result.transcript, "Spoken: # Recover lost sales");
+  const logged = JSON.parse(readFileSync(log, "utf8"));
+  assert.ok(logged.args[logged.args.indexOf("--output-schema") + 1].endsWith("transcript.schema.json"));
+  assert.match(logged.prompt, /^You write spoken transcripts of report text/);
+  assert.match(logged.prompt, /This part: a slide with its speaker notes "Cover" \(part 1 of 4\)/);
 });
 
 test("codex failures: a missing CLI or logged-out CLI is unavailable, other errors surface", async () => {

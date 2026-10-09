@@ -92,6 +92,39 @@ ins { color: #0f5a31; background: #ddf5e6; text-decoration: none; }
 .thread .row button:not(.primary) { border: 1px solid #d6dbe4; }
 .thread .row button.danger { margin-right: auto; color: #b3261e; border-color: transparent; }
 .thread .row .meta { margin: 0 auto 0 0; }
+/* Read aloud: the reader strip above the toolbar (toolbar root) and section buttons (read root). */
+.reader {
+  position: fixed; left: 50%; bottom: 72px; transform: translateX(-50%); z-index: 2147483000; width: min(660px, calc(100vw - 24px));
+  padding: 6px 8px 7px; font: 13px/1.4 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: #e9ebf0; background: #16181d; border-radius: 12px; box-shadow: 0 8px 30px rgb(0 0 0 / .28);
+}
+.ra-row { display: flex; align-items: center; gap: 2px; min-width: 0; }
+.reader button { flex: none; display: inline-grid; place-items: center; min-width: 30px; height: 30px; padding: 0 8px; }
+.reader button:hover:not(:disabled) { background: rgb(255 255 255 / .09); }
+.reader .ra-play { width: 34px; height: 34px; padding: 0; border-radius: 50%; color: #16181d; background: #e9ebf0; }
+.reader .ra-play:hover:not(:disabled) { background: #fff; }
+#ra-rate { font-variant-numeric: tabular-nums; min-width: 44px; }
+.ra-label { flex: 0 1 auto; min-width: 0; max-width: 220px; margin-left: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.ra-status { flex: 1 1 auto; min-width: 0; padding: 0 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #9aa1ad; }
+.ra-status.error { color: #ffb4ab; white-space: normal; }
+#ra-follow, #ra-action { border: 1px solid rgb(255 255 255 / .2); }
+#ra-stop { font-size: 18px; line-height: 1; }
+.ra-progress { height: 3px; margin: 6px 4px 0; overflow: hidden; border-radius: 2px; background: rgb(255 255 255 / .12); }
+.ra-progress i { display: block; width: 0; height: 100%; background: #7dd3fc; transition: width .25s linear; }
+.ra-spin { width: 14px; height: 14px; border: 2px solid rgb(127 127 127 / .35); border-top-color: currentColor; border-radius: 50%; animation: spin .8s linear infinite; }
+:host(.reading) .panel, :host(.reading) .comments, :host(.reading) .settings { bottom: 128px; }
+:host(.reading) .toast { bottom: 130px; }
+#listen.active { color: #16181d; background: #7dd3fc; }
+#listen.warn::after { content: ""; display: inline-block; width: 7px; height: 7px; margin-left: 6px; border-radius: 50%; background: #f5a524; vertical-align: 1px; }
+.ra-sec {
+  position: absolute; width: 28px; height: 28px; padding: 0; display: grid; place-items: center; border-radius: 50%;
+  color: #fff; background: #0284c7; box-shadow: 0 0 0 2px #fff, 0 2px 8px rgb(0 0 0 / .25);
+  opacity: 0; pointer-events: none; transition: opacity .15s;
+}
+.ra-sec:hover { background: #0369a1; }
+.ra-sec.show, .ra-sec.current, .ra-sec:focus-visible { opacity: 1; pointer-events: auto; }
+.ra-sec .ra-spin { border-color: rgb(255 255 255 / .4); border-top-color: #fff; }
+@media (hover: none) { .ra-sec { opacity: .9; pointer-events: auto; } }
 .toast { position: fixed; left: 50%; bottom: 74px; transform: translateX(-50%); max-width: min(560px, calc(100vw - 24px)); padding: 8px 12px; color: #fff; background: #151922; border-radius: 8px; box-shadow: 0 6px 20px rgb(0 0 0 / .25); }
 .banner { position: fixed; top: 12px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; padding: 6px 8px 6px 14px; color: #fff; background: #9a5300; border-radius: 10px; }
 .banner button { background: rgb(255 255 255 / .18); color: #fff; }
@@ -119,5 +152,9 @@ ins { color: #0f5a31; background: #ddf5e6; text-decoration: none; }
   .status { flex: 1 1 100%; padding: 2px 6px; }
   .panel { bottom: 104px; }
   .comments { bottom: 104px; }
+  .reader { bottom: 104px; }
+  .ra-label { max-width: 120px; }
+  :host(.reading) .panel, :host(.reading) .comments, :host(.reading) .settings { bottom: 160px; }
+  :host(.reading) .toast { bottom: 162px; }
 }
-@media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 2.4s; } }
+@media (prefers-reduced-motion: reduce) { .spinner, .ra-spin { animation-duration: 2.4s; } }

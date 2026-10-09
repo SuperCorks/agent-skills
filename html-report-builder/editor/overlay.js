@@ -3,6 +3,7 @@
 // (Cmd+K) to propose a model rewrite, review the diff, then accept or discard it. Click beside
 // the text to select its card or section; Delete removes the selection (Undo brings it back).
 // Comment (C) pins a review comment to the spot you click; pins open threads to reply or resolve.
+// Listen (R) reads the report aloud section by section (read-aloud-client.mjs).
 (() => {
   "use strict";
   const stateNode = document.getElementById("hre-state");
@@ -22,6 +23,7 @@
   let showResolved = false;
   let draft = null;
   let openThreadId = null;
+  let readAloud = null;
   const SCROLL_KEY = `hre-scroll:${location.pathname}`;
   const FLASH_KEY = `hre-flash:${location.pathname}`;
   const CHIPS = [
@@ -41,6 +43,7 @@
     window.addEventListener("load", () => window.scrollTo(0, target));
   }
   const reload = () => {
+    readAloud?.persist();
     sessionStorage.setItem(SCROLL_KEY, String(window.scrollY));
     location.reload();
   };
@@ -58,6 +61,7 @@
       if (!response.ok || data.ok === false) {
         const error = new Error(data.error || `Request failed (${response.status})`);
         error.status = response.status;
+        error.data = data;
         throw error;
       }
       return data;
@@ -114,6 +118,7 @@
       <span class="sep"></span>
       <button id="comment" title="Pin a comment to the next spot you click (C)">+ Comment</button>
       <button id="comments-btn" title="All comments">Comments<span class="count" id="comment-count" hidden></span></button>
+      <button id="listen" title="Read aloud from the section in view (R)">▶ Listen</button>
       <span class="sep"></span>
       <button id="undo" disabled title="Undo (⌘Z)">Undo</button>
       <button id="redo" disabled title="Redo (⇧⌘Z)">Redo</button>
@@ -145,7 +150,7 @@
   const pinRoot = pinHost.attachShadow({ mode: "open" });
   pinRoot.innerHTML = `<link rel="stylesheet" href="/__hre/toolbar.css"><div id="pins"></div><section class="thread" id="thread" hidden></section>`;
   const pin$ = (id) => pinRoot.getElementById(id);
-  const inUi = (node) => node === host || host.contains(node) || node === pinHost || pinHost.contains(node);
+  const inUi = (node) => node === host || host.contains(node) || node === pinHost || pinHost.contains(node) || node?.id === "hre-read";
   const isBlock = (node) => node && node.dataset && /^b\d+$/.test(node.dataset.hre || "");
   const canDelete = (node) => !!node && node.hasAttribute("data-hre-del");
   const labelOf = (element) => {
@@ -211,6 +216,7 @@
 
   // ----- inline editing -----
   function startEdit(block) {
+    readAloud?.pause("editing");
     editing = { el: block, html: block.innerHTML, text: textOf(block) };
     block.classList.remove("hre-hover", "hre-scope");
     block.classList.add("hre-editing");
@@ -318,6 +324,10 @@
     }
     const presenting = document.documentElement.classList.contains("hr-presenting");
     if (!editing && !mod && !event.altKey && event.key.toLowerCase() === "c" && !typing && !presenting) { event.preventDefault(); setCommenting(!commenting); return; }
+    if (!editing && !mod && !event.altKey && !typing && !presenting && !event.repeat && readAloud) {
+      if (event.key.toLowerCase() === "r") { event.preventDefault(); readAloud.toggle(); return; }
+      if ((event.key === "[" || event.key === "]") && readAloud.isActive()) { event.preventDefault(); readAloud.step(event.key === "]" ? 1 : -1); return; }
+    }
     if (!editing && event.key === "Escape" && (commenting || !pin$("thread").hidden)) { event.preventDefault(); setCommenting(false); closeThread(); return; }
     if (!editing && mod && event.key.toLowerCase() === "z") { event.preventDefault(); historyStep(event.shiftKey ? "redo" : "undo"); return; }
     if (!editing && !mod && (event.key === "Delete" || event.key === "Backspace") && $("panel").hidden && scope && scope.classList.contains("hre-scope")) {
@@ -333,6 +343,7 @@
 
   // ----- AI rewrite -----
   async function openPanel() {
+    readAloud?.pause("ai");
     if (!scope && hovered) select(hovered);
     if (!scope) { toast("Click a paragraph first, then widen the scope with the labels in the bar if needed."); return; }
     if (editing) await commit();
@@ -719,6 +730,13 @@
     toast(flash);
   }
 
+  import("/__hre/read-aloud-client.mjs").then((module) => {
+    readAloud = module.mountReadAloud({ root, host, toast, request });
+  }).catch((error) => {
+    $("listen").hidden = true;
+    console.warn(`Read aloud is unavailable: ${error.message}`);
+  });
+
   request("/api/state", null, { method: "GET" }).then((data) => {
     state = data;
     comments = data.comments || [];
@@ -736,7 +754,7 @@
     if (event.type !== "changed" && event.type !== "saved") return;
     setTimeout(() => {
       if (event.version === version || pending) return;
-      if (editing || proposal || running) show("banner", true);
+      if (editing || proposal || running || readAloud?.isActive()) show("banner", true);
       else reload();
     }, event.type === "saved" ? 800 : 0);
   };

@@ -2,7 +2,7 @@
 // Local point-and-click editor for one HTML report, with AI rewrites of a paragraph or section,
 // deletion of sections, cards, rows, and paragraphs, and review comments pinned to any part.
 // Usage: report-editor.mjs <file.html> [--port 0] [--provider codex|openrouter] [--model gpt-6-luna]
-//                          [--effort low] [--author "Name"] [--no-open]
+//                          [--effort low] [--author "Name"] [--voice harper_32] [--no-open]
 import { execFileSync, spawn } from "node:child_process";
 import { createHash, randomBytes } from "node:crypto";
 import { copyFileSync, existsSync, mkdirSync, readFileSync, realpathSync, renameSync, statSync, writeFileSync } from "node:fs";
@@ -16,7 +16,8 @@ import { addThread, deleteThread, keepPins, publicThreads, replyToThread, setThr
 import { loadRuntime } from "../scripts/lib/runtime.mjs";
 import { attr, normalizeText, parse, splice, textContent } from "../scripts/lib/scan.mjs";
 import { describe, instrument, locate, outlineHeadings, removal, replaceInner, replaceOuter, surroundingText } from "./blocks.mjs";
-import { DEFAULT_SETTINGS, EFFORTS, MODEL_SUGGESTIONS, PROVIDERS, buildPrompt, rewrite as defaultRewrite } from "./providers.mjs";
+import { DEFAULT_SETTINGS, EFFORTS, MODEL_SUGGESTIONS, PROVIDERS, buildPrompt, rewrite as defaultRewrite, transcribe as defaultTranscribe } from "./providers.mjs";
+import { createReadAloud } from "./read-aloud-server.mjs";
 import { ALLOWED_FRAGMENT_TAGS, protect, readableText, restore, sanitizeInline, validateRewrite, wordDiff } from "./sanitize.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -24,7 +25,7 @@ const CONFIG_DIR = path.join(process.env.XDG_CONFIG_HOME || path.join(os.homedir
 const CONFIG_FILE = path.join(CONFIG_DIR, "config.json");
 const BACKUP_DIR = path.join(process.env.XDG_CACHE_HOME || path.join(os.homedir(), ".cache"), "html-report-editor");
 const ASSET_TYPES = {
-  ".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".png": "image/png", ".jpg": "image/jpeg",
+  ".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".mjs": "text/javascript; charset=utf-8", ".png": "image/png", ".jpg": "image/jpeg",
   ".jpeg": "image/jpeg", ".gif": "image/gif", ".webp": "image/webp", ".avif": "image/avif", ".svg": "image/svg+xml",
   ".woff2": "font/woff2", ".woff": "font/woff", ".json": "application/json", ".mp4": "video/mp4", ".webm": "video/webm"
 };
@@ -90,7 +91,7 @@ class HttpError extends Error {
 /** Start the editor server. Returns {url, port, close, session}. */
 export async function startEditor({
   file, port = 0, settings, configFile = CONFIG_FILE, backupDir = BACKUP_DIR, rewrite = defaultRewrite, pollMs = 1000, log = console.log,
-  author = defaultAuthor()
+  author = defaultAuthor(), transcribe = defaultTranscribe, readAloud: readAloudOptions = {}
 }) {
   const target = realpathSync(path.resolve(file));
   if (!statSync(target).isFile()) throw new Error(`not a file: ${file}`);
@@ -108,6 +109,7 @@ export async function startEditor({
     author: String(author || "Reviewer").trim().slice(0, 80) || "Reviewer"
   };
   session.version = hash(session.source);
+  const reader = createReadAloud({ session, transcribe, log, cacheDir: path.join(backupDir, "read-aloud"), ...readAloudOptions });
   let stat = statSync(target);
   let cookieName = "hre";
 
@@ -288,6 +290,12 @@ export async function startEditor({
       if (!found) throw new HttpError(404, "Not found.");
       return describe(found, found.doc);
     },
+    readAloudStatus(body) {
+      return reader.status({ refresh: body?.refresh === true });
+    },
+    readAloudPrepare(body) {
+      return reader.prepare(body || {});
+    },
     comment({ id, version, x, y, text }) {
       requireVersion(version);
       const found = locate(session.source, String(id));
@@ -371,7 +379,7 @@ export async function startEditor({
       if (req.method === "GET" && url.pathname === "/") return send(res, 200, servePage(), "text/html; charset=utf-8");
       if (req.method === "GET" && url.pathname.startsWith("/__hre/")) {
         const name = url.pathname.slice("/__hre/".length);
-        if (!["overlay.js", "overlay.css", "toolbar.css"].includes(name)) return send(res, 404, { error: "Not found." });
+        if (!["overlay.js", "overlay.css", "toolbar.css", "read-aloud-client.mjs", "read-aloud-core.mjs"].includes(name)) return send(res, 404, { error: "Not found." });
         return send(res, 200, readFileSync(path.join(HERE, name)), ASSET_TYPES[path.extname(name)]);
       }
       if (req.method === "GET" && url.pathname === "/api/state") return send(res, 200, api.state());
@@ -385,7 +393,8 @@ export async function startEditor({
       }
       const routes = {
         "/api/edit": "edit", "/api/ai": "ai", "/api/apply": "apply", "/api/delete": "remove", "/api/undo": "undo", "/api/redo": "redo", "/api/settings": "saveSettings", "/api/describe": "describe",
-        "/api/comments/add": "comment", "/api/comments/reply": "reply", "/api/comments/resolve": "resolve", "/api/comments/delete": "uncomment"
+        "/api/comments/add": "comment", "/api/comments/reply": "reply", "/api/comments/resolve": "resolve", "/api/comments/delete": "uncomment",
+        "/api/read-aloud/status": "readAloudStatus", "/api/read-aloud/prepare": "readAloudPrepare"
       };
       if ((req.method === "POST" || req.method === "PUT") && routes[url.pathname]) {
         const body = await readBody(req);
@@ -394,6 +403,7 @@ export async function startEditor({
         const result = await api[routes[url.pathname]](body, controller.signal);
         return send(res, 200, { ok: true, ...result });
       }
+      if (req.method === "GET" && url.pathname.startsWith("/api/read-aloud/audio/")) return reader.serveAudio(req, res, url.pathname.slice("/api/read-aloud/audio/".length));
       if (req.method === "GET") {
         const relative = decodeURIComponent(url.pathname);
         const asset = path.resolve(baseDir, `.${relative}`);
@@ -421,6 +431,7 @@ export async function startEditor({
     url, port: actualPort, session,
     close: () => new Promise((resolve) => {
       clearInterval(poll);
+      reader.close();
       for (const client of session.clients) client.end();
       server.close(() => resolve());
       server.closeAllConnections?.();
@@ -438,6 +449,7 @@ function parseArgs(argv) {
     else if (arg === "--model") options.overrides.model = value();
     else if (arg === "--effort") options.overrides.effort = value();
     else if (arg === "--author") options.author = value();
+    else if (arg === "--voice") options.voice = value();
     else if (arg === "--no-open") options.open = false;
     else if (arg === "--help" || arg === "-h") options.help = true;
     else if (!options.file) options.file = arg;
@@ -449,12 +461,12 @@ function parseArgs(argv) {
 async function main() {
   const options = parseArgs(process.argv.slice(2));
   if (options.help || !options.file) {
-    console.log("Usage: report-editor.mjs <file.html> [--port 0] [--provider codex|openrouter] [--model gpt-6-luna] [--effort low] [--author \"Name\"] [--no-open]");
+    console.log("Usage: report-editor.mjs <file.html> [--port 0] [--provider codex|openrouter] [--model gpt-6-luna] [--effort low] [--author \"Name\"] [--voice harper_32] [--no-open]");
     process.exitCode = options.help ? 0 : 2;
     return;
   }
   const settings = { ...loadSettings(), ...options.overrides };
-  const editor = await startEditor({ file: options.file, port: options.port || 0, settings, ...(options.author ? { author: options.author } : {}) });
+  const editor = await startEditor({ file: options.file, port: options.port || 0, settings, ...(options.author ? { author: options.author } : {}), ...(options.voice ? { readAloud: { voice: options.voice } } : {}) });
   const { provider, model, effort } = editor.session.settings;
   console.log(`Editing ${editor.session.file}\nOpen: ${editor.url}\nAI: ${provider} / ${model} (effort ${effort})\nPress Ctrl+C to stop.`);
   if (options.open) {

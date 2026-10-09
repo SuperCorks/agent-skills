@@ -1,0 +1,6 @@
+{
+  "type": "object",
+  "properties": { "transcript": { "type": "string" } },
+  "required": ["transcript"],
+  "additionalProperties": false
+}

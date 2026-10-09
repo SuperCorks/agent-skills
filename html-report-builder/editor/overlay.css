@@ -1,5 +1,16 @@
 /* Page-level editor states, injected by report-editor.mjs and never saved. */
 [data-hre^="b"] { cursor: text; }
+/* Read aloud: the section being read, the words being spoken (CSS Custom Highlight API, as in
+   t3code), a table or chart row read as a sentence, and the block fallback without highlights. */
+.hre-reading { outline: 2px solid rgb(2 132 199 / .45); outline-offset: 6px; border-radius: 6px; }
+::highlight(hre-read-aloud) { color: #0284c7; background-color: rgb(14 165 233 / .14); }
+[data-hre-reading-row] > *, .hre-reading-block { background-color: rgb(14 165 233 / .12); }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) ::highlight(hre-read-aloud) { color: #38bdf8; background-color: rgb(56 189 248 / .16); }
+}
+:root[data-theme="dark"] ::highlight(hre-read-aloud) { color: #38bdf8; background-color: rgb(56 189 248 / .16); }
+.slide.divider ::highlight(hre-read-aloud) { color: #7dd3fc; }
+html.hre-commenting #hre-read { display: none; }
 .hre-hover { outline: 2px dashed rgb(33 85 207 / .5) !important; outline-offset: 3px; border-radius: 3px; }
 .hre-editing { outline: 2px solid #2155cf !important; outline-offset: 3px; border-radius: 3px; background-color: rgb(33 85 207 / .06); }
 .hre-scope { outline: 2px solid #b26a00 !important; outline-offset: 5px; border-radius: 4px; }
@@ -9,4 +20,4 @@
 .hre-editing a { cursor: text; }
 #hre-host { all: initial; }
 .hre-commenting, .hre-commenting * { cursor: crosshair !important; }
-@media print { [data-hr-ui] { display: none !important; } }
+@media print { [data-hr-ui] { display: none !important; } .hre-reading { outline: none !important; } }
