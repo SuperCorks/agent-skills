@@ -32,6 +32,8 @@ For each task, provide:
 - relevant risk, compatibility, migration, or rollback notes; and
 - likely repository surfaces when known, without pretending file guesses are requirements.
 
+Verification names evidence on the real surface: a behavioral task gets a live check, not tests alone; a regression check runs the same scenario on base and head; a performance gate interleaves base and head runs and never states a ratio between different scenarios.
+
 Keep a task small enough for one coherent change and review, but do not split an atomic behavior merely to meet an arbitrary size. Provide estimates or assignments only when requested and supported.
 
 ## Sequence by feedback and risk
@@ -45,7 +47,7 @@ Express dependencies as a graph or ordered waves. Independent tasks may share a 
 Before handing off, confirm that:
 
 - every acceptance criterion maps to at least one task;
-- every task has a direct proof and a completion state;
+- every task has a direct proof and a completion state, and counts as done only once that named evidence exists;
 - no task duplicates another task's responsibility;
 - dependency edges have a concrete reason;
 - cross-cutting concerns such as compatibility, security, data migration, observability, documentation, and cleanup are attached to the slice that owns them; and

@@ -1,6 +1,6 @@
 ---
 name: codebase-explorer
-description: Read-only architecture mapping and execution tracing for unfamiliar or complex codebases.
+description: Read-only architecture mapping and execution tracing for unfamiliar or complex codebases, including placement questions such as “where should this live,” “which package owns this,” or “is this the right layer.”
 ---
 
 # Codebase Explorer
@@ -8,7 +8,7 @@ description: Read-only architecture mapping and execution tracing for unfamiliar
 ## When to use
 
 - You need a read-only understanding of architecture before making changes.
-- You must identify entry points, dependencies, and change hotspots.
+- You must identify entry points, dependencies, change hotspots, or where new code belongs (owning package, right layer).
 - You need a senior-onboarding mental model or concise execution trace for a feature or bug path.
 
 ## Inputs expected
@@ -20,6 +20,9 @@ description: Read-only architecture mapping and execution tracing for unfamiliar
 
 1. Orient:
    - Identify repository boundaries, entry points, relevant documentation, build/runtime shape, and vocabulary.
+   - Size the question. Explore a single module or narrow question directly. For a subsystem-wide or cross-cutting question, split it into 2–4 non-overlapping angles and launch one read-only sub-agent per angle in a single message, using the harness's native sub-agents on the current model.
+   - Each explorer returns components, flow, files read, boundaries, non-obvious behavior, and open questions, citing exact files and symbols. “I couldn't determine how X connects to Y” beats a guess.
+   - Synthesize the findings yourself through the steps below, resolving contradictions by reading the code.
 2. Build the mental model:
    - Explain the system overview and the few key concepts needed to reason about the requested area.
    - Map module and data ownership, including who creates, mutates, persists, and consumes important state.
@@ -37,11 +40,13 @@ description: Read-only architecture mapping and execution tracing for unfamiliar
 ## Output format (evidence required)
 
 - Overview and key concepts.
-- Runtime flow (high-level call chain and state/data movement).
+- Runtime flow (high-level call chain and state/data movement), with a Mermaid diagram only when the flow crosses components.
 - Ownership and boundaries.
 - Where to look: entry points, files/symbols, tests, configuration, and candidate hotspots.
 - Gotchas, risks, and explicit unknowns.
 - Evidence references for material claims.
+
+Name real symbols: “`UserService` calls `AuthClient.refresh()`,” not “the service delegates to the client.”
 
 ## Quality gate / halt conditions
 

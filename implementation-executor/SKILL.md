@@ -20,14 +20,17 @@ description: Executes an approved implementation plan with focused changes and e
 
 1. Verify prerequisites:
    - Confirm plan approval, branch state, repository conventions, and the plan's independently verifiable units.
+   - Copy these workflow steps and the plan's units into the todo list; keep any step you skip visible as `skip: <reason>`.
    - For UI work, use `frontend-design` to verify the plan's governing design sources, reference surfaces, reuse mapping, and observable design criteria. Fill missing context before editing. If the skill is unavailable, inspect the relevant docs, components, and existing pages directly; inherit their applicable system unless redesign is requested.
 2. Execute one unit at a time:
    - Implement the smallest complete unit that produces an observable behavior.
    - Keep changes aligned with the plan and avoid unrelated refactors or scope expansion.
-   - Run the unit's focused validation before beginning the next unit.
+   - For repetitive mechanical edits, make the first edit by hand, then write a small rerunnable script or codemod, confirm it reproduces that edit, apply it, and include its command in the handoff.
+   - Run the unit's focused validation before beginning the next unit. When a check fails unexpectedly, rule out the observation method (stale build, cache, wrong target or environment) before changing code.
 3. Manage divergence:
    - Record a small, local adjustment that preserves the design and acceptance criteria.
-   - Stop and return to planning for a material contract, data-model, or architecture change. Repeated minor deviations are also a signal that the design assumptions need revision.
+   - Stop and return to planning for a material contract, data-model, or architecture change.
+   - Repeated deviations of one shape also mean the design assumptions are wrong: the same workaround across unrelated code, unrelated edge cases each needing a special branch, types that need casts or always-set optional fields, a lock on state the design said was unshared, or callers that must know internal rules. Replan with the new constraints as day-one assumptions; the revised design should shrink before it grows.
 4. Validate the integrated result:
    - Run the repository's relevant format, lint, build, and test commands.
    - Exercise the built artifact or representative user path when practical; record why if runtime verification is unavailable.

@@ -29,6 +29,7 @@ For material UI changes, use the task's design context and acceptance criteria. 
 - Navigation, labels, grouping, and progressive disclosure reduce avoidable cognitive load.
 - Destructive actions are distinguishable and appropriately confirmed.
 - Empty and error states explain what happened and what the user can do next.
+- Filters, tabs, pagination, and open panels a user would share or revisit live in the URL, so reload, back, and shared links restore them.
 
 ### Complete user journeys and recovery
 
@@ -53,6 +54,7 @@ For material UI changes, use the task's design context and acceptance criteria. 
 - Feedback prevents duplicate actions and uncertainty.
 - Touch targets and spacing support coarse pointers.
 - Interaction does not require hover, precise pointing, or an unexplained gesture.
+- Form fields use the correct `type`, `inputmode`, `autocomplete`, and `name`; paste is never blocked; errors appear inline at the field; and leaving unsaved input warns first.
 
 ### Responsive behavior
 
@@ -60,6 +62,7 @@ For material UI changes, use the task's design context and acceptance criteria. 
 - Critical actions remain available as space contracts.
 - Text zoom, long labels, localization, empty data, and dense content do not break the layout.
 - Fixed, sticky, and viewport-height elements tolerate mobile browser chrome and on-screen keyboards.
+- Flex and grid children that truncate text can shrink (`min-width: 0`, or `min-w-0` in Tailwind) instead of overflowing.
 
 ### Alignment and spacing
 
@@ -85,12 +88,14 @@ For material UI changes, use the task's design context and acceptance criteria. 
 - Controls, confirmations, errors, and notifications reuse the same action vocabulary.
 - Claims, metrics, testimonials, customer marks, and examples are sourced rather than invented.
 - Truncation, wrapping, units, dates, numbers, and status language remain understandable.
+- Dates, numbers, and currency are formatted for the user's locale with `Intl`; numbers that update in place use tabular figures.
 
 ### Performance and implementation risk
 
 - New visual behavior avoids obvious layout shift, avoidable render churn, blocking assets, and excessive animation work.
 - New dependencies are justified and compatible with the stack.
 - Console errors, failed resources, and hydration problems are blockers when they affect the reviewed flow.
+- Transitions name their properties (no `transition: all`) and animate `transform` and `opacity` where possible; large lists are virtualized.
 
 ## Severity and verdict
 

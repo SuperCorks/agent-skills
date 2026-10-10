@@ -44,7 +44,7 @@ Worker roles, models, and prompts are in [references/roles.md](references/roles.
 
    Add `--autonomy "<the user's stated level>"` only when the initial prompt limits autonomy; otherwise the plan gets the high-autonomy default.
 
-   Keep the run id and the plan path in your context. Everything else is re-derivable from `status`.
+   Keep the run id and the plan path in your context. Everything else is re-derivable from `status`. After a context compaction, re-read this skill and `plan.md` before acting.
 
 ### 1. Plan, scaled to the task
 
@@ -63,12 +63,14 @@ Definition of done must be observable (tests, commands, or user-visible behavior
 - Give one worker a serial chain (schema, then service, then UI) as one task with ordered steps, instead of three dependent tasks.
 - Split only slices that can run in parallel on disjoint files, or where a checkpoint is truly needed before the next step (for example, a design decision the user must see).
 - Do not create separate tasks for docs or small follow-ups of an implementation slice; put them in that slice's acceptance criteria.
+- When one deterministic script can make a mechanical change at every site, give one worker the script instead of fanning out hand edits.
+- For many similar or novel tasks, push one through packet, worker, review, and integration before fanning out, and fix the packet from what it shows.
 
 ### 2. Dispatch
 
 For every task:
 
-1. Create the packet. Fill objective, owned files, acceptance criteria, verification commands, and commit policy. Add dependencies so the script can tell you what is ready.
+1. Create the packet. Fill objective, owned files, acceptance criteria, verification commands, and commit policy. Add dependencies so the script can tell you what is ready. A dependency is a context relay: the packet lists only task ids, so name the upstream report paths in the dependent's objective.
 
    ```bash
    python3 <script> task add --run <id> --title "<t>" --role implement \
@@ -93,12 +95,12 @@ Use the harness reference's event channel. Do not poll or sleep in a loop, and d
 
 After an actionable message or completion, run `python3 <script> status --run <id>` and process every newly actionable result. Treat a message and a final notification for the same result as one transition; do not dispatch duplicate reviewers or dependents.
 
-- `blocked`: read the last message and the report. Resolve it with information the worker lacks, steer the same worker with a message, or split the task. If the resolution changes what the worker must do, `task amend` the packet first and point the message at it. Escalate to the user only when the decision is theirs, and notify them (reference).
+- `blocked`: read the last message and the report. Resolve it with information the worker lacks, steer the same worker with a message, or split the task. If the resolution changes what the worker must do, `task amend` the packet first and point the message at it. Escalate to the user only when the decision is theirs: notify them (reference), `plan log` the question with your proposed default, and keep dispatching independent work.
 - `done`: dispatch a reviewer for that task (step 4); `review none` tasks arrive already `accepted`. Launch dependents only after review acceptance, even if `status` lists them as ready earlier.
-- `failed`: read the report; re-dispatch with a sharper packet at most once, then replan.
+- `failed`: read the report and retry by failure mode: a context or memory limit gets a smaller scope, a transient outage a plain retry, a repeating tool error an amended packet that routes around it, and an unknown cause one retry. Replan after two retries.
 - `accepted` or `rejected`: advance dependents or send corrections immediately (step 4), even while unrelated workers continue.
 - If no worker is active, reconcile any assigned task with the native agent state once. Dispatch ready work, recover a missing report from that worker, finish the run, or surface the actual blocker; never wait on an empty worker set.
-- Silence beyond the packet's expected milestone or watch deadline: request one concise status through native messaging. A wait timeout alone is not a failure. Investigate an unresponsive worker before stopping or redispatching it; use the harness reference's recovery guidance.
+- Silence beyond the packet's expected milestone or watch deadline: request one concise status through native messaging. A wait timeout alone is not a failure; judge liveness by side effects (events, the report file, the worktree diff), not activity. Investigate an unresponsive worker before stopping or redispatching it; use the harness reference's recovery guidance. Check a late result from a replaced worker against current state and salvage it through a fresh task, never a blind merge.
 
 ### 4. Verify through reviewers
 
@@ -111,13 +113,17 @@ The packet's `Review:` line sets how much verification the task gets:
 Every `done` task with `light` or `full` review gets a reviewer worker (same model tier) with the prompt `Review task <n> of run <id>: read <packet path> and <report path>, then follow the reviewer role.` The reviewer ends with `event --kind accepted` or `event --kind rejected --message "<reasons>"`. It never fixes code.
 
 - `accepted`: dispatch dependents.
-- `rejected`: send the reasons to the original worker (resume it) with `Address the review at <review path>, then re-run the protocol.` Two rejections on one task mean the packet or plan is wrong: replan that slice instead of retrying.
+- `rejected`: send the reasons to the original worker (resume it) with `Address the review at <review path>, then re-run the protocol.` Two rejections on one task mean the packet or plan is wrong: replan that slice instead of retrying, and give the rework to a fresh worker with the amended packet and prior report rather than resuming the old one.
+
+A verdict covers only the diff it reviewed: if the task's change moves afterward (a late worker commit, a rebase), it needs re-review. CI green is evidence for a verdict, not a verdict, and an inconclusive check is not a pass.
 
 Record each reviewer with `task set --reviewer <id>`. Reusing a reviewer for its task's re-review after a rejection is fine; the integration task always gets a fresh reviewer that did not review its inputs.
 
 Spot-check at most one accepted task per run yourself by reading its report, not its diff.
 
 ### 5. Integrate and close
+
+On a time-budgeted run, stop dispatching new slices at about 70% of the budget so review and integration still fit.
 
 1. When all slices are accepted, create one `integrate` task for an implementer: merge the worktree branches into the working branch in order, resolve conflicts (`merge-conflict-resolution` skill), run the full verification, and report. Set its commit policy to what the user asked for. Review it like any other task.
 2. Run the alignment gate: `python3 <script> check --run <id>`. Fix every FAIL before continuing; a PASS with warnings is acceptable only if you state the warnings in the final report.
@@ -144,6 +150,8 @@ Spot-check at most one accepted task per run yourself by reading its report, not
 ## Replanning
 
 Stop and revise the plan, not the packet, when a worker reports the plan's assumptions are wrong, when two tasks keep colliding on the same files, or when a slice was rejected twice. Record the change with `plan log`, add tasks with `task add`, rewire order with `task set --depends-on`, and put new instructions into affected packets with `task amend`. Tell the user in one paragraph if the change alters scope or timeline.
+
+Stop all dispatch when a problem would hit every task, and fix it first. Mid-run discoveries change the plan only where they block it; record the rest as follow-ups. When you catch yourself restating an instruction to a worker, `plan log` it and `task amend` the packet.
 
 ## Computer use
 

@@ -1,0 +1,7 @@
+interface:
+  display_name: "Candidate Bakeoff"
+  short_description: "Pit Claude and Codex candidates against a hidden rubric"
+  default_prompt: "Use $candidate-bakeoff to have Claude and Codex each attempt this, judge them blind, and build the result on the strongest base."
+
+policy:
+  allow_implicit_invocation: false

@@ -24,10 +24,10 @@ The final report must record either `recommend` or `skip` for every item in this
 Trace how each subsystem represents state, assigns responsibility, and performs its important work. Accept a candidate only when it simplifies at least one of these dimensions:
 
 - **Representation:** removes duplicated models or translations, makes invalid states harder to express, or replaces scattered condition combinations with a clearer domain representation.
-- **Ownership:** establishes one authoritative owner for a rule, lifecycle, or state transition and removes synchronization or ambiguity between competing owners.
-- **Algorithm:** eliminates repeated work, unnecessary passes, incidental coordination, or a custom mechanism that can be replaced by a simpler proven primitive.
+- **Ownership:** establishes one authoritative owner for a rule, lifecycle, or state transition and removes synchronization or ambiguity between competing owners, including phase-named modules (load, validate, transform, save) that each restate the same domain rules.
+- **Algorithm:** eliminates repeated work, unnecessary passes, incidental coordination, a custom mechanism that can be replaced by a simpler proven primitive, or a dependency whose job the platform, stdlib, or a few lines now cover.
 
-Require exact evidence: relevant files and symbols, the current flow, the duplicated rule or unnecessary mechanism, and the consumers affected. Prefer execution-path evidence over filename inference.
+Require exact evidence: relevant files and symbols, the current flow, the duplicated rule or unnecessary mechanism, and the consumers affected. Prefer execution-path evidence over filename inference. Before calling code unused, search the whole tree, including tests, fixtures, config, and string or dynamic references.
 
 Reject candidates that are primarily renaming, formatting, comment churn, file movement, speculative abstraction, abstraction for a single trivial use, or fewer lines without lower cognitive or operational cost. Do not recommend replacing working project conventions merely because another style is preferred.
 

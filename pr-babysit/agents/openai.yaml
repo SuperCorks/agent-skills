@@ -1,0 +1,4 @@
+interface:
+  display_name: "PR Babysit"
+  short_description: "Drive a PR to merge-ready: threads, then CI until green"
+  default_prompt: "Use $pr-babysit to drive this PR to merge-ready without merging it."

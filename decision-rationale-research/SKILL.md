@@ -19,19 +19,25 @@ Produce a read-only, source-linked account of historical intent without turning 
 
 Identify the exact decision surface, current behavior, affected component, likely time window, and what distinction the user needs resolved. Anchor the investigation in the current checkout by locating the relevant symbols, configuration, tests, contracts, or schema.
 
-List plausible competing explanations only when they help direct research. Do not begin with one preferred story and search only for support.
+List plausible competing explanations only when they help direct research. Do not begin with one preferred story and search only for support. If the question embeds a hypothesis, such as “I assume it's for performance,” treat it as one candidate and test it independently rather than confirming it.
 
 ## Trace evidence
 
 Follow the smallest useful evidence path:
 
 1. Read current code and canonical documentation to understand the present contract and terminology.
-2. Use non-mutating version-control history such as log, show, blame, path history, and patch context to locate introductions and later reversals.
+2. Use non-mutating version-control history such as log, show, blame, path history (`--follow`), pickaxe searches (`git log -S'<literal>'`, `git log -G'<regex>'`), and patch context to locate introductions and later reversals.
 3. Follow exact identifiers, commit references, ticket numbers, PR links, author names, and dated phrases into available issue, review, design-doc, or decision records.
 4. Search relevant chat or project history when informal coordination is likely to contain missing context.
-5. Consult observability or analytics only when runtime outcomes, incidents, adoption, or measured constraints are part of the rationale.
+5. Consult observability or analytics only when runtime outcomes, incidents, adoption, or measured constraints are part of the rationale. For defensive code (a null guard, retry, timeout, rate limit, or flag), look for an incident origin: revert-then-reapply commits, incident chat near the introduction date (`slack-reader`), and error events that drop after the fix (`posthog`).
 
-Read enough surrounding context to distinguish a proposed idea from the accepted decision. Build a chronology and call out contradictory evidence, later reinterpretations, and cases where the original constraint no longer applies.
+Read enough surrounding context to distinguish a proposed idea from the accepted decision. Build a chronology and call out contradictory evidence, later reinterpretations, and cases where the original constraint no longer applies. Watch for history that misleads:
+
+- squash merges, where the PR body and review threads are the only record;
+- “small refactor” messages that hide behavior changes, so read the diff rather than the message;
+- copied patterns, which need tracing to their earliest occurrence;
+- bot and automated commits, which rarely carry intent; and
+- recency bias: the latest commit is rarely the original decision.
 
 ## Classify every conclusion
 
@@ -42,7 +48,7 @@ Separate findings into:
 - **Hypothesis**: a plausible explanation that lacks enough evidence to rely on; and
 - **Gap**: missing, inaccessible, or contradictory evidence that limits the answer.
 
-Do not upgrade repeated hearsay into direct evidence. State confidence for the overall answer and for consequential inferences.
+Do not upgrade repeated hearsay into direct evidence. Match wording to the class: “because,” “was designed to,” and “the team decided” need an adjacent citation; inferences use “appears,” “likely,” or “is consistent with”; never write “obviously” or “clearly.” State confidence for the overall answer and for consequential inferences.
 
 ## Citation standard
 
@@ -57,4 +63,4 @@ Include relevant dates because a later explanation may not represent the origina
 
 ## Output
 
-Lead with the best-supported answer and confidence. Follow with a brief timeline, then an evidence table containing claim, classification, source, and what it establishes. Close with contradictions, hypotheses, evidence gaps, and whether present-day conditions appear to differ from the conditions behind the decision. Do not recommend changing the decision unless the user asked for evaluation or next steps.
+Lead with the best-supported answer and confidence. Follow with a brief timeline, then an evidence table containing claim, classification, source, and what it establishes. Close with contradictions, hypotheses, evidence gaps, sources consulted (including searches that found nothing, with their queries verbatim), and whether present-day conditions appear to differ from the conditions behind the decision. An empty gaps section is suspicious; recheck before presenting the record as complete. Do not recommend changing the decision unless the user asked for evaluation or next steps. When the question precedes a planned change, end with Preserve / Change / Avoid / Risk constraints for that change.
