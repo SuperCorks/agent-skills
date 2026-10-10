@@ -1,0 +1,7 @@
+interface:
+  display_name: "Pre-PR Review"
+  short_description: "Two-lens review, lead merge, fixes, and fresh re-review passes"
+  default_prompt: "Use $pre-pr-review to review this branch with correctness and quality reviewers, apply the accepted fixes, and re-review until clean."
+
+policy:
+  allow_implicit_invocation: false

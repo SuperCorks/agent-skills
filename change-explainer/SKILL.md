@@ -20,7 +20,7 @@ This is a read-only workflow. Do not modify the change being explained. Targeted
 
 1. **Anchor the change.** Identify the repository and exact comparison: pull request, base and head revisions, commit, staged diff, unstaged diff, or another explicit range. Record branch and revision identifiers when available. If intent is not documented, label it as inferred rather than inventing rationale.
 2. **Inspect the relevant system.** Read the changed code plus the minimum surrounding callers, consumers, tests, configuration, documentation, and history needed to explain behavior. Trace both the old and new paths. Agent transcripts or session logs may supply provenance, but code and observable outcomes remain the source of truth.
-3. **Build the teaching narrative.** Establish the prior mental model, show concrete before/after behavior, and walk through the implementation in runtime or dependency order rather than alphabetical file order. Explain changed contracts, state, data flow, side effects, edge cases, and important trade-offs.
+3. **Build the teaching narrative.** Establish the prior mental model, show concrete before/after behavior, and walk through the implementation in runtime or dependency order rather than alphabetical file order. Explain changed contracts, state, data flow, side effects, edge cases, and important trade-offs. When a structure is too large for one diagram, build it up in a series of diagrams, each adding one part.
 4. **Ground every material claim.** Distinguish:
    - **Observed** — directly supported by source, configuration, history, or documentation.
    - **Executed** — demonstrated by a command, test, trace, screenshot, or manual exercise performed during this task.

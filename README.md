@@ -25,6 +25,7 @@ A collection of AI agent skills for GitHub Copilot and other AI assistants.
 | [browser-skill](browser-skill) | Drive the logged-in Chromium browser through the BrowserSkill `bsk` CLI (vendored from bsk; see its UPSTREAM.md) |
 | [browserbase](browserbase) | Browserbase browser automation, Fetch/Search, remote auth contexts, UI QA, debugging, tracing, and platform workflows |
 | [bug-diagnosis](bug-diagnosis) | Diagnose bugs, flaky failures, and performance regressions to an evidence-backed cause without implicitly implementing a fix |
+| [candidate-bakeoff](candidate-bakeoff) | Give N candidates (including Claude vs Codex) one brief, judge them against a hidden rubric, and graft the best parts onto one base; blind-test skill or prompt variants |
 | [change-explainer](change-explainer) | Create evidence-grounded HTML walkthroughs that teach how a bounded code change works |
 | [change-impact-audit](change-impact-audit) | Audit a code change's blast radius and test the assumptions that keep it safe |
 | [code-simplifier](code-simplifier) | Behavior-preserving refactor workflow for reducing complexity and improving readability |
@@ -39,7 +40,7 @@ A collection of AI agent skills for GitHub Copilot and other AI assistants.
 | [frontend-design](frontend-design) | Build and review accessible web interfaces that inherit existing design systems and page patterns, with exploration for new products or requested redesigns |
 | [generate-audio](generate-audio) | Turn text into spoken MP3 or WAV audio with local Voxtral TTS, falling back to Speechify |
 | [git-workflow-gates](git-workflow-gates) | Branch-state checks and post-documentation PR gate workflow for multi-repo workspaces |
-| [github-pr-formatting](github-pr-formatting) | Open clean draft PRs and post correctly formatted comments/bodies |
+| [github-pr-formatting](github-pr-formatting) | Open clean PRs with short reviewer briefings and post correctly formatted comments/bodies |
 | [godaddy](godaddy) | Manage GoDaddy domains and DNS records with multi-account API credentials |
 | [google-workspace](google-workspace) | Operate Drive, Gmail, Calendar, Sheets, Docs, etc. via the `@googleworkspace/cli` (`gws`) npm package |
 | [graphify-context](graphify-context) | Use Graphify safely for architecture, dependency, call-flow, SQL, and other multi-hop codebase questions |
@@ -53,14 +54,18 @@ A collection of AI agent skills for GitHub Copilot and other AI assistants.
 | [my-voice](my-voice) | Draft in the user's writing voice and build or update a private local profile from sources they choose |
 | [pastel-reader](pastel-reader) | Read and audit Pastel canvases, comments, replies, labels, attachments, and metadata with multi-account support |
 | [posthog](posthog) | Analyze PostHog data and manage product tooling with multi-account support |
+| [pr-babysit](pr-babysit) | Drive a PR to merge-ready: conflicts, review threads, and CI failures fixed one at a time, without force-pushing or merging |
 | [pr-review-guidelines](pr-review-guidelines) | Code review rubric focused on correctness, maintainability, consistency, and evidence-backed gates |
+| [pre-pr-review](pre-pr-review) | Run parallel correctness and maintainability reviewers before a PR, merge their findings, apply accepted fixes, and loop with stop rules |
 | [project-verification-bootstrap](project-verification-bootstrap) | Create a project-local verification skill for launching and exercising real application paths with evidence and cleanup |
 | [provider-cli-container](provider-cli-container) | Initialize and operate isolated, pinned provider CLI containers with project-scoped account guards |
 | [publish-artifacts](publish-artifacts) | Publish generated artifacts to an existing public Google Cloud Storage bucket and return verified URLs |
+| [react-best-practices](react-best-practices) | React and Next.js performance rules ranked by impact (vendored from Vercel; see its UPSTREAM.md) |
 | [remote-hosts](remote-hosts) | Connect to and operate persistent remote coding workspaces over SSH |
 | [requirements-interview](requirements-interview) | Clarify consequential requirements through focused questions, context-first synthesis, and evidence provenance |
 | [security-guidance](security-guidance) | Security review checklist for common vulnerabilities with severity and confidence reporting |
 | [serena-context](serena-context) | Use Serena for exact semantic code retrieval, references, diagnostics, and worktree-safe project switching |
+| [session-reflect](session-reflect) | Review a session transcript with parallel reviewers and propose approved, durable edits to skills or agent rules |
 | [skills-browser](skills-browser) | Find useful Agent Skills in curated public skill repositories for a user query |
 | [skills-installer](skills-installer) | Install, update, list, or remove skills and subagents with the installer CLI in non-interactive mode |
 | [slack-reader](slack-reader) | Read Slack messages by permalink URL, including thread replies and resolved user mentions |
@@ -158,3 +163,5 @@ skill-name/
 ## License
 
 MIT
+
+Some skills adapt or vendor third-party MIT-licensed material; each such skill has an `UPSTREAM.md`. Several review, planning, testing, and diagnosis rules are adapted from [cursor/plugins](https://github.com/cursor/plugins) (pstack © 2026 Lauren Tan; thermos and cursor-team-kit © 2026 Cursor) and [DietrichGebert/ponytail](https://github.com/DietrichGebert/ponytail) (© 2026 DietrichGebert), all MIT.

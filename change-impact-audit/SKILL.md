@@ -22,13 +22,18 @@ Follow each changed contract to its producers and consumers. Check the relevant 
 - public APIs, CLI/UI behavior, integrations, version skew, and deploy ordering;
 - caching, retries, idempotency, concurrency, transaction boundaries, and failure recovery;
 - authorization, privacy, feature flags, configuration, observability, and operational runbooks;
+- local developer workflow: secret sources, required environment variable names, ports, and new setup steps;
 - generated artifacts, build pipelines, platform variants, and performance-sensitive paths.
 
-Use repository search, dependency or call-flow tools, history, tests, and runtime evidence as appropriate. Absence of a text reference is not proof that a dynamic consumer does not exist.
+Use repository search, dependency or call-flow tools, history, tests, and runtime evidence as appropriate. Absence of a text reference is not proof that a dynamic consumer does not exist, so also look where symbol search stops:
+
+- consumers keyed by data rather than symbols: API JSON, database columns, wire formats, other languages reading the same bytes, and flag names;
+- dependency behavior, read from the library source at the lockfile version plus any local patch or fork;
+- execution timing, such as microtasks, effect cleanup, and teardown order.
 
 ## Test the safety assumptions
 
-Write down the few assumptions on which safety depends, phrased so they can be disproved. Examples include “all callers accept the new null case,” “old workers can read the new payload,” or “a retry cannot duplicate the side effect.”
+Write down the few assumptions on which safety depends, phrased so they can be disproved. Examples include “all callers accept the new null case,” “old workers can read the new payload,” or “a retry cannot duplicate the side effect.” Most risky-looking changes are safe because of one or two facts: find those, prove them first, and record which risks each one clears.
 
 For each assumption:
 
@@ -36,17 +41,27 @@ For each assumption:
 2. Choose the cheapest meaningful proof: an existing targeted test, a focused repository command, a realistic dry run, schema inspection, or a trace through every consumer.
 3. Record the result and its limits.
 
-Prefer real execution when it is safe and inexpensive. Do not add tests or change implementation as part of the audit. Label assumptions `proven`, `supported`, or `unproven`; never turn missing evidence into certainty.
+Prefer real execution when it is safe and inexpensive. The usual form is a throwaway script in a temporary directory outside the repository that imports the shipped library version and calls the exact function in question; paste its command and output, then delete it. Do not add tests or change implementation as part of the audit.
+
+Push each assumption as far down this ladder as is cheap, label it with the level reached, and say what stopped it there:
+
+- `asserted`: stated without evidence; treat as unproven;
+- `cited`: a specific `file:line` or the pinned library source;
+- `traced`: the failure path was walked step by step and cannot be reached;
+- `executed`: a script or test calls the real code and would fail loudly if the assumption were wrong;
+- `reproduced`: observed in the running application.
+
+Never turn missing evidence into certainty.
 
 ## Report
 
 - Change range, intent, and audit boundaries
 - Impact map of affected contracts and downstream consumers
-- Safety-assumption ledger with evidence and status
+- Safety-assumption ledger with evidence and the level each assumption reached
 - Risks, ordered by severity and confidence, with trigger, impact, and recommended mitigation
 - Cleared concerns, including the evidence that ruled them out
 - Validation commands run and concise results
-- Unproven facts and the smallest next check needed
+- Before merge: the smallest next check for each unproven fact, and the cheapest test or repro that would catch the most likely real bug
 - Overall verdict: `safe within audited scope`, `conditional`, or `needs changes`
 
 Do not report generic risks disconnected from the change. A clear concern is as important as a finding: preserve evidence for both.

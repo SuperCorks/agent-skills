@@ -165,6 +165,17 @@ deployment invariant in the infrastructure repo, and a client compatibility
 decision in the mobile repo. Do not leave the only authoritative record in a
 parent-workspace session or in another repository's memory project.
 
+## Pause and pick up
+
+- Pause only when the user asks or the session must end before the work does,
+  such as at an imminent context limit. Stop at a safe boundary and write a
+  handoff with `memory_handoff_begin`, scoped explicitly like any other write:
+  intent, progress, and what was verified in `summary`; the next action in
+  `next_steps`; gotchas and unresolved decisions in `open_questions`.
+- On pickup, the session-start hook has usually injected the handoff already.
+  Re-check every inherited "done" or "verified" claim on the real artifact
+  before building on it.
+
 ## Diagnose scope mistakes
 
 When history is missing or appears under the wrong project:

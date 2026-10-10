@@ -22,7 +22,7 @@ For each conflicted file:
 1. Inspect the base and both sides, plus relevant commits and non-conflicted neighboring changes.
 2. State what each side is trying to preserve: behavior, interface, data shape, tests, or generated output.
 3. Resolve each hunk with the smallest coherent combination of those intents. Follow the repository's current structure when one side moved or renamed the surrounding code.
-4. Preserve intentional deletions and generated-file conventions. Regenerate artifacts only when the repository's normal workflow requires it.
+4. Preserve intentional deletions and generated-file conventions. Regenerate artifacts only when the repository's normal workflow requires it. For a lockfile conflict, resolve the manifest, then regenerate the lockfile with the repository's package manager instead of hand-editing its hunks.
 5. Search for remaining conflict markers and inspect the complete resulting diff before staging the path.
 
 Do not choose one entire side for convenience when the other contains compatible required behavior. Do not add unrelated cleanup. If the intents are genuinely incompatible and the repository does not establish the desired behavior, stop with the exact decision the user must make.

@@ -1,0 +1,4 @@
+interface:
+  display_name: "React Best Practices"
+  short_description: "Vercel's React and Next.js performance rules"
+  default_prompt: "Use $react-best-practices to review this React code for performance issues, highest-impact rules first."

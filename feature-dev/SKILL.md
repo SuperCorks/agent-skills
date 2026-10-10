@@ -5,7 +5,7 @@ description: Single-agent staged workflow for robust feature development from di
 
 # Feature Development Workflow
 
-Use this skill to run an end-to-end feature workflow without assuming runtime subagents.
+Use this skill to run an end-to-end feature workflow without assuming runtime subagents. Copy the workflow stages into the todo list and keep any stage you skip visible as `skip: <reason>`.
 
 ## When to use
 
@@ -36,12 +36,12 @@ For a diagnosis-only request, use `bug-diagnosis` and stop after evidence-backed
 4. Implement and verify by unit:
    - Apply the smallest complete vertical unit that matches the approved plan, then run its focused checks before continuing.
    - Avoid unrelated refactors and keep incomplete scaffolding from becoming the only evidence of progress.
-   - A material plan deviation, or repeated small deviations that reveal a wrong model, is a replan signal: stop and revise the design rather than accumulating patches.
+   - A material plan deviation, or repeated deviations of one shape, is a replan signal: the same workaround across unrelated code, unrelated edge cases each needing a special branch, types that need casts or always-set optional fields, a lock on state the design said was unshared, or callers that must know internal rules. Stop and redesign with the new constraints as day-one assumptions rather than accumulating patches; the new design should shrink before it grows.
 5. Validate the product:
    - Run project-appropriate lint, build, and test checks.
    - Exercise the real artifact or representative user path when practical; compilation and unit tests alone do not prove runtime behavior.
    - For UI changes, apply the frontend design review against the captured criteria and reference surfaces. Record source and rendered evidence separately, including any visual checks that remain unavailable.
-   - Perform targeted security and maintainability review.
+   - Perform targeted security and maintainability review. For a substantial or risky diff, offer `pre-pr-review` for an independent multi-reviewer pass.
 6. Documentation and handoff:
    - Update user-facing docs when behavior changes.
    - Summarize changes, checks run, real-path evidence, and follow-up items.
@@ -59,7 +59,7 @@ For a diagnosis-only request, use `bug-diagnosis` and stop after evidence-backed
 ## Quality gate / halt conditions
 
 - Halt if required requirements are unknown or contradictory.
-- Halt if validation checks fail and report root cause plus next corrective action.
+- Halt if validation checks fail and report root cause plus next corrective action. If two corrective attempts sharing one assumption have failed, test that assumption before a third.
 - Stop and return to planning when implementation materially diverges from the design or repeated deviations invalidate its assumptions.
 - Do not claim orchestration of runtime subagents; use staged execution only.
 

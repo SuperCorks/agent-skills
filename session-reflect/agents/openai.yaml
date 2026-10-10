@@ -1,0 +1,7 @@
+interface:
+  display_name: "Session Reflect"
+  short_description: "Turn sessions into reviewed skill and AGENTS.md edits"
+  default_prompt: "Use $session-reflect to review this session and propose skill edits for my approval."
+
+policy:
+  allow_implicit_invocation: false

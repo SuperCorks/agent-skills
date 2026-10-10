@@ -29,7 +29,7 @@ Combine sections when the change is small. Do not pad a compact change to fit th
 - Use semantic HTML, responsive CSS, visible focus states, sufficient contrast, and print-friendly styling.
 - Keep the primary narrative readable without JavaScript. Use scripts only for progressive disclosure, comprehension prompts, or an approved micro-world.
 - Use inline HTML, CSS, or SVG for diagrams. Give every diagram a text explanation or accessible label. Prefer a few repeated visual patterns—before/after, flow, state, or boundary maps—over ornamental graphics.
-- Use `<pre><code>` for code and preserve whitespace. Escape all code-, diff-, and user-derived text for its HTML or JavaScript context.
+- Use `<pre><code>` for code and preserve whitespace. Escape all code-, diff-, and user-derived text for its HTML or JavaScript context. In JSON embedded in a `<script>` element, escape `<`, `>`, and `&` as `\u003c`, `\u003e`, and `\u0026`; otherwise a raw `</script>` in an embedded patch ends the element early.
 - Link claims to precise files, symbols, line numbers, commits, tests, or external sources when available. A generated summary is context, not independent evidence.
 - External hyperlinks to evidence are allowed. Runtime dependencies are not: no CDN assets, external fonts, remote images, external scripts, stylesheets, iframes, network requests, or telemetry.
 

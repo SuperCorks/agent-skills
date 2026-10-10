@@ -1,13 +1,13 @@
 ---
 name: project-verification-bootstrap
-description: Generate and prove a project-local, app-specific verification skill when the user asks to bootstrap, create, or establish a reusable way to drive a repository's real UI, CLI, API, or other user-facing runtime. Do not use for a one-off verification run or merely executing an existing test suite.
+description: Generate and prove a project-local, app-specific verification skill when the user asks to bootstrap, create, or establish a reusable way to drive a repository's real UI, CLI, API, or other user-facing runtime, or to audit or refresh an existing verify-<app> skill and its feature map. Do not use for a one-off verification run or merely executing an existing test suite.
 ---
 
 # Project Verification Bootstrap
 
 Create instructions another agent can use cold to verify real product behavior. Discover the repository's conventions and runtime before writing the generated skill.
 
-Use this workflow only when the user requested a durable project-local verification capability. A request to verify, test, or exercise the current application once does not authorize creating a skill or feature map.
+Use this workflow only when the user requested a durable project-local verification capability. A request to verify, test, or exercise the current application once does not authorize creating a skill or feature map. To audit or refresh an existing verification skill instead, read [references/maintain.md](references/maintain.md) and follow it.
 
 ## Boundaries
 
@@ -39,8 +39,8 @@ Write a valid `SKILL.md` with `name` and a discriminating description grounded i
 
 1. **Launch and readiness**: commands, prerequisites, working directory, instance ownership, readiness probe, and expected signal.
 2. **Doctor**: a quick read-only diagnosis that distinguishes an absent, stale, misconfigured, unauthenticated, or wrong-build instance before driving it.
-3. **Drive**: the supported interaction method and real routes, selectors, prompts, commands, or request shapes. Exercise public behavior rather than internal setters or test-only shortcuts.
-4. **Evidence**: where artifacts go and how to capture the initiating action, resulting state, relevant logs or responses, and durable side effects. A final screenshot alone is insufficient when the behavior changes state.
+3. **Drive**: the supported interaction method and real routes, selectors, prompts, commands, or request shapes. Exercise public behavior rather than internal setters or test-only shortcuts. With no maintained harness, drive a terminal UI through an isolated tmux session (`send-keys`, `capture-pane -p`), one action at a time, waiting for a concrete screen pattern; drive Electron over its remote debugging port and select the page by a stable app-root marker.
+4. **Evidence**: where artifacts go and how to capture the initiating action, resulting state, relevant logs or responses, and durable side effects. A final screenshot alone is insufficient when the behavior changes state; confirm a mutation through a read-only second view of the stored value. If the safe path is a dry-run or test mode, observe what it actually skips (files, network, git refs) instead of trusting its name.
 5. **Isolation**: unique ports, profiles, data paths, fixtures, or namespaces and the conditions under which a shared instance must not be driven.
 6. **Cleanup**: stop owned instances by recorded PID, session, container, or equivalent identity; remove only run-owned scratch state; retain evidence.
 
@@ -48,15 +48,14 @@ Commands must be directly runnable and contain no scaffold placeholders. If help
 
 ## Seed a small feature map
 
-Add a feature index linked from `SKILL.md`, plus a small set of files for the most important user-facing capabilities, usually three to five discovered from routes, commands, menus, tests, or docs. Link every feature file from the index. Each feature entry should state:
+Add a feature index linked from `SKILL.md`, plus a small set of files for the most important user-facing capabilities, usually three to five discovered from routes, commands, menus, tests, or docs. Link every feature file from the index. Each feature file opens with a title and one paragraph on what the user can accomplish, then uses exactly these sections:
 
-- what the user can accomplish;
-- how the user reaches it;
-- how the chosen harness drives it;
-- the observable success state and material side effects; and
-- feature-specific prerequisites or hazards.
+1. `Sub-features`: short IDs, one line each.
+2. `How to get to it (user POV)`: every user entry point.
+3. `Driving it with <harness>`: starts with `Preconditions:`, then pairs each user action with an exact command and its observable result, including material side effects.
+4. `Gotchas`: traps that can waste or invalidate a run.
 
-Keep this map about verification entry points and outcomes, not an exhaustive product specification.
+State in the index that a skipped entry point is never reported as verified through a different path, and that an unreachable path is reported with the attempted command and the unmet precondition. Keep this map about verification entry points and outcomes, not an exhaustive product specification.
 
 ## Prove the generated instructions
 
@@ -74,4 +73,4 @@ Clean up after every failed attempt before retrying. If configuration, credentia
 
 ## Handoff
 
-Report the generated skill location, selected app surface, proof path, exact commands run, evidence location, cleanup result, and any unverified limitations.
+Report the generated skill location, selected app surface, proof path, exact commands run, evidence location, cleanup result, and any unverified limitations. Mention that this skill can later audit and refresh the map as the app changes.
