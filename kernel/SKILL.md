@@ -92,7 +92,7 @@ portfolio reassignment. Continue using the task's UUID `id` in API paths and req
 
 Kernel has two fixed access presets. A Read only key can read workspace data, organizations, projects, organization and project pricing, tags, ordinary and Standing tasks, task comments, work notes, activity, attachments, Habits and occurrences, schedules, work sessions, time entries, visible synced calendar events, the key creator's private meeting notes, Inbox sources and rules, sanitized suggestion and analysis history, and public file links with their views. A Full work key adds the supported mutations below. A valid key without an operation's scope returns `403`.
 
-- **Tasks:** list, create, inspect, update, complete, bulk-update, start work on, and conditionally delete ordinary tasks; search task options; inspect activity and comments; create comments; create, read, edit, and delete work notes; list, upload, download, and remove attachments and their supporting files; create, disable, enable, delete, and restore public links to attachments and read their views; list, link, and unlink GitHub pull requests; undo supported task deletions.
+- **Tasks:** list, create, inspect, update, complete, bulk-update, start work on, and conditionally delete ordinary tasks; search task options; inspect activity and comments; create comments; create, read, edit, and delete work notes; list, upload, download, and remove attachments and their supporting files; create, disable, enable, delete, and restore public links to attachments and read their views; list, link, and unlink GitHub pull requests; undo supported task deletions. Creating or updating a task with a `blocked` lifecycle takes an optional `blockedReason`; blocked work may also have no reason. Full work keys can also merge tasks that are the same work and undo a merge within 24 hours. See [Merging tasks](#merging-tasks-that-are-the-same-work).
 - **Standing tasks and Habits:** list and inspect both. Full work keys can create, update, archive, restore, or conditionally delete Standing tasks; create, update, pause, resume, or archive Habits; inspect occurrences; and skip occurrences.
 - **Time:** list work sessions and time entries; stop or undo-stop sessions; create, update, approve, split, merge, export, and delete time entries.
 - **Portfolio:** list organizations, projects, and tags; create, update, archive, and restore them and manage organization images where supported. Organization and project files, and their supporting files and public links, work like task attachments.
@@ -101,8 +101,24 @@ Kernel has two fixed access presets. A Read only key can read workspace data, or
 - **Scheduling:** inspect scheduling settings and scheduled blocks; create planned tasks, relocate planner items, edit, snooze, or intentionally remove blocks, preview schedules, update settings, and request rebuilds. Add a ready or active task to today's priorities, or remove it, so the scheduler places it before every other task until workspace-local midnight; task reads report the position as `todayPriorityRank`.
 - **Calendars:** read normalized planner-visible events; RSVP, associate meeting billing, create reviewable meeting time, and start, pause, or stop meeting tracking.
 - **Meeting notes:** read and replace the private "My notes" memo on one event occurrence through `GET/PATCH /calendar-events/{eventId}/notes`. It is the key creator's own note, so use it for that person's meeting preparation or memo instead of creating an agenda task or work note. PATCH `{notes, version}` replaces the whole memo: read it first, preserve existing content, and use version `0` only when none exists. A `409` means the memo changed or an uncertain write already landed; re-read before retrying.
-- **Inbox:** discover connected Gmail and Slack sources, inspect routing/exclusion rules, read sanitized suggestion history, inspect analysis outcomes including zero-suggestion decisions, and manage source rules.
+- **Inbox:** discover connected Gmail, Slack, Fireflies, and Sembly sources, inspect routing/exclusion rules, read sanitized suggestion history, inspect analysis outcomes including zero-suggestion decisions, and manage source rules. Suggestion history also covers `reply` cards (availability replies, without their message body or recipients' addresses), cards merged into another card through `status: "merged"` and `mergedIntoSuggestionId`, and suggestions Kernel resolved itself through `automaticResolution`. Reviewing stays signed-in only: an API key cannot accept an Inbox suggestion, merge or unmerge cards, check availability or regenerate a draft, send or take back a reply, or undo an automatic resolution.
+- **Asana suggestions:** list, inspect, edit, accept, discard, restore, and undo supported dispositions of sanitized suggestions from connected Asana projects. Acceptance creates the task or links an existing one and chooses its `lifecycle`, including `blocked` with an optional `blockedReason`.
 - **Realtime:** open the authenticated server-sent event stream for workspace invalidations and reload authoritative state after change events.
+
+### Merging tasks that are the same work
+
+`POST /tasks/merge` (Full work key) folds up to nine tasks into a survivor that keeps its identity,
+key, and title. Merge only when the user asks for it or clearly confirms that the tasks are the
+same work; never as cleanup you decided on yourself. Read every task first and send each one's
+current `version` with `survivorId` and `survivorVersion`.
+
+Everything recorded on a merged task moves to the survivor: unbilled time, stopped work sessions,
+comments, work notes, attachments, tags, dependencies, provider links, agent handoffs, and Inbox
+sources. The merged keys become aliases, so an old `/t/KEY` link or a pull request mentioning an
+old key still resolves. Billed and written-off time stays on its own snapshot, labelled as merged.
+The merged tasks must be ordinary tasks in the survivor's organization with no running work
+session. `POST /task-merges/{mergeId}/undo` reverses a merge for 24 hours and is a no-op once
+reversed; after the window it returns `410` and the merge is permanent.
 
 ### Publishing a file
 
@@ -147,7 +163,7 @@ does not already say. Read the current document and send its `version` when repl
 
 This list is not exhaustive. If what you need is missing, check the guide and OpenAPI contract in [Documentation and contract](#documentation-and-contract) before telling the user it is unsupported.
 
-The Agent API deliberately cannot administer API keys, OAuth grants, provider connections or synchronization, provider-owned calendar events, billing beyond pricing (payers, valuations, invoices, payments, write-offs), raw Inbox message content, unrestricted analysis internals, or live suggestion-review decisions. Do not use signed-in/internal routes, direct database access, or provider gateways to bypass those boundaries.
+The Agent API deliberately cannot administer API keys, OAuth grants, provider connections or synchronization, provider-owned calendar events, billing beyond pricing (payers, valuations, invoices, payments, write-offs), raw Inbox message content, unrestricted analysis internals, or live Inbox suggestion-review decisions such as accepting a card, merging or unmerging cards, and sending or taking back a reply. Do not use signed-in/internal routes, direct database access, or provider gateways to bypass those boundaries.
 
 ## Work summaries and notes
 
@@ -197,7 +213,7 @@ When the user asks why an email or Slack message did not become a suggestion:
 
 1. Call `GET /inbox-sources` to resolve the intended account or workspace.
 2. Call `GET /inbox-analysis-history` with the narrowest available combination of `sourceId`, `provider`, `threadId`, `providerRecordId`, `from`, and `to`. Follow `nextCursor` when necessary.
-3. Inspect `status`, `decision.classification`, `decision.planningFit`, `decision.summary`, `decision.suggestionOperationCount`, `decision.taskReconciliationCount`, and `decision.excludedByRule`.
+3. Inspect `status`, `decision.classification`, `decision.planningFit`, `decision.summary`, `decision.suggestionOperationCount`, `decision.taskReconciliationCount`, and `decision.excludedByRule`. A run with no suggestion operation is not necessarily a no-op: `decision.suggestionResolutionCount`, `decision.taskCompletionCount`, `decision.suggestionMergeCount`, and `decision.replyDraftCount` report work Kernel did instead of drafting a new card.
 4. Use `GET /inbox-analysis-history/{analysisRunId}` for one exact result and `/inbox-sources/{sourceId}/rules` when current routing context is also relevant.
 
 Analysis history is intentionally sanitized. It includes sender/thread/message provenance and a bounded decision summary, but never retained message bodies, evidence, prompts, drafts, model usage, provider response metadata, or raw errors. Treat summaries and sender/subject metadata as private work data. If the public endpoint is unavailable in the deployed contract, report that limitation instead of inspecting the production database or using an internal route.
