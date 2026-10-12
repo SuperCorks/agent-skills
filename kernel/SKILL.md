@@ -102,23 +102,21 @@ Kernel has two fixed access presets. A Read only key can read workspace data, or
 - **Calendars:** read normalized planner-visible events; RSVP, associate meeting billing, create reviewable meeting time, and start, pause, or stop meeting tracking.
 - **Meeting notes:** read and replace the private "My notes" memo on one event occurrence through `GET/PATCH /calendar-events/{eventId}/notes`. It is the key creator's own note, so use it for that person's meeting preparation or memo instead of creating an agenda task or work note. PATCH `{notes, version}` replaces the whole memo: read it first, preserve existing content, and use version `0` only when none exists. A `409` means the memo changed or an uncertain write already landed; re-read before retrying.
 - **Inbox:** discover connected Gmail, Slack, Fireflies, and Sembly sources, inspect routing/exclusion rules, read sanitized suggestion history, inspect analysis outcomes including zero-suggestion decisions, and manage source rules. Suggestion history also covers `reply` cards (availability replies, without their message body or recipients' addresses), cards merged into another card through `status: "merged"` and `mergedIntoSuggestionId`, and suggestions Kernel resolved itself through `automaticResolution`. Reviewing stays signed-in only: an API key cannot accept an Inbox suggestion, merge or unmerge cards, check availability or regenerate a draft, send or take back a reply, or undo an automatic resolution.
-- **Asana suggestions:** list, inspect, edit, accept, discard, restore, and undo supported dispositions of sanitized suggestions from connected Asana projects. Acceptance creates the task or links an existing one and chooses its `lifecycle`, including `blocked` with an optional `blockedReason`.
+- **Asana suggestions:** list, inspect, edit, accept, discard, restore, and undo supported dispositions of sanitized suggestions from connected Asana projects. Accepting one as a new task chooses that task's `lifecycle`, including `blocked` with an optional `blockedReason`. Attaching the suggestion to an existing task instead leaves that task's own status unchanged and refuses a `blockedReason`.
 - **Realtime:** open the authenticated server-sent event stream for workspace invalidations and reload authoritative state after change events.
 
 ### Merging tasks that are the same work
 
-`POST /tasks/merge` (Full work key) folds up to nine tasks into a survivor that keeps its identity,
+A Full work key can merge tasks that are the same work into one survivor, which keeps its identity,
 key, and title. Merge only when the user asks for it or clearly confirms that the tasks are the
-same work; never as cleanup you decided on yourself. Read every task first and send each one's
-current `version` with `survivorId` and `survivorVersion`.
+same work; never as cleanup you decided on yourself. Read every task involved first and send each
+one's current `version`.
 
-Everything recorded on a merged task moves to the survivor: unbilled time, stopped work sessions,
-comments, work notes, attachments, tags, dependencies, provider links, agent handoffs, and Inbox
-sources. The merged keys become aliases, so an old `/t/KEY` link or a pull request mentioning an
-old key still resolves. Billed and written-off time stays on its own snapshot, labelled as merged.
-The merged tasks must be ordinary tasks in the survivor's organization with no running work
-session. `POST /task-merges/{mergeId}/undo` reverses a merge for 24 hours and is a no-op once
-reversed; after the window it returns `410` and the merge is permanent.
+What the merged tasks recorded moves to the survivor, their keys become aliases so an old link or a
+pull request mentioning a former key still resolves, and billed or written-off time stays on its
+own snapshot, labelled as merged. The tasks must share the survivor's organization. A merge can be
+reversed for 24 hours. See "Merging duplicate tasks" in the guide for the exact payloads, limits,
+and errors.
 
 ### Publishing a file
 
