@@ -2,12 +2,16 @@
 set -euo pipefail
 
 home_dir="${HOME:-$PWD}"
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 usage() {
   cat <<'EOF'
 Usage:
   agent-threads.sh inventory
-  agent-threads.sh subjects [--source all|codex|codex-cli|copilot-cli|copilot-chat|claude-code] [--limit N]
+  agent-threads.sh subjects [--source all|t3-code|codex|codex-cli|copilot-cli|copilot-chat|claude-code] [--limit N]
+  agent-threads.sh resolve --link URL [--db STATE_SQLITE | --t3-home DIR]
+  agent-threads.sh show --link URL [--db STATE_SQLITE | --t3-home DIR] [--limit N] [--include-reasoning]
+  agent-threads.sh show --db STATE_SQLITE --thread THREAD_ID [--limit N] [--include-reasoning]
   agent-threads.sh show --path FILE
   agent-threads.sh show --db STATE_VSCDB [--key KEY]
 
@@ -82,6 +86,9 @@ claude_subject_from_path() {
 inventory() {
   need jq
   need sqlite3
+  need python3
+
+  python3 "$script_dir/t3-threads.py" inventory
 
   local codex_home="$home_dir/.codex"
   if [[ -f "$codex_home/session_index.jsonl" ]]; then
@@ -195,10 +202,21 @@ subjects() {
     esac
   done
 
+  if [[ "$source" == "t3-code" ]]; then
+    need python3
+    python3 "$script_dir/t3-threads.py" subjects --limit "$limit"
+    return
+  fi
+
   local tmp
   tmp="$(mktemp)"
   trap '[[ -n "${tmp:-}" ]] && rm -f "$tmp"' RETURN
   inventory > "$tmp"
+
+  if [[ "$source" == "all" ]]; then
+    need python3
+    python3 "$script_dir/t3-threads.py" subjects --limit "$limit"
+  fi
 
   if [[ "$source" == "all" || "$source" == "codex" ]]; then
     echo "## Codex"
@@ -353,22 +371,35 @@ show_cmd() {
   local file_path=""
   local db=""
   local key="memento/interactive-session"
+  local t3_target=""
+  local t3_args=()
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --path) file_path="${2:-}"; shift 2 ;;
       --db) db="${2:-}"; shift 2 ;;
       --key) key="${2:-}"; shift 2 ;;
+      --link|--thread) t3_target="yes"; t3_args+=("$1" "${2:-}"); shift 2 ;;
+      --t3-home|--limit) t3_args+=("$1" "${2:-}"); shift 2 ;;
+      --include-reasoning) t3_args+=("$1"); shift ;;
       -h|--help) usage; exit 0 ;;
       *) echo "unknown show option: $1" >&2; usage; exit 1 ;;
     esac
   done
 
-  if [[ -n "$file_path" ]]; then
+  if [[ -n "$t3_target" ]]; then
+    [[ -z "$file_path" ]] || { echo "--path cannot be combined with a T3 target" >&2; exit 1; }
+    need python3
+    [[ -z "$db" ]] || t3_args+=(--db "$db")
+    python3 "$script_dir/t3-threads.py" show "${t3_args[@]}"
+  elif [[ ${#t3_args[@]} -gt 0 ]]; then
+    echo "T3 options require --link or --thread" >&2
+    exit 1
+  elif [[ -n "$file_path" ]]; then
     show_path "$file_path"
   elif [[ -n "$db" ]]; then
     show_db_key "$db" "$key"
   else
-    echo "show requires --path or --db" >&2
+    echo "show requires --link, --thread, --path or --db" >&2
     usage
     exit 1
   fi
@@ -380,6 +411,7 @@ main() {
   case "$command" in
     inventory) inventory "$@" ;;
     subjects) subjects "$@" ;;
+    resolve) need python3; python3 "$script_dir/t3-threads.py" resolve "$@" ;;
     show) show_cmd "$@" ;;
     -h|--help|help) usage ;;
     *) echo "unknown command: $command" >&2; usage; exit 1 ;;
