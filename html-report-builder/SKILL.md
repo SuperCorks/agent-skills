@@ -40,6 +40,7 @@ In the commands below, `$HRB` is this skill's folder (for example `~/.agents/ski
 - Lines containing `data-hr-runtime` or `data-hr-generated` are generated (the runtime, the inlined Plotly, chart snapshots, and drawn diagrams); never edit them, and skip them when reading. They and inlined images make some lines very long, so read line ranges with truncated lines, for example `sed -n '120,180p' report.html | cut -c1-400`. To change a chart or diagram, edit its JSON or Mermaid source and rebuild.
 - Keep question ids stable so answers stay attached, then rebuild.
 - Answers the reader typed into `.answer` slots appear in `outline`; fold them into the decisions.
+- For a report shared through a Kernel link with feedback, readers' answers and comments live in Kernel, not in the file: list the file's open feedback with the Kernel Agent API (`GET …/feedback?status=open`), fold the answers into the decisions and make the requested changes, rebuild, export, and upload the result as a new version of the same Kernel file, then reply to each thread and resolve it there (see the `kernel` skill).
 - Review comments are requests from the reader: make the change, then answer each one in the comment store after `</main>` by adding `<p data-by="Codex" data-at="2026-10-09T16:00Z">What changed.</p>` to its `<article data-hr-thread>` (use your own agent name and the current UTC time), and add `data-status="resolved"` when it is done. Never edit or remove the reader's own entries, and keep each pinned element's `data-hr-comment` attribute.
 
 ## Local editor
@@ -69,7 +70,7 @@ Local reports are single files with images inlined. Published reports use image 
 node "$HRB/scripts/report.mjs" export path/to/report.html --out /tmp/<slug>-publish
 ```
 
-This writes `<slug>.html` plus `<slug>.assets/` without any review comments, and checks the copy. For a PDF, run `report.mjs pdf <file>`: it prints a copy without review comments in a headless browser, with charts as vector snapshots (reports on Letter, or `--size A4`; decks one slide per page). `check` warns when a client report still stores comments, since sharing the file itself would share them. Upload the whole folder with `publish-artifacts` (as a directory) or to Kernel (the HTML as the file, each asset as a supporting file at its relative path).
+This writes `<slug>.html` plus `<slug>.assets/` without any review comments, and checks the copy. For a PDF, run `report.mjs pdf <file>`: it prints a copy without review comments in a headless browser, with charts as vector snapshots (reports on Letter, or `--size A4`; decks one slide per page). `check` warns when a client report still stores comments, since sharing the file itself would share them. Upload the whole folder with `publish-artifacts` (as a directory) or to Kernel (the HTML as the file, each asset as a supporting file at its relative path). On Kernel, create the link with `feedback: "post"` when the reader should answer the question cards or comment: Kernel adds its own answer and comment controls to the page and keeps the feedback per link. Keep question ids stable across versions so answers stay attached.
 
 ## Presenting decks
 

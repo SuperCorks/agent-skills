@@ -92,12 +92,12 @@ portfolio reassignment. Continue using the task's UUID `id` in API paths and req
 
 Kernel has two fixed access presets. A Read only key can read workspace data, organizations, projects, organization and project pricing, tags, ordinary and Standing tasks, task comments, work notes, activity, attachments, Habits and occurrences, schedules, work sessions, time entries, visible synced calendar events and the files kept with them, the key creator's private meeting notes, Inbox sources and rules, sanitized suggestion and analysis history, and public file links with their views. A Full work key adds the supported mutations below. A valid key without an operation's scope returns `403`.
 
-- **Tasks:** list, create, inspect, update, complete, bulk-update, start work on, and conditionally delete ordinary tasks; search task options; inspect activity and comments; create comments; create, read, edit, and delete work notes; list, upload, download, and remove attachments and their supporting files; upload new versions of an attachment, download, restore, or delete a version; create, disable, enable, delete, and restore public links to attachments and read their views; list, link, and unlink GitHub pull requests; undo supported task deletions. Creating or updating a task with a `blocked` lifecycle takes an optional `blockedReason`; blocked work may also have no reason. Full work keys can also merge tasks that are the same work and undo a merge within 24 hours. See [Merging tasks](#merging-tasks-that-are-the-same-work).
+- **Tasks:** list, create, inspect, update, complete, bulk-update, start work on, and conditionally delete ordinary tasks; search task options; inspect activity and comments; create comments; create, read, edit, and delete work notes; list, upload, download, and remove attachments and their supporting files; upload new versions of an attachment, download, restore, or delete a version; create, disable, enable, delete, and restore public links to attachments, read their views, and read, reply to, resolve, and delete the feedback readers leave on report links; list, link, and unlink GitHub pull requests; undo supported task deletions. Creating or updating a task with a `blocked` lifecycle takes an optional `blockedReason`; blocked work may also have no reason. Full work keys can also merge tasks that are the same work and undo a merge within 24 hours. See [Merging tasks](#merging-tasks-that-are-the-same-work).
 - **Standing tasks and Habits:** list and inspect both. Full work keys can create, update, archive, restore, or conditionally delete Standing tasks; create, update, pause, resume, or archive Habits; inspect occurrences; and skip occurrences.
 - **Time:** list work sessions and time entries; stop or undo-stop sessions; create, update, approve, split, merge, export, and delete time entries.
 - **Portfolio:** list organizations, projects, and tags; create, update, archive, and restore them and manage organization images where supported. Organization and project files, and their supporting files and public links, work like task attachments.
 - **Pricing:** read an organization's billing tracking, effective-dated currency and default hourly-rate terms, and a project's billing model, fixed fee, rate overrides, and current effective rate. Full work keys turn tracking on or off, add or change terms and overrides, change a project's model or fixed fee, and send initial `billing` when creating a project. Amounts are integer cents. Read pricing first and pass its `version`; see the guide's "Organization and project pricing" section.
-- **Public file links:** list every link in the workspace, and read one link's view history. See [Publishing a file](#publishing-a-file).
+- **Public file links:** list every link in the workspace, read one link's view history, and manage the feedback left through it. See [Publishing a file](#publishing-a-file).
 - **Scheduling:** inspect scheduling settings and scheduled blocks; create planned tasks, relocate planner items, edit, snooze, or intentionally remove blocks, preview schedules, update settings, and request rebuilds. Add a ready or active task to today's priorities, or remove it, so the scheduler places it before every other task until workspace-local midnight; task reads report the position as `todayPriorityRank`.
 - **Calendars:** read normalized planner-visible events; RSVP, associate meeting billing, create reviewable meeting time, and start, pause, or stop meeting tracking.
 - **Meeting notes:** read and replace the private "My notes" memo on one event occurrence through `GET/PATCH /calendar-events/{eventId}/notes`. It is the key creator's own note, so use it for that person's meeting preparation or memo instead of creating an agenda task or work note. PATCH `{notes, version}` replaces the whole memo: read it first, preserve existing content, and use version `0` only when none exists. A `409` means the memo changed or an uncertain write already landed; re-read before retrying.
@@ -131,7 +131,9 @@ organization it belongs to:
    and publish the exported `<slug>.html` with each file in `<slug>.assets/` as a supporting file,
    so images are references rather than inlined data.
 3. Create a public link, with an optional `label` naming who it is for, and give the user the
-   returned `url`. To give one recipient a fixed copy, pin the link with `fileVersion`.
+   returned `url`. To give one recipient a fixed copy, pin the link with `fileVersion`. For an HTML
+   report the recipient should answer or comment on, set `feedback: "post"` (or `"view"` to show
+   feedback read-only); omit it to serve a plain file.
 
 To update a file you already shared, upload a **new version** of the same attachment or file
 (`…/attachments/{attachmentId}/versions/uploads` or `…/files/{fileId}/versions/uploads`), never a
@@ -140,6 +142,15 @@ carry forward to the new version; re-upload only the ones that changed, so earli
 theirs. Anyone with an enabled link can open the file without an account. HTML runs in a sandbox
 without cookies or `localStorage`. Do not publish credentials or anything the user did not ask to share. Endpoints, limits,
 and view counting are in the guide's "Public file links" section.
+
+Readers of a report link with feedback pin comments to parts of the page and answer its question
+cards; Kernel keeps them per link. To act on them, `GET …/attachments/{attachmentId}/feedback?status=open`
+(or `…/files/{fileId}/feedback`) lists every link's open threads with the version each started on.
+Revise the report and upload it as a new version; comments follow their element and answers their
+question id. Then reply to each thread (`POST /public-links/{linkId}/feedback/{threadId}/replies`
+with `{body}`) and resolve it (`PATCH /public-links/{linkId}/feedback/{threadId}` with
+`{status: "resolved", version}`). Readers see your reply under your API key's name. See the guide's
+"Feedback on report links" section.
 
 ### Organization and project pages
 
