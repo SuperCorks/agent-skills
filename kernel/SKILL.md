@@ -92,7 +92,7 @@ portfolio reassignment. Continue using the task's UUID `id` in API paths and req
 
 Kernel has two fixed access presets. A Read only key can read workspace data, organizations, projects, organization and project pricing, tags, ordinary and Standing tasks, task comments, work notes, activity, attachments, Habits and occurrences, schedules, work sessions, time entries, visible synced calendar events and the files kept with them, the key creator's private meeting notes, Inbox sources and rules, sanitized suggestion and analysis history, and public file links with their views. A Full work key adds the supported mutations below. A valid key without an operation's scope returns `403`.
 
-- **Tasks:** list, create, inspect, update, complete, bulk-update, start work on, and conditionally delete ordinary tasks; search task options; inspect activity and comments; create comments; create, read, edit, and delete work notes; list, upload, download, and remove attachments and their supporting files; create, disable, enable, delete, and restore public links to attachments and read their views; list, link, and unlink GitHub pull requests; undo supported task deletions. Creating or updating a task with a `blocked` lifecycle takes an optional `blockedReason`; blocked work may also have no reason. Full work keys can also merge tasks that are the same work and undo a merge within 24 hours. See [Merging tasks](#merging-tasks-that-are-the-same-work).
+- **Tasks:** list, create, inspect, update, complete, bulk-update, start work on, and conditionally delete ordinary tasks; search task options; inspect activity and comments; create comments; create, read, edit, and delete work notes; list, upload, download, and remove attachments and their supporting files; upload new versions of an attachment, download, restore, or delete a version; create, disable, enable, delete, and restore public links to attachments and read their views; list, link, and unlink GitHub pull requests; undo supported task deletions. Creating or updating a task with a `blocked` lifecycle takes an optional `blockedReason`; blocked work may also have no reason. Full work keys can also merge tasks that are the same work and undo a merge within 24 hours. See [Merging tasks](#merging-tasks-that-are-the-same-work).
 - **Standing tasks and Habits:** list and inspect both. Full work keys can create, update, archive, restore, or conditionally delete Standing tasks; create, update, pause, resume, or archive Habits; inspect occurrences; and skip occurrences.
 - **Time:** list work sessions and time entries; stop or undo-stop sessions; create, update, approve, split, merge, export, and delete time entries.
 - **Portfolio:** list organizations, projects, and tags; create, update, archive, and restore them and manage organization images where supported. Organization and project files, and their supporting files and public links, work like task attachments.
@@ -131,11 +131,14 @@ organization it belongs to:
    and publish the exported `<slug>.html` with each file in `<slug>.assets/` as a supporting file,
    so images are references rather than inlined data.
 3. Create a public link, with an optional `label` naming who it is for, and give the user the
-   returned `url`.
+   returned `url`. To give one recipient a fixed copy, pin the link with `fileVersion`.
 
-Anyone with an enabled link can open the file without an account. HTML runs in a sandbox without
-cookies or `localStorage`. Links of organization and project files always serve the latest
-version. Do not publish credentials or anything the user did not ask to share. Endpoints, limits,
+To update a file you already shared, upload a **new version** of the same attachment or file
+(`…/attachments/{attachmentId}/versions/uploads` or `…/files/{fileId}/versions/uploads`), never a
+new attachment: its links keep their URL and show the new version, unless pinned. Supporting files
+carry forward to the new version; re-upload only the ones that changed, so earlier versions keep
+theirs. Anyone with an enabled link can open the file without an account. HTML runs in a sandbox
+without cookies or `localStorage`. Do not publish credentials or anything the user did not ask to share. Endpoints, limits,
 and view counting are in the guide's "Public file links" section.
 
 ### Organization and project pages
