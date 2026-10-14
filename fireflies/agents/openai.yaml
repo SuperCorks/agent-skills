@@ -1,0 +1,4 @@
+interface:
+  display_name: "Fireflies"
+  short_description: "Search meetings and read timestamped transcripts"
+  default_prompt: "Use $fireflies to find my recent meetings and summarize decisions with sources."

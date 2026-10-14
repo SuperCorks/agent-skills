@@ -1,0 +1,12 @@
+{
+  "name": "fireflies-skill",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "API-key helpers for searching and reading Fireflies meetings",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "verify": "node scripts/fireflies.mjs verify"
+  }
+}

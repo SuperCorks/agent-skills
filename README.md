@@ -37,6 +37,7 @@ A collection of AI agent skills for GitHub Copilot and other AI assistants.
 | [docs-maintainer](docs-maintainer) | Update user-facing documentation to match implemented behavior |
 | [domain-modeling](domain-modeling) | Clarify canonical domain vocabulary, concepts, invariants, and boundaries, with durable ADR updates when warranted |
 | [feature-dev](feature-dev) | Staged workflow for robust feature development from discovery through delivery |
+| [fireflies](fireflies) | Search Fireflies meetings and read or export transcripts, summaries, and action items using an API key |
 | [frontend-design](frontend-design) | Build and review accessible web interfaces that inherit existing design systems and page patterns, with exploration for new products or requested redesigns |
 | [generate-audio](generate-audio) | Turn text into spoken MP3 or WAV audio with local Voxtral TTS, falling back to Speechify |
 | [git-workflow-gates](git-workflow-gates) | Branch-state checks and post-documentation PR gate workflow for multi-repo workspaces |
