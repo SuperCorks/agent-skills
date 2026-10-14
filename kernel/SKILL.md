@@ -1,6 +1,6 @@
 ---
 name: kernel
-description: Read or manage work data through the Kernel Agent API, including associated task completion and work summaries under AGENTS.md presets. Use for Kernel tasks, Standing tasks, Habits, organizations, projects, tags, schedules, time tracking, visible calendar events, Inbox routing rules, and sanitized suggestion or analysis history. Not for implementing Kernel source code, API-key administration, OAuth, or provider synchronization.
+description: Read or manage work data through the Kernel Agent API, including current-thread attachment, task completion, and work summaries under AGENTS.md presets. Use for Kernel tasks, Standing tasks, Habits, organizations, projects, tags, schedules, time tracking, visible calendar events, Inbox routing rules, and sanitized suggestion or analysis history. Not for implementing Kernel source code, API-key administration, OAuth, or provider synchronization.
 ---
 
 # Kernel
@@ -19,6 +19,7 @@ Host-global, workspace, or project `AGENTS.md` instructions can select these ind
 
 ```yaml
 kernel:
+  thread_attachment: ask
   task_lifecycle: ask
   work_summaries: ask
   github_prs: ask
@@ -29,12 +30,17 @@ setting from the most specific applicable `AGENTS.md` that supplies it; a missin
 to `off`. Direct user instructions override a preset for the requested action. The skill defines
 the behavior; `AGENTS.md` selects it.
 
-| Preset | `task_lifecycle` | `work_summaries` | `github_prs` |
+| Setting | `off` | `ask` | `yolo` |
 | --- | --- | --- | --- |
-| `off` | Do not initiate or offer task completion. | Do not prepare, offer, or save a Kernel work summary. | Do not initiate or offer pull request links. |
-| `ask` | Propose marking the task Done and obtain approval before updating it. | Show the exact Markdown and Kernel task destination; save after approval. | Show the pull request URL and Kernel task destination; link after approval. |
-| `yolo` | Mark the task Done without asking when its full scope is complete. | Prepare and save the summary without asking. | Link each pull request you open for the task without asking. |
+| `thread_attachment` | Do not initiate or offer to link the current thread. | Show the current thread and target tasks; link after approval. | Link the current thread to each task being worked on without asking. |
+| `task_lifecycle` | Do not initiate or offer task completion. | Propose marking the task Done and obtain approval before updating it. | Mark the task Done without asking when its full scope is complete. |
+| `work_summaries` | Do not prepare, offer, or save a Kernel work summary. | Show the exact Markdown and Kernel task destination; save after approval. | Prepare and save the summary without asking. |
+| `github_prs` | Do not initiate or offer pull request links. | Show the pull request URL and Kernel task destination; link after approval. | Link each pull request you open for the task without asking. |
 
+- Thread attachment covers tasks the user identifies as work targets and tasks the agent discovers
+  it needs to work on within the authorized assignment. Apply it when beginning work on each task,
+  including tasks discovered later. Merely reading, mentioning, or comparing a task is not work on it.
+  The preset does not authorize expanding the assignment to other work.
 - Lifecycle automation covers only Done/completed. Doing, Blocked, Ready, Backlog, and reopening
   require a direct user request under every preset; do not initiate or offer those transitions.
   Completing a smaller assignment or stopping a Codex or T3 Code turn does not complete the whole
@@ -46,9 +52,10 @@ the behavior; `AGENTS.md` selects it.
 - Pull request automation covers only linking a pull request you opened or pushed for the current
   Kernel task. Unlinking, or linking a pull request you did not author in this work, requires a
   direct user request under every preset.
-- Settings and approvals are independent. Summary approval does not authorize completion,
-  completion approval does not authorize a summary, and neither authorizes a pull request link. `yolo` supplies standing authorization only
-  for that setting; it does not authorize description, date, time-record, or unrelated changes.
+- Settings and approvals are independent. Thread attachment does not authorize a summary,
+  completion, or a pull request link, and those approvals do not authorize thread attachment.
+  `yolo` supplies standing authorization only for that setting; it does not authorize description,
+  date, time-record, or unrelated changes.
 - Summary `off` does not suppress ordinary conversation answers or a directly requested summary.
   Do not query association or work-note endpoints solely to offer management that is off.
 
@@ -177,6 +184,43 @@ does not already say. Read the current document and send its `version` when repl
 This list is not exhaustive. If what you need is missing, check the guide and OpenAPI contract in [Documentation and contract](#documentation-and-contract) before telling the user it is unsupported.
 
 The Agent API deliberately cannot administer API keys, OAuth grants, provider connections or synchronization, provider-owned calendar events, billing beyond pricing (payers, valuations, invoices, payments, write-offs), raw Inbox message content, unrestricted analysis internals, or live Inbox suggestion-review decisions such as accepting a card, merging or unmerging cards, and sending or taking back a reply. Do not use signed-in/internal routes, direct database access, or provider gateways to bypass those boundaries.
+
+## Attach the current thread
+
+Apply `thread_attachment` before initiating or offering a link. A direct request to attach the
+current thread overrides `off`; identifying a task to work on triggers the configured preset,
+not an implicit override. In `ask`, show the thread title/link and target task keys before linking;
+approval may cover several named targets together. In `yolo`, proceed for confirmed work targets,
+including tasks discovered during the assignment. Skip an association that already exists.
+
+1. Establish the current thread's integration, exact thread ID/deep link, and host/environment from
+   trusted runtime metadata or a thread tool. In T3 Code, use the T3 thread and environment, even
+   when the provider is Codex: a native `CODEX_THREAD_ID` may identify its underlying session,
+   not the T3 thread. When available, `agent-thread-reader` can resolve that session's local T3
+   mapping. Do not infer identity from a matching title, the newest thread, or the first machine.
+2. Read the target task to confirm its UUID/key and scope. Read both
+   `GET /integrations/codex/tasks/{taskId}` and `GET /integrations/t3code/tasks/{taskId}` to find
+   an existing association. Match the exact integration, machine, and thread. Keep its handoff ID
+   for subsequent work notes; do not create another link for the same association.
+3. For a missing association, read `GET /integrations/{integration}/settings` (`codex` or `t3code`)
+   to resolve the matching reachable machine. Use the live contract and integration guide for
+   its machine/environment metadata. Submit `POST /integrations/{integration}/thread-lookups`
+   with `protocolVersion: 1`, a stable `requestId`, the target `taskId`, verified `machineId`,
+   `kind: "link"`, and the current thread's exact `url`. Bound submission, polling, and response
+   reads to one 30-second deadline. Poll `GET /integrations/{integration}/thread-lookups/{lookupId}`
+   until ready; select only the verified current thread. Ready results expire after two minutes.
+4. Submit `POST /integrations/{integration}/links` with `protocolVersion: 1`, a new stable
+   `requestId`, the same `taskId` and `machineId`, `lookupId`, and the verified result's `threadId`.
+   Each task needs its own fresh lookup. Preserve request bodies and Idempotency-Keys on uncertain
+   retries; read the task's associations to confirm success and reconcile an uncertain write.
+
+Linking an existing thread starts no execution and does not change task lifecycle. This preset
+does not launch a thread, send a message, unlink an association, or link a different thread.
+If exact identity, host access, permission, or lookup validation is unavailable, leave links
+unchanged and report the limitation; continue the authorized work unless attachment is required
+for it. In `ask`, clarify an ambiguous identity or target before linking. In `yolo`, do not guess
+or introduce an approval step. Cancel a timed-out pending lookup through the documented
+integration cancellation endpoint; a new attempt requires a fresh lookup.
 
 ## Work summaries and notes
 
