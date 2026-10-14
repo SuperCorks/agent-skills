@@ -13,73 +13,110 @@ done
 
 script_directory="$(cd -P "$(dirname "${source_path}")" && pwd)"
 workspace="$(cd "${script_directory}/../.." && pwd -P)"
-devcontainers_cli_version="0.80.2"
 workspace_key="$(printf '%s' "${workspace}" | cksum | awk '{print $1}')"
 lock_directory="${TMPDIR:-/tmp}/__COMMAND_NAME__-${workspace_key}.lock"
+dockerfile="${workspace}/.devcontainer/Dockerfile"
+secrets_file="${workspace}/.devcontainer/secrets.env"
+config_volume="__CONFIG_VOLUME__"
+container_workspace="/workspaces/$(basename "${workspace}")"
 
-if [[ ! -f "${workspace}/.devcontainer/devcontainer.json" ]]; then
-  echo "Cannot find the __PROJECT_NAME__ provider CLI configuration under ${workspace}." >&2
-  exit 1
-fi
-
-if ! command -v npx >/dev/null 2>&1; then
-  echo "npx is required on the host to start the provider CLI container." >&2
+if [[ ! -f "${dockerfile}" ]]; then
+  echo "Cannot find the __PROJECT_NAME__ provider CLI image definition under ${workspace}." >&2
   exit 1
 fi
 
 if ! command -v docker >/dev/null 2>&1; then
-  echo "Docker is required on the host to start the provider CLI container." >&2
+  echo "Docker is required on the host to run the provider CLI container." >&2
   exit 1
 fi
 
-if ! mkdir "${lock_directory}" 2>/dev/null; then
-  echo "Another __COMMAND_NAME__ command is already running for ${workspace}." >&2
+if [[ "${workspace}" == *","* || "${workspace}" == *$'\n'* ]]; then
+  echo "Refusing a workspace path that cannot be mounted safely." >&2
   exit 1
 fi
 
-container_id=""
-remove_container_on_exit=false
-
-find_container_id() {
-  docker ps \
-    --filter "label=devcontainer.local_folder=${workspace}" \
-    --format '{{.ID}}' \
-    | head -1
+# Commands that only read provider state may run beside each other. Add a
+# project's read-only inspection commands here only after confirming they
+# never write provider configuration. Everything else holds the worktree lock.
+is_read_only_provider_command() {
+  case "${1:-}" in
+    doctor|help|--help|-h) return 0 ;;
+  esac
+  return 1
 }
 
+# Piped stdin is closed unless a command is listed here by its exact arguments,
+# for example a credential import the container wrapper validates.
+is_stdin_provider_command() {
+  return 1
+}
+
+holds_lock=false
 cleanup() {
   local exit_status=$?
   trap - EXIT HUP INT TERM
-  if [[ "${remove_container_on_exit}" == true ]]; then
-    if [[ -z "${container_id}" ]]; then
-      container_id="$(find_container_id)"
-    fi
-    if [[ -n "${container_id}" ]]; then
-      docker stop "${container_id}" >/dev/null 2>&1 || true
-    fi
+  if [[ "${holds_lock}" == true ]]; then
+    rmdir "${lock_directory}" 2>/dev/null || true
   fi
-  rmdir "${lock_directory}" 2>/dev/null || true
   exit "${exit_status}"
 }
 trap cleanup EXIT HUP INT TERM
 
-container_id="$(find_container_id)"
-
-if [[ -z "${container_id}" ]]; then
-  remove_container_on_exit=true
-  if ! npx --yes "@devcontainers/cli@${devcontainers_cli_version}" up \
-    --workspace-folder "${workspace}" \
-    --remove-existing-container; then
-    container_id="$(find_container_id)"
+if ! is_read_only_provider_command "$@"; then
+  if ! mkdir "${lock_directory}" 2>/dev/null; then
+    echo "Another __COMMAND_NAME__ command is already running for ${workspace}." >&2
     exit 1
   fi
-  container_id="$(find_container_id)"
-  if [[ -z "${container_id}" ]]; then
-    echo "The provider CLI container did not start." >&2
-    exit 1
-  fi
+  holds_lock=true
 fi
 
-npx --yes "@devcontainers/cli@${devcontainers_cli_version}" exec \
-  --workspace-folder "${workspace}" \
-  __COMMAND_NAME__ "$@"
+# The container wrapper refuses a secrets file other users can read.
+if [[ -f "${secrets_file}" ]]; then
+  chmod 600 "${secrets_file}"
+fi
+
+# The image is named after its Dockerfile, so every worktree with the same
+# definition shares one image and an edited Dockerfile builds a new one. On
+# Linux the container user takes the host IDs so bind-mounted files stay
+# writable; Docker Desktop maps ownership itself.
+image_build_args=()
+if [[ "$(uname -s)" == Linux && "$(id -u)" != 0 ]]; then
+  image_build_args=(--build-arg "PROVIDER_UID=$(id -u)" --build-arg "PROVIDER_GID=$(id -g)")
+fi
+image_key="$(
+  { cat "${dockerfile}"; printf '%s\n' "${image_build_args[@]+"${image_build_args[@]}"}"; } \
+    | git hash-object --stdin
+)"
+image="__PROJECT_SLUG__-provider-cli:${image_key:0:16}"
+
+if ! docker image inspect "${image}" >/dev/null 2>&1; then
+  # Build output goes to stderr so provider output on stdout stays parseable,
+  # and the build reads /dev/null so it cannot consume a stdin stream.
+  echo "Building the __PROJECT_NAME__ provider CLI image ${image}." >&2
+  docker build \
+    --file "${dockerfile}" \
+    --tag "${image}" \
+    "${image_build_args[@]+"${image_build_args[@]}"}" \
+    "${workspace}/.devcontainer" </dev/null >&2
+fi
+
+run_options=(
+  --rm
+  --init
+  --user "${DEVCONTAINER_REMOTE_USER:-node}"
+  --workdir "${container_workspace}"
+  --mount "type=bind,source=${workspace},target=${container_workspace}"
+  --mount "type=volume,source=${config_volume},target=/home/node/.config"
+  --env "PROVIDER_CLI_WORKSPACE=${container_workspace}"
+  --env "PROVIDER_CLI_SECRETS_FILE=${container_workspace}/.devcontainer/secrets.env"
+)
+# A terminal is forwarded so interactive provider logins keep working.
+if is_stdin_provider_command "$@" || [[ -t 0 ]]; then
+  run_options+=(--interactive)
+fi
+if [[ -t 0 && -t 1 ]]; then
+  run_options+=(--tty)
+fi
+
+docker run "${run_options[@]}" "${image}" \
+  "${container_workspace}/.devcontainer/bin/__COMMAND_NAME__" "$@"

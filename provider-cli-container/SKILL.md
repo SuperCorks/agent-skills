@@ -34,13 +34,12 @@ Never add a Docker socket, Docker-in-Docker, browsers, local databases, project 
    ```
 
    Use `--dry-run` first when reviewing the destination. The initializer refuses to overwrite an existing `.devcontainer/`; merge manually after inspecting both configurations.
-4. Read [design-and-customization.md](references/design-and-customization.md). Remove unused CLIs and wrapper cases, update the retained version pins and binary checksums, and set explicit target guards in `devcontainer.json`.
+4. Read [design-and-customization.md](references/design-and-customization.md). Remove unused CLIs and wrapper cases, update the retained version pins and binary checksums, and set explicit target guards in the `Dockerfile` `ENV` block.
 5. Customize the generated `.devcontainer/secrets.env.example` with key names only. Keep real values in ignored `secrets.env` with mode `600`.
-6. Run the generated lifecycle test, build the image, install the host command, and inspect the doctor output:
+6. Run the generated lifecycle test, install the host command, and inspect the doctor output. The first gateway call builds the image:
 
    ```sh
    bash .devcontainer/tests/<command>.test.sh
-   npx --yes @devcontainers/cli@0.80.2 build --workspace-folder .
    bash .devcontainer/install-host-command.sh
    <command> doctor
    ```
@@ -73,5 +72,5 @@ If the wrapper rejects an arbitrary command, interactive shell, or local-service
 - Load only the selected provider's credential variables into a command.
 - Persist interactive CLI configuration in one project-specific named volume; do not persist dependency or database state.
 - Remove the config volume only for an explicit login reset. Explain that it signs out the project's stored provider accounts.
-- Start the container on demand, use the Docker host's native architecture, and remove command-created containers when the command exits.
-- Serialize concurrent gateway commands per worktree so two agents cannot race on the same provider configuration.
+- Run each gateway command in its own `docker run --rm` container from an image tagged by a hash of the `Dockerfile`, built on the Docker host's native architecture only when that tag is missing. Do not start containers through the Dev Containers CLI per command; keep `devcontainer.json` for editors only.
+- Serialize every gateway command that can change provider configuration or state per worktree, so two agents cannot race on the same configuration. Let commands confirmed to be read-only, such as `doctor` or CI status inspection, run concurrently.

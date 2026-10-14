@@ -30,8 +30,8 @@ assert_not_contains() {
   fi
 }
 
-assert_contains '    "HOME": "/home/node",' "${workspace}/.devcontainer/devcontainer.json"
-assert_contains '    "PROVIDER_CLI_HOME": "/home/node",' "${workspace}/.devcontainer/devcontainer.json"
+assert_contains 'ENV HOME=/home/node \' "${workspace}/.devcontainer/Dockerfile"
+assert_contains '    PROVIDER_CLI_HOME=/home/node \' "${workspace}/.devcontainer/Dockerfile"
 
 host_bin_directory="${temporary_directory}/installed-bin"
 PROVIDER_CLI_HOST_BIN_DIR="${host_bin_directory}" \
@@ -40,20 +40,14 @@ PROVIDER_CLI_HOST_BIN_DIR="${host_bin_directory}" \
   || fail "installer did not create the __COMMAND_NAME__ symlink"
 
 fake_bin_directory="${temporary_directory}/fake-bin"
-capture_file="${temporary_directory}/npx-arguments"
-container_state="${temporary_directory}/container-state"
-stop_capture="${temporary_directory}/docker-stop"
+capture_file="${temporary_directory}/docker-arguments"
+image_state="${temporary_directory}/image-built"
 mkdir -p "${fake_bin_directory}"
 
 printf '%s\n' \
   '#!/usr/bin/env bash' \
-  'set -euo pipefail' \
-  'if [[ "$3" == "up" ]]; then' \
-  '  : > "${PROVIDER_TEST_CONTAINER_STATE}"' \
-  '  if [[ "${PROVIDER_TEST_FAIL_UP:-}" == true ]]; then exit 9; fi' \
-  'fi' \
-  'printf "CALL %s\n" "$3" >> "${PROVIDER_TEST_CAPTURE}"' \
-  'for argument in "$@"; do printf "%s\n" "$argument"; done >> "${PROVIDER_TEST_CAPTURE}"' \
+  'printf "NPX\n" >> "${PROVIDER_TEST_CAPTURE}"' \
+  'exit 1' \
   > "${fake_bin_directory}/npx"
 chmod +x "${fake_bin_directory}/npx"
 
@@ -61,45 +55,84 @@ printf '%s\n' \
   '#!/usr/bin/env bash' \
   'set -euo pipefail' \
   'case "${1:-}" in' \
-  '  ps) if [[ -f "${PROVIDER_TEST_CONTAINER_STATE}" ]]; then printf "%s\n" "test-container-id"; fi ;;' \
-  '  stop) printf "%s\n" "${2:-}" > "${PROVIDER_TEST_STOP_CAPTURE}"; rm -f "${PROVIDER_TEST_CONTAINER_STATE}" ;;' \
+  '  image) [[ "${2:-}" == inspect && -f "${PROVIDER_TEST_IMAGE_STATE}" ]] ;;' \
+  '  build)' \
+  '    printf "DOCKER build\n" >> "${PROVIDER_TEST_CAPTURE}"' \
+  '    for argument in "$@"; do printf "%s\n" "$argument"; done >> "${PROVIDER_TEST_CAPTURE}"' \
+  '    printf "build output\n"' \
+  '    if [[ "${PROVIDER_TEST_FAIL_BUILD:-false}" == true ]]; then exit 9; fi' \
+  '    : > "${PROVIDER_TEST_IMAGE_STATE}"' \
+  '    ;;' \
+  '  run)' \
+  '    printf "DOCKER run\n" >> "${PROVIDER_TEST_CAPTURE}"' \
+  '    for argument in "$@"; do printf "%s\n" "$argument"; done >> "${PROVIDER_TEST_CAPTURE}"' \
+  '    printf "{\"provider\":true}\n"' \
+  '    ;;' \
   '  *) exit 1 ;;' \
   'esac' \
   > "${fake_bin_directory}/docker"
 chmod +x "${fake_bin_directory}/docker"
 
-PATH="${fake_bin_directory}:${PATH}" \
-TMPDIR="${temporary_directory}" \
-PROVIDER_TEST_CAPTURE="${capture_file}" \
-PROVIDER_TEST_CONTAINER_STATE="${container_state}" \
-PROVIDER_TEST_STOP_CAPTURE="${stop_capture}" \
-  "${host_bin_directory}/__COMMAND_NAME__" gh auth status
+run_host_gateway() {
+  PATH="${fake_bin_directory}:${PATH}" \
+    TMPDIR="${temporary_directory}" \
+    PROVIDER_TEST_CAPTURE="${capture_file}" \
+    PROVIDER_TEST_IMAGE_STATE="${image_state}" \
+    "${host_bin_directory}/__COMMAND_NAME__" "$@"
+}
 
-assert_contains "CALL up" "${capture_file}"
-assert_contains "@devcontainers/cli@0.80.2" "${capture_file}"
-assert_contains "--remove-existing-container" "${capture_file}"
-assert_contains "CALL exec" "${capture_file}"
-assert_contains "__COMMAND_NAME__" "${capture_file}"
+expected_container_workspace="/workspaces/$(basename "${workspace}")"
+: > "${capture_file}"
+printf '%s' 'piped-value' | run_host_gateway gh auth status \
+  >"${temporary_directory}/provider-stdout" 2>"${temporary_directory}/provider-stderr"
+
+[[ "$(cat "${temporary_directory}/provider-stdout")" == '{"provider":true}' ]] \
+  || fail "image build contaminated provider stdout"
+assert_contains 'build output' "${temporary_directory}/provider-stderr"
+assert_contains "DOCKER build" "${capture_file}"
+assert_contains "${workspace}/.devcontainer/Dockerfile" "${capture_file}"
+grep -Eq '^__PROJECT_SLUG__-provider-cli:[0-9a-f]{16}$' "${capture_file}" \
+  || fail "host gateway did not tag the image by its Dockerfile"
+assert_contains "DOCKER run" "${capture_file}"
+assert_contains "--rm" "${capture_file}"
+assert_contains "type=bind,source=${workspace},target=${expected_container_workspace}" "${capture_file}"
+assert_contains "type=volume,source=__CONFIG_VOLUME__,target=/home/node/.config" "${capture_file}"
+assert_contains "PROVIDER_CLI_WORKSPACE=${expected_container_workspace}" "${capture_file}"
+assert_contains "${expected_container_workspace}/.devcontainer/bin/__COMMAND_NAME__" "${capture_file}"
 assert_contains "gh" "${capture_file}"
-[[ "$(cat "${stop_capture}")" == "test-container-id" ]] \
-  || fail "host gateway did not stop its short-lived container"
-[[ ! -e "${container_state}" ]] \
-  || fail "short-lived container state remained after the command"
-
-: > "${stop_capture}"
-if PATH="${fake_bin_directory}:${PATH}" \
-  TMPDIR="${temporary_directory}" \
-  PROVIDER_TEST_CAPTURE="${capture_file}" \
-  PROVIDER_TEST_CONTAINER_STATE="${container_state}" \
-  PROVIDER_TEST_FAIL_UP=true \
-  PROVIDER_TEST_STOP_CAPTURE="${stop_capture}" \
-  "${host_bin_directory}/__COMMAND_NAME__" doctor >/dev/null 2>&1; then
-  fail "host gateway ignored a failed provider container startup"
+assert_not_contains "--interactive" "${capture_file}"
+assert_not_contains "NPX" "${capture_file}"
+if grep -Eq '^(COPY|ADD) ' "${workspace}/.devcontainer/Dockerfile"; then
+  fail "the provider image is tagged by its Dockerfile alone and must not copy build context"
 fi
-[[ "$(cat "${stop_capture}")" == "test-container-id" ]] \
-  || fail "host gateway did not clean up a failed startup"
-[[ ! -e "${container_state}" ]] \
-  || fail "failed startup left provider container state behind"
+
+: > "${capture_file}"
+run_host_gateway gh auth status </dev/null >/dev/null 2>&1
+assert_not_contains "DOCKER build" "${capture_file}"
+assert_contains "DOCKER run" "${capture_file}"
+
+rm -f "${image_state}"
+: > "${capture_file}"
+if PROVIDER_TEST_FAIL_BUILD=true run_host_gateway doctor </dev/null >/dev/null 2>&1; then
+  fail "host gateway ignored a failed provider image build"
+fi
+assert_not_contains "DOCKER run" "${capture_file}"
+
+workspace_key="$(printf '%s' "${workspace}" | cksum | awk '{print $1}')"
+gateway_lock="${temporary_directory}/__COMMAND_NAME__-${workspace_key}.lock"
+run_host_gateway gh auth status </dev/null >/dev/null 2>&1
+[[ ! -e "${gateway_lock}" ]] || fail "host gateway kept the provider lock after a command"
+mkdir "${gateway_lock}"
+: > "${capture_file}"
+if run_host_gateway gh auth status </dev/null >/dev/null 2>&1; then
+  fail "host gateway ignored the serialized provider lock"
+fi
+[[ ! -s "${capture_file}" ]] || fail "locked host gateway invoked a provider process"
+run_host_gateway doctor </dev/null >/dev/null 2>&1 \
+  || fail "read-only doctor waited on the provider lock"
+assert_contains "DOCKER run" "${capture_file}"
+[[ -d "${gateway_lock}" ]] || fail "a read-only command released another command's provider lock"
+rmdir "${gateway_lock}"
 
 PROVIDER_CLI_WORKSPACE="${workspace}" \
   "${workspace}/.devcontainer/bin/__COMMAND_NAME__" --help >/dev/null

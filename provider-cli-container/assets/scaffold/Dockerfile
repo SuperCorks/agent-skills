@@ -1,3 +1,5 @@
+# The host gateway tags this image by a hash of this file alone, so the build
+# must not COPY or ADD anything from its context.
 FROM node:24.18.0-bookworm
 
 ARG TARGETARCH
@@ -73,5 +75,29 @@ RUN npm install --global \
       "eas-cli@${EAS_CLI_VERSION}" \
       "vercel@${VERCEL_CLI_VERSION}" \
     && npm cache clean --force
+
+# On Linux the gateway passes the host user's IDs so bind-mounted files stay
+# writable. The config directory exists here so a new volume starts owned by node.
+ARG PROVIDER_UID=1000
+ARG PROVIDER_GID=1000
+RUN if [ "${PROVIDER_GID}" != "1000" ]; then groupmod --non-unique --gid "${PROVIDER_GID}" node; fi \
+    && if [ "${PROVIDER_UID}" != "1000" ]; then usermod --non-unique --uid "${PROVIDER_UID}" --gid "${PROVIDER_GID}" node; fi \
+    && install -d -o node -g node /home/node/.config
+
+# Expected provider targets. Set each one or remove it with its provider.
+ENV HOME=/home/node \
+    PROVIDER_CLI_HOME=/home/node \
+    PROVIDER_EAS_PROJECT=SET_ME_OR_REMOVE \
+    PROVIDER_GCP_ACCOUNT_EMAIL=SET_ME_OR_REMOVE \
+    PROVIDER_GCP_PROJECT=SET_ME_OR_REMOVE \
+    PROVIDER_GITHUB_REPOSITORY=SET_ME_OR_REMOVE \
+    PROVIDER_GOOGLE_WORKSPACE_ACCOUNT_EMAIL=SET_ME_OR_REMOVE \
+    PROVIDER_SUPABASE_PROJECT_REF=SET_ME_OR_REMOVE \
+    PROVIDER_VERCEL_SCOPE=SET_ME_OR_REMOVE \
+    CLOUDSDK_CONFIG=/home/node/.config/gcloud \
+    GH_CONFIG_DIR=/home/node/.config/gh \
+    GOOGLE_WORKSPACE_CLI_CONFIG_DIR=/home/node/.config/gws \
+    GOOGLE_WORKSPACE_CLI_KEYRING_BACKEND=file \
+    XDG_CONFIG_HOME=/home/node/.config
 
 USER node

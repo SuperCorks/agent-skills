@@ -17,7 +17,9 @@ Keep these properties when adapting the scaffold:
 - **Allowlisted entrypoint:** accept named provider commands; reject shells and arbitrary executables.
 - **Explicit targets:** record the expected organization, project, repository, or project ref and verify it before mutations.
 - **Scoped secrets:** ignore the real secret file, require owner-only permissions, and export only keys used by the selected provider.
-- **Ephemeral lifecycle:** use `--rm`; stop command-created containers after each host-gateway invocation.
+- **Ephemeral lifecycle:** run each host-gateway command in its own `docker run --rm` container; nothing outlives the command.
+- **Fast start:** tag the image by a hash of the `Dockerfile` and build it only when that tag is missing, so worktrees share one image. The `Dockerfile` therefore copies nothing from its build context, and the container environment lives in its `ENV` block rather than `devcontainer.json`.
+- **Host ownership:** on Linux, build the image with the host user and group IDs so bind-mounted files stay writable.
 - **Native architecture:** select `arm64` or `amd64` downloads using `TARGETARCH`; verify downloaded binaries with SHA-256.
 - **Minimal persistence:** retain one project-specific CLI config volume and nothing else.
 - **Single native identity:** use each provider CLI's own credential slot; do not add an account switcher inside the container.
@@ -69,14 +71,15 @@ For browserless Google Cloud login, prefer `--no-launch-browser` and complete th
 Require evidence for these behaviors:
 
 1. The host installer creates the intended symlink and refuses unrelated conflicts.
-2. The host gateway uses the pinned Dev Containers CLI, starts on demand, forwards arguments, and stops command-created containers.
-3. A startup failure still cleans up a partially created container.
+2. The host gateway builds the image only when its Dockerfile-hash tag is missing, keeps build output on stderr, runs each command with `docker run --rm`, and forwards arguments.
+3. A failed image build starts no provider command.
 4. The in-container wrapper rejects an interactive shell, arbitrary executable, and local database/service commands.
 5. Secret permission failures stop before a provider command starts.
 6. Target mismatches fail closed.
 7. The image builds on every host architecture the team supports.
 8. `doctor` reports pinned versions and expected targets without revealing secret values.
-9. A real read-only provider command leaves no stopped command-created container behind.
+9. A real read-only provider command leaves no container behind.
+10. Read-only commands run while another command holds the worktree lock; every other command is refused.
 
 Do not treat a successful image build as account validation. Run provider-specific identity and target checks separately.
 

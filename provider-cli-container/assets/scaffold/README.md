@@ -5,7 +5,7 @@ This Dev Container has one narrow purpose: pin hosted-provider CLI versions and 
 ## Customize before use
 
 1. Remove unused provider installs from `Dockerfile` and their cases, usage lines, secrets, and doctor output from `bin/__COMMAND_NAME__`.
-2. Replace every `SET_ME_OR_REMOVE` target in `devcontainer.json` for retained providers.
+2. Replace every `SET_ME_OR_REMOVE` target in the `Dockerfile` `ENV` block for retained providers.
 3. Review every retained CLI version and architecture checksum.
 4. Document the expected human or robot identity for each provider without storing secrets here.
 5. Extend `tests/__COMMAND_NAME__.test.sh` for project-specific target guards.
@@ -14,13 +14,12 @@ This Dev Container has one narrow purpose: pin hosted-provider CLI versions and 
 
 Use `__COMMAND_NAME__` only for the allowlisted hosted provider CLIs. Run dependencies, builds, tests, local databases, browsers, and native tooling on the host or in a separate purpose-built runner. Do not add a Docker socket, Docker-in-Docker, project dependency volumes, browsers, databases, or native SDKs to this image.
 
-The host gateway starts the provider container on demand and stops command-created containers on exit. The `__CONFIG_VOLUME__` volume persists only project-scoped CLI configuration.
+The host gateway runs each command in its own `docker run --rm` container. The image is tagged by a hash of the `Dockerfile` and built only when that tag is missing, so every worktree with the same definition shares it; the `Dockerfile` therefore copies nothing from its build context. Read-only commands such as `doctor` run concurrently; every other command holds a per-worktree lock. `devcontainer.json` remains for opening the image in an editor. The `__CONFIG_VOLUME__` volume persists only project-scoped CLI configuration.
 
 ## Install and inspect
 
 ```sh
 bash .devcontainer/tests/__COMMAND_NAME__.test.sh
-npx --yes @devcontainers/cli@0.80.2 build --workspace-folder .
 bash .devcontainer/install-host-command.sh
 __COMMAND_NAME__ doctor
 ```
@@ -36,7 +35,7 @@ chmod 600 .devcontainer/secrets.env
 
 Keep only required credential keys. The real file is ignored and must never be printed or committed. Interactive CLI state persists in the project-specific config volume.
 
-Each retained Google provider has one native credential slot in this project's volume. Use `gcloud` and `gws` directly; do not add an account switcher. Configure the intended Google account email in `devcontainer.json`, then authenticate with:
+Each retained Google provider has one native credential slot in this project's volume. Use `gcloud` and `gws` directly; do not add an account switcher. Configure the intended Google account email in the `Dockerfile` `ENV` block, then authenticate with:
 
 ```sh
 __COMMAND_NAME__ gcloud login
