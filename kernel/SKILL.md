@@ -157,8 +157,13 @@ cards; Kernel keeps them per link. To act on them, `GET …/attachments/{attachm
 Revise the report and upload it as a new version; comments follow their element and answers their
 question id. Then reply to each thread (`POST /public-links/{linkId}/feedback/{threadId}/replies`
 with `{body}`) and resolve it (`PATCH /public-links/{linkId}/feedback/{threadId}` with
-`{status: "resolved", version}`). Readers see your reply under your API key's name. See the guide's
-"Feedback on report links" section.
+`{status: "resolved", version}`). Readers see your reply under your API key's name. Readers may also
+resolve and reopen any thread and edit or delete their own entries, so list again right before you
+act. To fix your own reply, `PATCH /public-links/{linkId}/feedback/{threadId}/entries/{entryId}` with
+`{body}`; an owner entry's `author.mine` says whether you wrote it. Every report link (`read`,
+`view`, or `post`) also gives readers a More… menu with the HTML (a zip with its supporting files)
+and, where Kernel's renderer runs, a PDF printed with the report's print styles; `read` offers the
+downloads only. See the guide's "Feedback on report links" section.
 
 ### Organization and project pages
 
