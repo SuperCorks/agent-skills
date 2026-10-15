@@ -33,7 +33,7 @@ the behavior; `AGENTS.md` selects it.
 | Setting | `off` | `ask` | `yolo` |
 | --- | --- | --- | --- |
 | `thread_attachment` | Do not initiate or offer to link the current thread. | Show the current thread and target tasks; link after approval. | Link the current thread to each task being worked on without asking. |
-| `task_lifecycle` | Do not initiate or offer task completion. | Propose marking the task Done and obtain approval before updating it. | Mark the task Done without asking when its full scope is complete. |
+| `task_lifecycle` | Do not initiate or offer task completion or the In review move. | Propose marking the task Done, or moving it to In review after you open or link its pull request, and obtain approval before updating it. | Mark the task Done without asking when its full scope is complete, and move it to In review without asking after you open or link its pull request. |
 | `work_summaries` | Do not prepare, offer, or save a Kernel work summary. | Show the exact Markdown and Kernel task destination; save after approval. | Prepare and save the summary without asking. |
 | `github_prs` | Do not initiate or offer pull request links. | Show the pull request URL and Kernel task destination; link after approval. | Link each pull request you open for the task without asking. |
 
@@ -41,8 +41,9 @@ the behavior; `AGENTS.md` selects it.
   it needs to work on within the authorized assignment. Apply it when beginning work on each task,
   including tasks discovered later. Merely reading, mentioning, or comparing a task is not work on it.
   The preset does not authorize expanding the assignment to other work.
-- Lifecycle automation covers only Done/completed. Doing, Blocked, Ready, Backlog, and reopening
-  require a direct user request under every preset; do not initiate or offer those transitions.
+- Lifecycle automation covers only Done/completed and the In review move after you open or link the
+  task's pull request. Doing, Blocked, Ready, Backlog, Dropped, and reopening require a direct user
+  request under every preset; do not initiate or offer those transitions.
   Completing a smaller assignment or stopping a Codex or T3 Code turn does not complete the whole
   Kernel task.
 - When summaries are enabled, prepare one at completion and at meaningful pauses after substantive
@@ -99,7 +100,7 @@ portfolio reassignment. Continue using the task's UUID `id` in API paths and req
 
 Kernel has two fixed access presets. A Read only key can read workspace data, organizations, projects, organization and project pricing, tags, ordinary and Standing tasks, task comments, work notes, activity, attachments, Habits and occurrences, schedules, work sessions, time entries, visible synced calendar events and the files kept with them, the key creator's private meeting notes, Inbox sources and rules, sanitized suggestion and analysis history, and public file links with their views. A Full work key adds the supported mutations below. A valid key without an operation's scope returns `403`.
 
-- **Tasks:** list, create, inspect, update, complete, bulk-update, start work on, and conditionally delete ordinary tasks; search task options; inspect activity and comments; create comments; create, read, edit, and delete work notes; list, upload, download, and remove attachments and their supporting files; upload new versions of an attachment, download, restore, or delete a version; create, disable, enable, delete, and restore public links to attachments, read their views, and read, reply to, resolve, and delete the feedback readers leave on report links; list, link, and unlink GitHub pull requests; undo supported task deletions. Creating or updating a task with a `blocked` lifecycle takes an optional `blockedReason`; blocked work may also have no reason. Full work keys can also merge tasks that are the same work and undo a merge within 24 hours. See [Merging tasks](#merging-tasks-that-are-the-same-work).
+- **Tasks:** list, create, inspect, update, complete, bulk-update, start work on, and conditionally delete ordinary tasks; search task options; inspect activity and comments; create comments; create, read, edit, and delete work notes; list, upload, download, and remove attachments and their supporting files; upload new versions of an attachment, download, restore, or delete a version; create, disable, enable, delete, and restore public links to attachments, read their views, and read, reply to, resolve, and delete the feedback readers leave on report links; list, link, and unlink GitHub pull requests; undo supported task deletions. Task states are `backlog`, `ready`, `active` (Doing), `in_review`, `blocked`, `done`, and `dropped`. `in_review` is finished work waiting on someone else's review, such as an open pull request; the planner never schedules it, and starting work moves it back to `active`. `done` and `dropped` close a task: `dropped` records a decision not to do it instead of deleting it, takes an optional `droppedReason`, stops running sessions, and removes future blocks; any other lifecycle restores it. A task cannot be created `dropped`, and a habit occurrence's task cannot be dropped (skip the occurrence). Creating or updating a task with a `blocked` lifecycle takes an optional `blockedReason`; blocked work may also have no reason. Full work keys can also merge tasks that are the same work and undo a merge within 24 hours. See [Merging tasks](#merging-tasks-that-are-the-same-work).
 - **Standing tasks and Habits:** list and inspect both. Full work keys can create, update, archive, restore, or conditionally delete Standing tasks; create, update, pause, resume, or archive Habits; inspect occurrences; and skip occurrences.
 - **Time:** list work sessions and time entries; stop or undo-stop sessions; create, update, approve, split, merge, export, and delete time entries.
 - **Portfolio:** list organizations, projects, and tags; create, update, archive, and restore them and manage organization images where supported. Organization and project files, and their supporting files and public links, work like task attachments.
@@ -247,6 +248,14 @@ completion to changed scope blindly. For directly requested non-completion trans
 current contract for `PATCH /tasks/{taskId}` with `{version, lifecycle}` and any requested fields.
 Do not start a work session or change time records as a shortcut to setting lifecycle.
 
+Moving a task to In review is the one other transition `task_lifecycle` covers, and only after you
+open or link that task's pull request (see the next section). Reread the task first and move it only
+from `backlog`, `ready`, or `active`; leave a task that is already `in_review`, `blocked`, `done`, or
+`dropped` unchanged. Use `PATCH /tasks/{taskId}` with `{version, lifecycle: "in_review"}` and an
+Idempotency-Key after `ask` approval or under `yolo`. Drop a task only when the user directly asks:
+`PATCH /tasks/{taskId}` with `{version, lifecycle: "dropped", droppedReason}`, where the reason is
+optional and should be the user's own words.
+
 ## GitHub pull request links
 
 Apply `github_prs` after opening or pushing a pull request for work associated with a Kernel task.
@@ -261,8 +270,9 @@ Resolve the destination with the association procedure above; link only ordinary
   directly requested. Unlinking suppresses automatic re-linking; linking the URL again clears it.
 - On `github_repository_not_connected` or `github_app_not_configured`, report that the GitHub App
   must be installed or refreshed in the signed-in Kernel UI; do not retry or work around it.
-- Linking never changes task lifecycle. Pull request state, including merged, is not by itself
-  evidence that the task is complete; apply `task_lifecycle` separately.
+- Linking itself never changes task lifecycle. After the pull request is linked (or already listed),
+  apply `task_lifecycle` to the In review move described above. Pull request state, including
+  merged, is not by itself evidence that the task is complete, and never a reason to drop it.
 
 ## Inbox analysis diagnosis
 
