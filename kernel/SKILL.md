@@ -162,8 +162,10 @@ resolve and reopen any thread and edit or delete their own entries, so list agai
 act. To fix your own reply, `PATCH /public-links/{linkId}/feedback/{threadId}/entries/{entryId}` with
 `{body}`; an owner entry's `author.mine` says whether you wrote it. Every report link (`read`,
 `view`, or `post`) also gives readers a More… menu with the HTML (a zip with its supporting files)
-and, where Kernel's renderer runs, a PDF printed with the report's print styles; `read` offers the
-downloads only. See the guide's "Feedback on report links" section.
+and a PDF that Kernel prints on its server with the report's print styles; `read` offers the
+downloads only. A workspace member who opens one of the workspace's report links where they use
+Kernel manages its feedback in the page as its author. See the guide's "Feedback on report links"
+section.
 
 ### Organization and project pages
 
