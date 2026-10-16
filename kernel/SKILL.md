@@ -313,6 +313,9 @@ Resolve the destination task with the association procedure above before any of 
 **`task_attachments`** covers files you produced or used for the task, such as reports, plans,
 screenshots, exports, and designs, and links to its working material, such as specifications,
 documents, dashboards, and designs (`POST /tasks/{taskId}/link-attachments` with `{url, label}`).
+Add a web address to a task as a link attachment with a descriptive `label`, not in its
+description. This matters most for the results of work done after the task started, such as a page
+you created, a document you wrote, a deployed preview, or the source of a finding.
 List the task's attachments and links first. Revise a file you already attached by uploading a new
 version, never a second attachment, and skip a link the task already has. Never attach credentials,
 secrets, `.env` files, or raw private data the user did not ask to keep. Pull requests use
@@ -322,7 +325,10 @@ restoring a version require a direct request under every preset.
 **`task_metadata`** covers the task's `title`, its description (`notes`), and its `tagIds`, through
 `PATCH /tasks/{taskId}` with the current `version`. Apply it when the work shows the record is
 wrong or stale: a title that no longer describes the work, a description missing the agreed scope,
-decisions, or acceptance criteria, or an existing tag that clearly applies. Read the task first and
+decisions, or acceptance criteria, or an existing tag that clearly applies. The description holds
+what someone needs before starting: context, scope, constraints, and acceptance criteria. Results
+of the work belong elsewhere: links to new pages or findings as link attachments, files as
+attachments, and progress or outcomes in work notes. Read the task first and
 keep what the user wrote: revise or append the relevant part of the description rather than
 replacing it, and never move a summary or progress log into it (that is a work note). Use only
 existing tags; creating a tag needs a direct request. Dates, priority, Duration, project or
