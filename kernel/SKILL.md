@@ -1,6 +1,6 @@
 ---
 name: kernel
-description: Read or manage work data through the Kernel Agent API, including current-thread attachment, task completion, and work summaries under AGENTS.md presets. Use for Kernel tasks, Standing tasks, Habits, organizations, projects, tags, schedules, time tracking, visible calendar events, Inbox routing rules, and sanitized suggestion or analysis history. Not for implementing Kernel source code, API-key administration, OAuth, or provider synchronization.
+description: Read or manage work data through the Kernel Agent API, including current-thread attachment, task lifecycle, work summaries, attachments, task details, follow-up tasks, and organization and project page upkeep under AGENTS.md presets. Use for Kernel tasks, Standing tasks, Habits, organizations, projects, tags, schedules, time tracking, visible calendar events, Inbox routing rules, and sanitized suggestion or analysis history. Not for implementing Kernel source code, API-key administration, OAuth, or provider synchronization.
 ---
 
 # Kernel
@@ -23,6 +23,11 @@ kernel:
   task_lifecycle: ask
   work_summaries: ask
   github_prs: ask
+  task_attachments: ask
+  task_metadata: ask
+  follow_up_tasks: ask
+  portfolio_pages: ask
+  report_feedback: ask
 ```
 
 This is an example selection, not a skill default or application configuration. Resolve each
@@ -33,17 +38,24 @@ the behavior; `AGENTS.md` selects it.
 | Setting | `off` | `ask` | `yolo` |
 | --- | --- | --- | --- |
 | `thread_attachment` | Do not initiate or offer to link the current thread. | Show the current thread and target tasks; link after approval. | Link the current thread to each task being worked on without asking. |
-| `task_lifecycle` | Do not initiate or offer task completion or the In review move. | Propose marking the task Done, or moving it to In review after you open or link its pull request, and obtain approval before updating it. | Mark the task Done without asking when its full scope is complete, and move it to In review without asking after you open or link its pull request. |
+| `task_lifecycle` | Do not initiate or offer task completion or the In review or Blocked moves. | Propose marking the task Done, moving it to In review after you open or link its pull request, or moving it to Blocked (and back) as described below, and obtain approval before updating it. | Make those same changes without asking when their conditions are met. |
 | `work_summaries` | Do not prepare, offer, or save a Kernel work summary. | Show the exact Markdown and Kernel task destination; save after approval. | Prepare and save the summary without asking. |
 | `github_prs` | Do not initiate or offer pull request links. | Show the pull request URL and Kernel task destination; link after approval. | Link each pull request you open for the task without asking. |
+| `task_attachments` | Do not initiate or offer attachments. | Show each file name or link and the task; attach after approval. | Attach the task's files and links without asking. |
+| `task_metadata` | Do not initiate or offer title, description, or tag changes. | Show the exact change and the task; apply after approval. | Apply the change without asking. |
+| `follow_up_tasks` | Do not create or offer follow-up tasks. | Show each proposed title, notes, and destination; create after approval. | Create them without asking and list them in your reply. |
+| `portfolio_pages` | Do not initiate or offer organization or project page updates. | Show the exact change and the page and tab; apply after approval. | Apply the change without asking and list what changed in your reply. |
+| `report_feedback` | Do not reply to or resolve report-link feedback unless asked. | Show each reply and the thread it answers; post and resolve after approval. | Same as `ask`: replies reach readers outside the workspace, so always get approval. |
 
 - Thread attachment covers tasks the user identifies as work targets and tasks the agent discovers
   it needs to work on within the authorized assignment. Apply it when beginning work on each task,
   including tasks discovered later. Merely reading, mentioning, or comparing a task is not work on it.
   The preset does not authorize expanding the assignment to other work.
-- Lifecycle automation covers only Done/completed and the In review move after you open or link the
-  task's pull request. Doing, Blocked, Ready, Backlog, Dropped, and reopening require a direct user
-  request under every preset; do not initiate or offer those transitions.
+- Lifecycle automation covers only Done/completed, the In review move after you open or link the
+  task's pull request, and the Blocked move and its return described in
+  [Task completion and other lifecycle changes](#task-completion-and-other-lifecycle-changes).
+  Every other transition, including Dropped and reopening, requires a direct user request under
+  every preset; do not initiate or offer those transitions.
   Completing a smaller assignment or stopping a Codex or T3 Code turn does not complete the whole
   Kernel task.
 - When summaries are enabled, prepare one at completion and at meaningful pauses after substantive
@@ -55,8 +67,9 @@ the behavior; `AGENTS.md` selects it.
   direct user request under every preset.
 - Settings and approvals are independent. Thread attachment does not authorize a summary,
   completion, or a pull request link, and those approvals do not authorize thread attachment.
-  `yolo` supplies standing authorization only for that setting; it does not authorize description,
-  date, time-record, or unrelated changes.
+  `yolo` supplies standing authorization only for that setting: `task_metadata` covers title,
+  description, and tags but not dates, priority, Duration, or time records, and no preset authorizes
+  unrelated changes.
 - Summary `off` does not suppress ordinary conversation answers or a directly requested summary.
   Do not query association or work-note endpoints solely to offer management that is off.
 
@@ -152,8 +165,10 @@ without cookies or `localStorage`. Do not publish credentials or anything the us
 and view counting are in the guide's "Public file links" section.
 
 Readers of a report link with feedback pin comments to parts of the page and answer its question
-cards; Kernel keeps them per link. To act on them, `GET …/attachments/{attachmentId}/feedback?status=open`
-(or `…/files/{fileId}/feedback`) lists every link's open threads with the version each started on.
+cards; Kernel keeps them per link. `report_feedback` decides whether you offer to answer them
+without a direct request; under every preset, show each reply and its thread and post only after
+approval, because readers outside the workspace see it. To act on them,
+`GET …/attachments/{attachmentId}/feedback?status=open` (or `…/files/{fileId}/feedback`) lists every link's open threads with the version each started on.
 Revise the report and upload it as a new version; comments follow their element and answers their
 question id. Then reply to each thread (`POST /public-links/{linkId}/feedback/{threadId}/replies`
 with `{body}`) and resolve it (`PATCH /public-links/{linkId}/feedback/{threadId}` with
@@ -188,6 +203,26 @@ starting a task, not for a person maintaining the page:
 Keep out tab-maintenance rules, research-provenance notes, dated status snapshots, and links to
 the tabs, which the handoff already lists. A project's LLM.txt adds only what its organization's
 does not already say. Read the current document and send its `version` when replacing it.
+
+#### Keeping pages current
+
+Apply `portfolio_pages` when work on a task turns up a lasting fact about its organization or
+project that the page lacks or states wrongly: a new repository, checkout path, or deploy route; a
+person's role or who decides something; a changed target date or dependency; a useful link; or a
+lasting document such as a contract, specification, or brand guide. Put each fact where it belongs:
+
+- Overview (the record's `notes`) for the human README: what it is and its current shape;
+- LLM.txt for agent briefing content, under the rules above;
+- the existing People, Dates, or Resources tab for roles, targets, and links;
+- Files for lasting documents. Upload a revised document as a new version of the existing file.
+  Task-specific work output belongs on the task (see `task_attachments`), not here.
+
+Read the current Overview, tab, or LLM.txt and change only the lines the fact affects, keeping what
+others wrote and the page's structure; send the current `version`. Update the project page when the
+fact is specific to the project and the organization's when it applies across its projects. Do not
+record dated status, progress, or anything that belongs in a work summary. Adding, renaming,
+reordering, or removing tabs, deleting files or versions, and publishing a file still require a
+direct request under every preset.
 
 This list is not exhaustive. If what you need is missing, check the guide and OpenAPI contract in [Documentation and contract](#documentation-and-contract) before telling the user it is unsupported.
 
@@ -262,6 +297,45 @@ from `backlog`, `ready`, or `active`; leave a task that is already `in_review`, 
 Idempotency-Key after `ask` approval or under `yolo`. Drop a task only when the user directly asks:
 `PATCH /tasks/{taskId}` with `{version, lifecycle: "dropped", droppedReason}`, where the reason is
 optional and should be the user's own words.
+
+`task_lifecycle` also covers moving a task to Blocked when you stop work on it because it cannot
+proceed until someone or something outside the current conversation acts: a decision, access, a
+review other than its pull request, or an external dependency. A question the user can answer in
+this thread is not a blocker. Move it only from `backlog`, `ready`, or `active`, with
+`PATCH /tasks/{taskId}` and `{version, lifecycle: "blocked", blockedReason}`, where the reason names
+what it waits on. When you later resume a task you moved to Blocked and its blocker has cleared,
+move it back to the lifecycle it had before. Leave a task someone else blocked unchanged.
+
+## Task attachments, metadata, and follow-ups
+
+Resolve the destination task with the association procedure above before any of these writes.
+
+**`task_attachments`** covers files you produced or used for the task, such as reports, plans,
+screenshots, exports, and designs, and links to its working material, such as specifications,
+documents, dashboards, and designs (`POST /tasks/{taskId}/link-attachments` with `{url, label}`).
+List the task's attachments and links first. Revise a file you already attached by uploading a new
+version, never a second attachment, and skip a link the task already has. Never attach credentials,
+secrets, `.env` files, or raw private data the user did not ask to keep. Pull requests use
+`github_prs`, not links. Publishing a public link, removing an attachment or link, and deleting or
+restoring a version require a direct request under every preset.
+
+**`task_metadata`** covers the task's `title`, its description (`notes`), and its `tagIds`, through
+`PATCH /tasks/{taskId}` with the current `version`. Apply it when the work shows the record is
+wrong or stale: a title that no longer describes the work, a description missing the agreed scope,
+decisions, or acceptance criteria, or an existing tag that clearly applies. Read the task first and
+keep what the user wrote: revise or append the relevant part of the description rather than
+replacing it, and never move a summary or progress log into it (that is a work note). Use only
+existing tags; creating a tag needs a direct request. Dates, priority, Duration, project or
+organization, billable, dependencies, and lifecycle are outside this preset; change them only on a
+direct request, and never re-estimate a Duration the user set.
+
+**`follow_up_tasks`** covers concrete, actionable work you discover outside the current assignment,
+such as a bug spotted elsewhere or a deferred part of the scope. Do not create one for work you will
+finish in this assignment, for a vague idea, or for something the user already declined. Search the
+existing tasks first and skip one that already covers it. Create it with `POST /tasks` in `backlog`,
+in the current task's organization and project, with a title and `notes` explaining what was found,
+why it matters, and a link to the originating task. Do not set dates, priority, Duration,
+dependencies, or tags. List each created task's link in your reply and in the work summary.
 
 ## GitHub pull request links
 
