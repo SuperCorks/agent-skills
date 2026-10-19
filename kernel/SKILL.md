@@ -147,9 +147,13 @@ organization it belongs to:
 
 1. Upload the file as a task attachment or an organization or project file. Kernel reads what an
    HTML file is from its markup: `html-report-builder` reports and slide decks and
-   `user-journey-atlas` atlases are recognized, and anything else is `code`. For a hand-built deck
-   or report, pass `htmlKind` (`deck`, `report`, `atlas`, or `code`) with the upload, or set it
-   later with `PATCH` on the attachment or file; the kind decides how feedback behaves.
+   `user-journey-atlas` atlases are recognized, and anything else is `code`. To choose another
+   kind, pass `htmlKind` (`deck`, `report`, `atlas`, or `code`) with the upload, or set it later
+   with `PATCH` on the attachment or file; the kind decides how feedback behaves.
+   - Hand-built HTML that Kernel will host declares its kind on `<html>` and follows Kernel's
+     document contract (`/api/document-contract.md`, summarised in the "HTML documents Kernel
+     hosts" section Kernel appends to this skill); a hand-built deck uses the contract's slide
+     snippet. Prefer `html-report-builder` and `user-journey-atlas`, which do this for you.
 2. For an HTML or Markdown page with CSS, scripts, images, or data, upload each of those as a
    supporting file under the relative path the page uses, such as `css/app.css`. For a report
    built with `html-report-builder`, first run its `report.mjs export <report.html> --out <dir>`
