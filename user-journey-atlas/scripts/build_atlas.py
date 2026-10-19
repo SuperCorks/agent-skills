@@ -2,6 +2,8 @@
 """Render a static User Journey Atlas. Python standard library only."""
 
 import argparse
+import base64
+import binascii
 import hashlib
 import html
 import json
@@ -18,6 +20,14 @@ MANIFEST = ".atlas-manifest.json"
 ID_PATTERN = re.compile(r"[a-z][a-z0-9]*(?:-[a-z0-9]+)*\Z")
 IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".avif"}
 RESERVED_IDS = {"main", "personas", "stories", "sources", "viewer-title", "viewer-caption"}
+# Kernel brand kits (Kernel's document contract §8): the kit's stylesheet becomes the managed
+# assets/brand.css, whose first line records the kit for rebuilds that keep the brand.
+BRAND_CSS = "assets/brand.css"
+BRAND_HEADER = "/* user-journey-atlas brand "
+BRAND_FORMAT = 1
+STAMP_PATTERN = re.compile(r"[A-Za-z0-9._-]+@[0-9]+\Z")
+LOGO_PATTERN = re.compile(r"data:image/(png|jpeg|gif|webp|avif|svg\+xml);base64,([A-Za-z0-9+/]+={0,2})\Z")
+LOGO_EXTENSIONS = {"png": ".png", "jpeg": ".jpg", "gif": ".gif", "webp": ".webp", "avif": ".avif", "svg+xml": ".svg"}
 
 
 def text(value, context, required=False):
@@ -69,14 +79,122 @@ def list_html(values):
     return "<ul>" + "".join(f"<li>{esc(value)}</li>" for value in values) + "</ul>"
 
 
+class Brand:
+    """A Kernel brand kit as the atlas uses it: its stamp, stylesheet, and light logo."""
+
+    def __init__(self, stamp, name, alt, stylesheet, logo=None, logo_extension=None):
+        self.stamp, self.name, self.alt, self.stylesheet = stamp, name, alt, stylesheet
+        self.logo, self.logo_extension = logo, logo_extension
+
+    @property
+    def logo_path(self):
+        return f"assets/brand-logo{self.logo_extension}" if self.logo else None
+
+    def files(self):
+        record = json.dumps({"stamp": self.stamp, "name": self.name, "alt": self.alt,
+                             "logo": self.logo_path}).replace("*/", "*\\/")
+        files = {BRAND_CSS: f"{BRAND_HEADER}{record} */\n{self.stylesheet}".encode("utf-8")}
+        if self.logo:
+            files[self.logo_path] = self.logo
+        return files
+
+
+def parse_brand(value, label="brand kit"):
+    """The bundle Kernel serves, or the task's {source, owner, kit} wrapper; kit null is no brand."""
+    if not isinstance(value, dict):
+        raise ValueError(f"{label} is not a Kernel brand kit bundle")
+    bundle = value.get("kit") if "kit" in value and "stylesheet" not in value else value
+    if bundle is None:
+        return None
+    if not isinstance(bundle, dict):
+        raise ValueError(f"{label} is not a Kernel brand kit bundle")
+    if bundle.get("bundleFormat") != BRAND_FORMAT or isinstance(bundle.get("bundleFormat"), bool):
+        if "bundleFormat" not in bundle:
+            raise ValueError(f"{label} has no bundleFormat: save it from Kernel's brand-kit endpoint")
+        raise ValueError(f"{label} has bundleFormat {json.dumps(bundle.get('bundleFormat'))}, but this renderer reads "
+                         f"bundleFormat {BRAND_FORMAT}: update the user-journey-atlas skill")
+    stamp = bundle.get("stamp") or f"{bundle.get('id')}@{bundle.get('version')}"
+    if not isinstance(stamp, str) or not STAMP_PATTERN.fullmatch(stamp):
+        raise ValueError(f"{label} has an invalid stamp {json.dumps(stamp)} (expected <kit id>@<version>)")
+    stylesheet = bundle.get("stylesheet")
+    if not isinstance(stylesheet, str):
+        raise ValueError(f"{label} has no stylesheet")
+    if "</" in stylesheet:
+        raise ValueError(f'{label} stylesheet contains "</"')
+    name = bundle.get("name") if isinstance(bundle.get("name"), str) else ""
+    logos = bundle.get("logos") if isinstance(bundle.get("logos"), dict) else {}
+    alt = logos.get("alt").strip() if isinstance(logos.get("alt"), str) and logos.get("alt").strip() else name
+    # The atlas is light only, so it shows the light logo (or the dark one when that is all there is).
+    uri = logos.get("light") or logos.get("dark")
+    logo = extension = None
+    if uri:
+        match = LOGO_PATTERN.fullmatch(uri) if isinstance(uri, str) else None
+        if not match:
+            raise ValueError(f"{label} logo is not a base64 image data URI")
+        try:
+            logo = base64.b64decode(match.group(2), validate=True)
+        except binascii.Error as error:
+            raise ValueError(f"{label} logo is not valid base64") from error
+        extension = LOGO_EXTENSIONS[match.group(1)]
+    return Brand(stamp, name, alt, stylesheet, logo, extension)
+
+
+def load_brand(path):
+    try:
+        value = json.loads(Path(path).expanduser().read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise ValueError(f"Cannot read the brand kit {path}: {error}") from error
+    return parse_brand(value, f"brand kit {path}")
+
+
+def existing_brand(output):
+    """The brand an atlas previously built at output carries, so a rebuild without --brand keeps it."""
+    output = output.expanduser().absolute()
+    try:
+        manifest = json.loads((output / MANIFEST).read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    if not isinstance(manifest, dict) or BRAND_CSS not in (manifest.get("files") or []):
+        return None
+    reject_symlinks(output, BRAND_CSS)
+    try:
+        content = (output / BRAND_CSS).read_text(encoding="utf-8")
+    except OSError as error:
+        raise ValueError(f"The atlas's {BRAND_CSS} is missing; rebuild with --brand <kit.json> or --brand none") from error
+    first, _, stylesheet = content.partition("\n")
+    try:
+        if not first.startswith(BRAND_HEADER) or not first.endswith(" */"):
+            raise ValueError
+        record = json.loads(first[len(BRAND_HEADER):-3])
+        stamp, logo_path = record["stamp"], record.get("logo")
+        if not isinstance(stamp, str) or not STAMP_PATTERN.fullmatch(stamp):
+            raise ValueError
+    except (ValueError, KeyError, TypeError) as error:
+        raise ValueError(f"The atlas's {BRAND_CSS} was not written by this renderer; rebuild with --brand <kit.json> or --brand none") from error
+    logo = extension = None
+    if logo_path:
+        if not isinstance(logo_path, str) or not re.fullmatch(r"assets/brand-logo\.(?:png|jpg|gif|webp|avif|svg)", logo_path):
+            raise ValueError(f"The atlas's {BRAND_CSS} names an invalid logo; rebuild with --brand <kit.json>")
+        reject_symlinks(output, logo_path)
+        try:
+            logo = (output / logo_path).read_bytes()
+        except OSError as error:
+            raise ValueError(f"The atlas's brand logo {logo_path} is missing; rebuild with --brand <kit.json>") from error
+        extension = Path(logo_path).suffix
+    name = record.get("name") if isinstance(record.get("name"), str) else ""
+    alt = record.get("alt") if isinstance(record.get("alt"), str) else name
+    return Brand(stamp, name, alt, stylesheet, logo, extension)
+
+
 class Renderer:
-    def __init__(self, data, input_dir, layout, review_notes):
+    def __init__(self, data, input_dir, layout, review_notes, brand=None):
         if not isinstance(data, dict):
             raise ValueError("The JSON root must be an object")
         self.data = data
         self.input_dir = input_dir
         self.layout = layout
         self.review_notes = review_notes
+        self.brand = brand
         self.atlas_id = identifier(data.get("id"), "id")
         self.title = text(data.get("title"), "title", True)
         self.summary = text(data.get("summary", ""), "summary")
@@ -290,10 +408,18 @@ class Renderer:
         catalog = json.dumps([{"id": story["id"], "title": story["title"]} for story in self.stories])
         # Keep JSON inert even if a title contains a closing script tag.
         catalog = catalog.replace("&", "\\u0026").replace("<", "\\u003c").replace(">", "\\u003e")
+        brand = ""
+        if self.brand:
+            # Kernel's document contract: a multi-file atlas links the kit's stylesheet, stamped.
+            brand = (f'\n  <link rel="stylesheet" href="{prefix}{BRAND_CSS}" '
+                     f'data-kernel-brand="{esc(self.brand.stamp)}">')
+            if self.brand.logo:
+                header = (f'<img class="brand-logo" src="{prefix}{self.brand.logo_path}" '
+                          f'alt="{esc(self.brand.alt)}">') + header
         substitutions = {
             "TITLE": esc(page_title), "PREFIX": prefix, "ATLAS_ID": self.atlas_id,
             "REVIEW_NOTES": self.review_notes, "HEADER": header, "CONTENT": content, "SOURCES": sources,
-            "STORY_CATALOG": catalog,
+            "STORY_CATALOG": catalog, "BRAND": brand,
         }
         template = (ASSETS / "page.html").read_text(encoding="utf-8")
         # One substitution pass: content containing a template token stays literal.
@@ -303,6 +429,9 @@ class Renderer:
         self.element_ids = set()
         for name in ("atlas.css", "atlas.js"):
             self.add_file(f"assets/{name}", (ASSETS / name).read_bytes())
+        if self.brand:
+            for name, content in self.brand.files().items():
+                self.add_file(name, content)
         header = '<p class="eyebrow">User journey atlas</p>' + f"<h1>{esc(self.title)}</h1>"
         if self.summary:
             header += paragraph(self.summary, "lede prose")
@@ -332,7 +461,8 @@ class Renderer:
 
 def managed_path(relative):
     """Manifest filenames are generated output only, never arbitrary filesystem paths."""
-    return (relative in {"index.html", "assets/atlas.css", "assets/atlas.js"}
+    return (relative in {"index.html", "assets/atlas.css", "assets/atlas.js", BRAND_CSS}
+            or bool(re.fullmatch(r"assets/brand-logo\.(?:png|jpg|gif|webp|avif|svg)", relative))
             or bool(re.fullmatch(r"stories/[a-z][a-z0-9]*(?:-[a-z0-9]+)*\.html", relative))
             or bool(re.fullmatch(r"images/[a-f0-9]{64}\.(?:png|jpg|webp|gif|avif)", relative)))
 
@@ -401,10 +531,20 @@ def main():
     parser.add_argument("--layout", choices=("single", "catalog"), default="single")
     parser.add_argument("--review-notes", choices=("yes", "no"), default="no")
     parser.add_argument("--replace", action="store_true", help="Replace only files managed by an existing atlas with the same ID")
+    parser.add_argument("--brand", help="Kernel brand kit JSON (the task's brand-kit response or a kit bundle), or none to "
+                                        "remove the brand; without it, --replace keeps the atlas's current brand")
     args = parser.parse_args()
     try:
+        if args.brand is None:
+            brand = existing_brand(args.output) if args.replace else None
+        elif args.brand == "none":
+            brand = None
+        else:
+            brand = load_brand(args.brand)
+            if brand is None:
+                print("Note: the brand kit file has no kit (Kernel found none for the task), so the atlas is built without a brand")
         data = json.loads(args.input.read_text(encoding="utf-8"))
-        renderer = Renderer(data, args.input.resolve().parent, args.layout, args.review_notes)
+        renderer = Renderer(data, args.input.resolve().parent, args.layout, args.review_notes, brand)
         output = write_output(renderer.build(), args.output, renderer.atlas_id, args.replace)
     except (OSError, ValueError, TypeError) as error:
         print(f"Atlas build failed: {error}", file=sys.stderr)

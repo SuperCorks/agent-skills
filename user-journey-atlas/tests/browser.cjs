@@ -41,9 +41,10 @@ const { chromium } = require('playwright');
     };
     const input = path.join(root, 'atlas.json');
     await fs.writeFile(input, JSON.stringify(data));
-    function build(destination, layout, notes, source = input, replace = false) {
+    function build(destination, layout, notes, source = input, replace = false, brand = null) {
       const args = [path.join(skill, 'scripts/build_atlas.py'), source, '--output', path.join(root, destination), '--layout', layout, '--review-notes', notes];
       if (replace) args.push('--replace');
+      if (brand) args.push('--brand', brand);
       execFileSync(process.env.PYTHON || 'python3', args, { stdio: 'pipe' });
     }
     build('single', 'single', 'yes');
@@ -51,6 +52,17 @@ const { chromium } = require('playwright');
     build('plain', 'single', 'no');
     await fs.writeFile(path.join(root, 'other.json'), JSON.stringify({ ...data, id: 'other-atlas' }));
     build('other', 'single', 'yes', path.join(root, 'other.json'));
+    const logo = (await fs.readFile(path.join(root, 'wide.png'))).toString('base64');
+    const kit = {
+      id: '6f1c2a10-0000-4000-8000-000000000001', version: 3, stamp: '6f1c2a10-0000-4000-8000-000000000001@3', bundleFormat: 1,
+      name: 'Ozie', owner: { kind: 'organization', id: 'org-1', name: 'Ozie Inc.' },
+      colors: { light: { accent: '#0a66ff' }, dark: { accent: '#66a3ff' } }, typography: { body: 'Trebuchet MS', heading: 'Georgia', mono: null },
+      logos: { light: `data:image/png;base64,${logo}`, dark: null, alt: 'Ozie' },
+      stylesheet: ':root { --brand-accent: light-dark(#0a66ff, #66a3ff); --brand-ink: #111111; '
+        + '--brand-font-body: "Trebuchet MS", system-ui, sans-serif; --brand-font-heading: "Georgia", system-ui, sans-serif; }'
+    };
+    await fs.writeFile(path.join(root, 'kit.json'), JSON.stringify({ source: 'organization', owner: kit.owner, kit }));
+    build('branded', 'catalog', 'no', input, false, path.join(root, 'kit.json'));
     const types = { '.html': 'text/html', '.css': 'text/css', '.js': 'text/javascript', '.png': 'image/png' };
     server = http.createServer(async (req, res) => {
       try {
@@ -235,6 +247,29 @@ const { chromium } = require('playwright');
     await missing.locator('[data-close]').click();
     pass('failed image retains its caption and a usable close control');
     await missing.close();
+
+    const looks = () => page.evaluate(() => {
+      const logo = document.querySelector('.site-header .brand-logo');
+      return {
+        link: getComputedStyle(document.querySelector('main a')).color,
+        heading: getComputedStyle(document.querySelector('h1')).fontFamily,
+        body: getComputedStyle(document.body).fontFamily,
+        text: getComputedStyle(document.body).color,
+        logo: logo ? logo.complete && logo.naturalWidth > 0 && logo.getBoundingClientRect().height <= 40 : null
+      };
+    });
+    for (const target of ['branded/index.html', 'branded/stories/alpha.html']) {
+      await page.goto(`${base}/${target}`);
+      assert.deepEqual(await looks(), {
+        link: 'rgb(10, 102, 255)', heading: 'Georgia, system-ui, sans-serif', body: '"Trebuchet MS", system-ui, sans-serif',
+        text: 'rgb(17, 17, 17)', logo: true
+      }, target);
+    }
+    await page.goto(`${base}/plain/index.html`);
+    const plainLooks = await looks();
+    assert.deepEqual([plainLooks.link, plainLooks.text, plainLooks.logo], ['rgb(9, 107, 105)', 'rgb(38, 52, 69)', null], 'an unbranded atlas keeps its colours');
+    assert.equal(plainLooks.heading, plainLooks.body, 'unbranded headings use the body font');
+    pass('brand kit: accent, text, fonts, and logo come from the kit on every page; unbranded output is unchanged');
 
     await page.goto('file://' + path.join(root, 'plain/index.html'));
     await open('beta', 0);

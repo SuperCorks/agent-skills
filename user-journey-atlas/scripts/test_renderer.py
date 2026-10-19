@@ -10,7 +10,7 @@ from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import urlsplit
 
-from build_atlas import MANIFEST, Renderer, write_output
+from build_atlas import BRAND_CSS, MANIFEST, Renderer, existing_brand, parse_brand, write_output
 
 
 PNG = base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl6fWQAAAAASUVORK5CYII=")
@@ -222,6 +222,118 @@ class RendererTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             write_output(self.render(), output, "test-atlas", True)
         self.assertEqual(before, (output / "index.html").read_bytes())
+
+
+    def kit(self, **overrides):
+        bundle = {
+            "id": "6f1c2a10-0000-4000-8000-000000000001", "version": 3, "stamp": "6f1c2a10-0000-4000-8000-000000000001@3",
+            "bundleFormat": 1, "name": "Ozie", "owner": {"kind": "organization", "id": "org-1", "name": "Ozie Inc."},
+            "colors": {"light": {"accent": "#0a66ff"}, "dark": {}}, "typography": {"body": "Inter", "heading": None, "mono": None},
+            "logos": {"light": "data:image/png;base64," + base64.b64encode(PNG).decode(), "dark": None, "alt": "Ozie logo"},
+            "stylesheet": ':root { --brand-accent: #0a66ff; --brand-font-body: "Inter", system-ui, sans-serif; }\n.site-header { border-color: #0a66ff; }',
+        }
+        bundle.update(overrides)
+        return bundle
+
+    def brand_links(self, files):
+        links = {}
+        for name, content in files.items():
+            if name.endswith(".html"):
+                tags = Document(content.decode()).tags
+                links[name] = [(attrs["href"], attrs["data-kernel-brand"]) for tag, attrs in tags if tag == "link" and "data-kernel-brand" in attrs]
+                hrefs = [attrs.get("href") for tag, attrs in tags if tag == "link"]
+                self.assertEqual(hrefs.index(links[name][0][0]) if links[name] else -1, 1 if links[name] else -1, "the brand follows atlas.css")
+        return links
+
+    def test_brand_kit_is_written_and_linked_on_every_page_with_its_stamp(self):
+        stamp = self.kit()["stamp"]
+        for layout in ("single", "catalog"):
+            with self.subTest(layout=layout):
+                files = Renderer(self.data, self.root, layout, "no", parse_brand(self.kit())).build()
+                css = files[BRAND_CSS].decode()
+                self.assertTrue(css.startswith("/* user-journey-atlas brand "))
+                self.assertTrue(css.endswith("\n" + self.kit()["stylesheet"]), "the stylesheet is kept verbatim")
+                self.assertEqual(PNG, files["assets/brand-logo.png"])
+                expected = {"index.html": [(BRAND_CSS, stamp)]}
+                if layout == "catalog":
+                    expected.update({f"stories/{key}.html": [("../" + BRAND_CSS, stamp)] for key in ("first-story", "second-story")})
+                self.assertEqual(expected, self.brand_links(files))
+                self.assert_links_resolve(files)
+                for name in expected:
+                    logos = [attrs for tag, attrs in Document(files[name].decode()).tags if attrs.get("class") == "brand-logo"]
+                    self.assertEqual([("../" if name.startswith("stories/") else "") + "assets/brand-logo.png"], [attrs["src"] for attrs in logos])
+                    self.assertEqual("Ozie logo", logos[0]["alt"])
+
+    def test_unbranded_pages_are_unchanged_and_carry_no_brand(self):
+        files = self.render("catalog")
+        self.assertNotIn(BRAND_CSS, files)
+        self.assertEqual({name: [] for name in files if name.endswith(".html")}, self.brand_links(files))
+        self.assertIn('<link rel="stylesheet" href="assets/atlas.css">\n  <script src="assets/atlas.js" defer></script>', files["index.html"].decode())
+        self.assertNotIn(b"brand-logo", files["index.html"])
+
+    def test_rebuild_keeps_the_brand_and_none_removes_it(self):
+        output = self.root / "out"
+        branded = Renderer(self.data, self.root, "catalog", "no", parse_brand(self.kit())).build()
+        write_output(branded, output, "test-atlas", False)
+        kept = existing_brand(output)
+        self.assertEqual((self.kit()["stamp"], "Ozie logo", PNG), (kept.stamp, kept.alt, kept.logo))
+        rebuilt = Renderer(self.data, self.root, "catalog", "no", kept).build()
+        self.assertEqual(branded, rebuilt, "a rebuild without --brand writes the same files")
+        newer = parse_brand(self.kit(version=4, stamp="6f1c2a10-0000-4000-8000-000000000001@4",
+                                     logos={"light": None, "dark": None, "alt": ""}))
+        write_output(Renderer(self.data, self.root, "catalog", "no", newer).build(), output, "test-atlas", True)
+        self.assertFalse((output / "assets/brand-logo.png").exists(), "a kit without a logo removes the old one")
+        self.assertIn('data-kernel-brand="6f1c2a10-0000-4000-8000-000000000001@4"', (output / "stories/first-story.html").read_text())
+        write_output(self.render("catalog"), output, "test-atlas", True)
+        self.assertFalse((output / BRAND_CSS).exists())
+        self.assertNotIn("data-kernel-brand", (output / "index.html").read_text())
+        self.assertIsNone(existing_brand(output))
+
+    def test_brand_kit_files_are_validated(self):
+        self.assertIsNone(parse_brand({"source": "none", "owner": None, "kit": None}))
+        self.assertEqual(self.kit()["stamp"], parse_brand({"source": "organization", "owner": {}, "kit": self.kit()}).stamp)
+        for overrides, message in (({"bundleFormat": 2}, "bundleFormat 2"), ({"stylesheet": "a{}</style>"}, "</"),
+                                   ({"stamp": 'x" onload="y'}, "invalid stamp"),
+                                   ({"logos": {"light": "https://example.com/logo.png", "dark": None, "alt": ""}}, "data URI")):
+            with self.subTest(overrides=overrides), self.assertRaisesRegex(ValueError, message):
+                parse_brand(self.kit(**overrides))
+        bundle = self.kit()
+        del bundle["bundleFormat"]
+        with self.assertRaisesRegex(ValueError, "no bundleFormat"):
+            parse_brand(bundle)
+
+    def test_brand_cli_keeps_replaces_and_removes(self):
+        import subprocess
+        import sys
+        script = Path(__file__).resolve().parent / "build_atlas.py"
+        source = self.root / "atlas.json"
+        source.write_text(json.dumps(self.data))
+        output = self.root / "cli"
+        kit = self.root / "kit.json"
+        kit.write_text(json.dumps({"source": "project", "owner": {}, "kit": self.kit()}))
+
+        def build(*extra):
+            return subprocess.run([sys.executable, str(script), str(source), "--output", str(output), *extra],
+                                  capture_output=True, text=True)
+        self.assertEqual(0, build("--brand", str(kit)).returncode)
+        first = (output / "index.html").read_text()
+        self.assertIn("data-kernel-brand", first)
+        self.assertEqual(0, build("--replace").returncode)
+        self.assertEqual(first, (output / "index.html").read_text(), "--replace without --brand keeps the brand")
+        future = self.root / "future.json"
+        future.write_text(json.dumps(self.kit(bundleFormat=2)))
+        refused = build("--replace", "--brand", str(future))
+        self.assertEqual(1, refused.returncode)
+        self.assertIn("bundleFormat 2", refused.stderr)
+        self.assertEqual(first, (output / "index.html").read_text())
+        empty = self.root / "none.json"
+        empty.write_text(json.dumps({"source": "none", "owner": None, "kit": None}))
+        self.assertIn("without a brand", build("--replace", "--brand", str(empty)).stdout)
+        self.assertFalse((output / BRAND_CSS).exists())
+        self.assertEqual(0, build("--replace", "--brand", str(kit)).returncode)
+        self.assertEqual(0, build("--replace", "--brand", "none").returncode)
+        self.assertFalse((output / BRAND_CSS).exists())
+        self.assertFalse((output / "assets/brand-logo.png").exists())
 
 
 if __name__ == "__main__":

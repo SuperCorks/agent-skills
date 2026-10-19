@@ -14,6 +14,7 @@ python3 scripts/build_atlas.py /path/to/atlas.json \
 - Use `single` for a focused feature walkthrough. It produces `index.html` with stable `#story-id` links.
 - Use `catalog` for a product-wide collection. It produces an index plus `stories/story-id.html` pages with their own screenshots, notes, sources, and navigation.
 - Set `--review-notes yes` only after the current request or the user's answer selects notes. The CLI defaults to `no`; it does not ask on the agent's behalf.
+- `--brand kit.json` applies a Kernel brand kit (the task's `brand-kit` response or a kit bundle; `"kit": null` means no brand): it writes the kit's stylesheet to `assets/brand.css`, links it after `assets/atlas.css` on every page with `data-kernel-brand="<kit id>@<version>"`, and puts the kit's logo in each page header as `assets/brand-logo.<ext>`. Upload both as supporting files with the rest. A `--replace` build without `--brand` keeps the brand the atlas has; `--brand none` removes it.
 - `--replace` refreshes an output previously generated for the same atlas ID. Without this flag, a nonempty output is refused. With it, only files listed in the atlas manifest may be overwritten or removed; unrelated files are retained and conflicting unmanaged paths are refused. Do not hand-edit the generated files and then expect a rebuild to preserve those edits.
 
 Open the generated `index.html` to read it. For catalog review notes, serve the directory at a stable local origin so every story page uses the same browser storage:

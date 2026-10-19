@@ -1,31 +1,35 @@
+/* Colours and fonts fall back from a Kernel brand kit's --brand-* properties (assets/brand.css,
+   written by build_atlas.py --brand), so an unbranded atlas keeps these values. */
 :root {
   color-scheme: light;
-  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: var(--brand-font-body, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
   font-size: 17px;
   line-height: 1.65;
-  color: #263445;
-  background: #fff;
-  --ink: #172536;
-  --muted: #536477;
-  --link: #096b69;
-  --line: #dce4e8;
+  color: var(--brand-ink, #263445);
+  background: var(--brand-page, #fff);
+  --ink: var(--brand-ink, #172536);
+  --muted: var(--brand-muted, #536477);
+  --link: var(--brand-accent, #096b69);
+  --line: var(--brand-line, #dce4e8);
+  --surface: var(--brand-surface, #fff);
 }
 * { box-sizing: border-box; }
 body { margin: 0; }
 a { color: var(--link); text-underline-offset: .18em; }
 a:hover { text-decoration-thickness: 2px; }
 button, textarea { font: inherit; }
-button { color: var(--ink); background: #fff; border: 1px solid #a8b9c4; border-radius: .35rem; padding: .42rem .72rem; cursor: pointer; line-height: 1.4; }
+button { color: var(--ink); background: var(--surface); border: 1px solid #a8b9c4; border-radius: .35rem; padding: .42rem .72rem; cursor: pointer; line-height: 1.4; }
 button:hover:not(:disabled) { background: #f0f6f6; border-color: var(--link); }
 button:disabled { cursor: default; opacity: .45; }
-:focus-visible { outline: 3px solid #138b86; outline-offset: 4px; }
+:focus-visible { outline: 3px solid var(--brand-accent, #138b86); outline-offset: 4px; }
 [hidden] { display: none !important; }
-.skip-link { position: fixed; z-index: 20; left: 1rem; top: -6rem; background: #fff; padding: .6rem 1rem; }
+.skip-link { position: fixed; z-index: 20; left: 1rem; top: -6rem; background: var(--surface); padding: .6rem 1rem; }
 .skip-link:focus { top: 1rem; }
 .site-header, main, .source-footer { width: min(1120px, calc(100% - 3rem)); margin-inline: auto; }
 .site-header { padding-block: 3.3rem 1.4rem; border-bottom: 1px solid var(--line); }
+.brand-logo { display: block; width: auto; height: auto; max-width: min(100%, 16rem); max-height: 40px; margin: 0 0 1.25rem; }
 .eyebrow { margin: 0 0 .5rem; font-size: .82rem; letter-spacing: .055em; color: var(--muted); text-transform: uppercase; }
-h1, h2, h3, h4 { color: var(--ink); line-height: 1.2; font-weight: 650; text-wrap: balance; }
+h1, h2, h3, h4 { color: var(--ink); line-height: 1.2; font-weight: 650; text-wrap: balance; font-family: var(--brand-font-heading, inherit); }
 h1 { font-size: clamp(2rem, 4vw, 3.25rem); letter-spacing: -.04em; margin: 0 0 1rem; }
 h2 { font-size: 1.7rem; letter-spacing: -.025em; margin: 2.6rem 0 1rem; }
 h3 { font-size: 1.17rem; margin: 1.8rem 0 .6rem; }
@@ -77,8 +81,8 @@ figcaption { font-size: .9rem; line-height: 1.5; color: var(--muted); padding-to
 .source-footer h2 { font-size: 1rem; }
 .source-footer ol { max-width: 95ch; overflow-wrap: anywhere; }
 .page-navigation { display: flex; gap: 1.5rem; flex-wrap: wrap; padding-block: 2rem; font-size: .92rem; }
-.viewer { padding: 0; border: 1px solid #637684; border-radius: .5rem; width: min(1500px, calc(100vw - 2rem)); height: min(1100px, calc(100dvh - 2rem)); max-width: none; max-height: none; overflow: hidden; background: #fff; color: var(--ink); }
-.viewer-panel { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; width: 100%; height: 100%; background: #fff; }
+.viewer { padding: 0; border: 1px solid #637684; border-radius: .5rem; width: min(1500px, calc(100vw - 2rem)); height: min(1100px, calc(100dvh - 2rem)); max-width: none; max-height: none; overflow: hidden; background: var(--surface); color: var(--ink); }
+.viewer-panel { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; width: 100%; height: 100%; background: var(--surface); }
 .viewer::backdrop { background: rgb(13 23 33 / .82); }
 .viewer-panel:fullscreen { width: 100vw; height: 100dvh; border: 0; border-radius: 0; }
 .viewer-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .8rem 1rem; border-bottom: 1px solid var(--line); }
