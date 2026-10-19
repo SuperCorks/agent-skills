@@ -3,6 +3,7 @@
    mode (P to start; arrows, Space, Home, End to move; N notes; F fullscreen; Esc to exit).
    On touch screens, present mode also takes swipes and taps (left third back, the rest
    forward), its controls hide when idle, and the browser's Back exits present mode.
+   Kernel's document contract: kernel:show-slide shows a slide, kernel:slide-change follows each.
    Block comments only and a semicolon after every statement: the build joins lines. */
 (function () {
   "use strict";
@@ -54,6 +55,16 @@
     slides.forEach(function (slide, i) { slide.classList.toggle("hr-current", i === index); });
     count.textContent = (index + 1) + " / " + slides.length;
     if (slides[index].id) { try { history.replaceState(history.state, "", "#" + slides[index].id); } catch (error) { /* sandboxed */ } }
+    /* Kernel's document contract: announce every slide change so its comment pins follow. */
+    doc.dispatchEvent(new CustomEvent("kernel:slide-change", { detail: { id: slides[index].id || null, index: index } }));
+  };
+  /* Show the slide with this id, else the one at this position; false when there is none. */
+  var goTo = function (id, at) {
+    var i = id ? slides.map(function (slide) { return slide.id; }).indexOf(id) : -1;
+    if (i < 0) { i = typeof at === "number" && at % 1 === 0 && at >= 0 && at < slides.length ? at : -1; }
+    if (i < 0) { return false; }
+    show(i);
+    return true;
   };
   var settle = function () {
     slides[index].scrollIntoView({ block: "start", behavior: "instant" });
@@ -100,6 +111,11 @@
     fit();
     if (!on) { settle(); }
   };
+  /* Kernel asks for the slide a comment is on; cancelling the event says the deck showed it. */
+  doc.addEventListener("kernel:show-slide", function (event) {
+    var detail = event.detail || {};
+    if (goTo(detail.id, detail.index)) { event.preventDefault(); }
+  });
   window.addEventListener("popstate", function () {
     var back = presenting && history.state && history.state.hrDeck === "review";
     if (back) { present(false, true); }

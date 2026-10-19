@@ -26,14 +26,15 @@ const minimal = (body = "") => `<!doctype html>
 `;
 const tmp = () => mkdtempSync(path.join(os.tmpdir(), "hr-build-"));
 
-test("build adds one-line runtime blocks and a TOC without touching authored bytes", () => {
+test("build adds one-line runtime blocks and a TOC, touching authored bytes only to declare the document", () => {
   const source = minimal("<p>Body.</p>");
   const { output, changed } = buildSource(source);
   assert.ok(changed);
   const lines = output.split("\n");
   const generated = lines.filter((l) => /data-hr-(runtime|generated)/.test(l));
   assert.equal(generated.length, 3);
-  assert.equal(lines.filter((l) => !/data-hr-(runtime|generated)/.test(l)).join("\n"), source);
+  const declared = source.replace('data-template="findings">', 'data-template="findings" data-kernel-kind="report" data-kernel-contract="1">');
+  assert.equal(lines.filter((l) => !/data-hr-(runtime|generated)/.test(l)).join("\n"), declared);
   assert.match(output, /<nav class="toc" data-hr-generated="toc" aria-label="Contents"><a href="#summary">At a glance<\/a><a href="#findings">Findings &amp; evidence<\/a><\/nav>/);
 });
 
@@ -46,6 +47,74 @@ test("build is idempotent and refreshes the TOC after headings change", () => {
   const rebuilt = buildSource(renamed).output;
   assert.match(rebuilt, /<a href="#summary">Summary<\/a>/);
   assert.equal(rebuilt.split("data-hr-generated").length, 2);
+});
+
+const authored = (source) => source.split("\n").filter((l) => !/data-hr-(runtime|generated)/.test(l)).join("\n");
+
+test("build declares Kernel's document contract on <html>: decks as decks, everything else as reports", () => {
+  const report = buildSource(minimal()).output;
+  assert.match(report, /<html lang="en" data-template="findings" data-kernel-kind="report" data-kernel-contract="1">/);
+  const deck = buildSource(minimal().replace('data-template="findings"', 'data-template="slides"')).output;
+  assert.match(deck, /<html lang="en" data-template="slides" data-kernel-kind="deck" data-kernel-contract="1">/);
+  const untemplated = buildSource(minimal().replace(' data-template="findings"', "")).output;
+  assert.match(untemplated, /<html lang="en" data-kernel-kind="report" data-kernel-contract="1">/);
+  const switched = buildSource(report.replace('data-template="findings"', 'data-template="slides"')).output;
+  assert.match(switched, /data-template="slides" data-kernel-kind="deck" data-kernel-contract="1">/, "a stale kind is corrected in place");
+  assert.equal(buildSource(deck).changed, false);
+});
+
+test("build writes stable ids from headings into the source, de-duplicated, and keeps them across rebuilds and heading edits", () => {
+  const body = `</section>
+<section id="risks-2"><h2>Taken</h2></section>
+<section><h2>Risks &amp; mitigations</h2><figure class="chart"><figcaption>Orders by store, 2026</figcaption></figure></section>
+<section><h2>Risks &amp; mitigations</h2><figure><p>No caption.</p></figure></section>
+<section><h2>Risks</h2></section>
+<section><h2>Risks</h2></section>
+<section><h2>2026 roadmap</h2></section>
+<section><p>No heading.</p></section>
+<section class="extra"><h2>Keeps</h2>`;
+  const once = buildSource(minimal(body)).output;
+  const ids = [...authored(once).matchAll(/<(?:section|figure)[^>]* id="([^"]+)"/g)].map((m) => m[1]);
+  assert.deepEqual(ids, ["summary", "findings", "risks-2", "risks-mitigations", "orders-by-store-2026", "risks-mitigations-2", "figure-2", "risks", "risks-3", "section-2026-roadmap", "section-9", "keeps"]);
+  assert.match(once, /<section class="extra" id="keeps">/, "a new id goes at the end of the open tag");
+  assert.match(once, /<a href="#risks-mitigations">Risks &amp; mitigations<\/a>/, "the same build lists newly identified sections in the TOC");
+  assert.equal(buildSource(once).changed, false, "the second build changes nothing");
+  const renamed = buildSource(once.replace("<h2>Risks &amp; mitigations</h2><figure", "<h2>Open risks</h2><figure").replace("Orders by store, 2026", "Orders per store")).output;
+  assert.match(renamed, /<section id="risks-mitigations"><h2>Open risks<\/h2><figure class="chart" id="orders-by-store-2026">/, "a heading edit does not move ids");
+  assert.match(renamed, /<a href="#risks-mitigations">Open risks<\/a>/);
+  assert.match(buildSource(minimal().replace('<section id="summary">', '<section id="">')).output, /<section id="at-a-glance">/, "an empty id counts as missing");
+});
+
+test("build marks slides, question cards, and their direct answer slots, leaving existing ids alone", () => {
+  const deck = buildSource(`<!doctype html>
+<html lang="en" data-template="slides">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Deck</title></head>
+<body>
+<main class="deck">
+<section class="slide cover" id="s1"><h1>Move bookings safely</h1></section>
+<aside class="notes"><p>Open.</p></aside>
+<section class="slide"><h2>Retries fix most failed syncs</h2></section>
+<section class="slide"><div class="tiles"></div></section>
+<section class="slide" id="s4" data-kernel-slide><h2>Already marked</h2></section>
+</main>
+</body>
+</html>
+`).output;
+  const slides = [...deck.matchAll(/<section class="slide[^"]*"[^>]*>/g)].map((m) => m[0]);
+  assert.deepEqual(slides, [
+    '<section class="slide cover" id="s1" data-kernel-slide>',
+    '<section class="slide" id="retries-fix-most-failed-syncs" data-kernel-slide>',
+    '<section class="slide" id="slide-3" data-kernel-slide>',
+    '<section class="slide" id="s4" data-kernel-slide>'
+  ]);
+  assert.equal(buildSource(deck).changed, false);
+  const report = buildSource(minimal(`<article class="question" id="q1"><h3>Retry for a day?</h3><p class="answer"></p><div><p class="answer"></p></div></article>
+<article class="question"><h3>Should alerts page the on-call engineer at night?</h3><p class="answer" data-kernel-answer></p></article>
+<section class="slide"><h2>A slide in a report is a section</h2></section>`)).output;
+  assert.match(report, /<article class="question" id="q1" data-kernel-question><h3>Retry for a day\?<\/h3><p class="answer" data-kernel-answer><\/p><div><p class="answer"><\/p><\/div><\/article>/);
+  assert.match(report, /<article class="question" id="should-alerts-page-the-on-call-engineer" data-kernel-question>/, "ids stop at a word within 40 characters");
+  assert.match(report, /<section class="slide" id="a-slide-in-a-report-is-a-section">/, "only decks mark slides");
+  assert.equal(buildSource(report).changed, false);
 });
 
 test("data-toc labels and data-toc=off are honored", () => {

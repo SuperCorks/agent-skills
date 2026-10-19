@@ -3,7 +3,7 @@ import { test } from "node:test";
 import { buildSource } from "../scripts/lib/build.mjs";
 import { checkSource } from "../scripts/lib/check.mjs";
 
-const page = (body, { head = "", htmlAttrs = 'data-template="findings"' } = {}) => buildSource(`<!doctype html>
+const unbuilt = (body, { head = "", htmlAttrs = 'data-template="findings"' } = {}) => `<!doctype html>
 <html lang="en" ${htmlAttrs}>
 <head>
 <meta charset="utf-8">
@@ -18,7 +18,8 @@ ${body}
 </main>
 </body>
 </html>
-`).output;
+`;
+const page = (body, options) => buildSource(unbuilt(body, options)).output;
 const errorsOf = (source, options) => checkSource(source, options).errors.join("\n");
 const warningsOf = (source, options) => checkSource(source, options).warnings.join("\n");
 
@@ -55,14 +56,18 @@ test("vocabulary, template sections, and table wrapping are warnings", () => {
   assert.doesNotMatch(warningsOf(page('<div class="device phone"><div class="whatever">x</div></div><p class="mock-x">y</p>')), /vocabulary/);
   assert.match(warningsOf(page("").replace('<section id="next"><h2>N</h2></section>', "")), /sections missing: #next/);
   assert.match(warningsOf(page("<table><tr><td>1</td></tr></table>")), /table-wrap/);
-  assert.match(warningsOf(page("<section><h2>No id</h2></section>")), /without an id/);
+  assert.match(warningsOf(unbuilt("<section><h2>No id</h2></section>")), /without an id[\s\S]*`report.mjs build` gives each one/);
+  assert.doesNotMatch(warningsOf(page("<section><h2>No id</h2></section>")), /without an id/, "the build gives the section an id");
 });
 
-test("question cards need ids in order, a full question, and a recommendation", () => {
-  const good = '<article class="question" id="q1"><h3>Should we ship it?</h3><p class="rec">Yes.</p></article>';
+test("question cards need ids, numbered ones in order, a full question, a recommendation, and an answer slot", () => {
+  const good = '<article class="question" id="q1"><h3>Should we ship it?</h3><p class="rec">Yes.</p><p class="answer"></p></article>';
   assert.deepEqual(checkSource(page(good)).warnings, []);
-  assert.match(errorsOf(page('<article class="question"><h3>Ship?</h3></article>')), /without an id/);
-  assert.match(warningsOf(page('<article class="question" id="q2"><h3>Hosting</h3></article>')), /q1, q2[\s\S]*not a full question[\s\S]*no \.rec/);
+  assert.match(errorsOf(unbuilt('<article class="question"><h3>Ship?</h3></article>')), /without an id/);
+  assert.equal(errorsOf(page('<article class="question"><h3>Ship?</h3></article>')), "", "the build gives the card an id");
+  assert.match(warningsOf(page('<article class="question" id="q2"><h3>Hosting</h3></article>')), /q1, q2[\s\S]*keep its ids[\s\S]*not a full question[\s\S]*no \.rec[\s\S]*no <p class="answer"> as a direct child/);
+  assert.doesNotMatch(warningsOf(page('<article class="question" id="retry-policy"><h3>Should we retry?</h3><p class="rec">Yes.</p><p class="answer"></p></article>')), /q1, q2/, "named ids need no number");
+  assert.match(warningsOf(page('<article class="question" id="q1"><h3>Should we retry?</h3><p class="rec">Yes.</p><div><p class="answer"></p></div></article>')), /no <p class="answer"> as a direct child/);
 });
 
 test("leftover guides and placeholders are errors; TODO in prose is a warning", () => {

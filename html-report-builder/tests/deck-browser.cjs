@@ -190,6 +190,41 @@ module.exports = async function deckTests({ browser, root, pass, watch }) {
     await page.close();
   }
 
+  {
+    const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+    const errors = watch(page);
+    await page.goto(url);
+    const marked = await page.evaluate(() => ({
+      kind: document.documentElement.getAttribute("data-kernel-kind"),
+      contract: document.documentElement.getAttribute("data-kernel-contract"),
+      slides: document.querySelectorAll(".slide").length,
+      marked: [...document.querySelectorAll("main.deck > [data-kernel-slide]")].filter((s) => s.id).length
+    }));
+    assert.deepEqual(marked, { kind: "deck", contract: "1", slides: 11, marked: 11 }, "the deck declares the contract and marks every slide with an id");
+    await page.evaluate(() => {
+      window.slideChanges = [];
+      document.addEventListener("kernel:slide-change", (event) => window.slideChanges.push(event.detail));
+    });
+    await page.keyboard.press("p");
+    await page.waitForFunction(() => document.documentElement.classList.contains("hr-presenting"));
+    await page.keyboard.press("ArrowRight");
+    assert.deepEqual(await page.evaluate(() => window.slideChanges), [{ id: "s1", index: 0 }, { id: "s2", index: 1 }], "presenting and each key announce kernel:slide-change");
+    const ask = (detail) => page.evaluate((detail) => {
+      const event = new CustomEvent("kernel:show-slide", { cancelable: true, detail });
+      document.dispatchEvent(event);
+      const shown = [...document.querySelectorAll("[data-kernel-slide]")].filter((s) => getComputedStyle(s).display !== "none").map((s) => s.id);
+      return { prevented: event.defaultPrevented, shown, last: window.slideChanges[window.slideChanges.length - 1] };
+    }, detail);
+    assert.deepEqual(await ask({ id: "s7", index: 6 }), { prevented: true, shown: ["s7"], last: { id: "s7", index: 6 } }, "kernel:show-slide shows the slide with that id");
+    assert.deepEqual(await ask({ id: null, index: 2 }), { prevented: true, shown: ["s3"], last: { id: "s3", index: 2 } }, "or the slide at that index");
+    assert.deepEqual(await ask({ id: "missing" }), { prevented: false, shown: ["s3"], last: { id: "s3", index: 2 } }, "an unknown slide is left to Kernel");
+    assert.equal(await page.evaluate(() => document.querySelector(".hr-count").textContent), "3 / 11");
+    await page.keyboard.press("Escape");
+    assert.deepEqual(errors, []);
+    pass("deck follows Kernel's document contract: declared and marked, kernel:show-slide shows a slide, kernel:slide-change follows every move");
+    await page.close();
+  }
+
   for (const width of [1120, 1440, 900]) {
     const context = await browser.newContext({ javaScriptEnabled: false, viewport: { width, height: 900 } });
     const page = await context.newPage();

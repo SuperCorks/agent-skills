@@ -59,7 +59,7 @@ The numbered short version under a verdict: three to five points, each a bold se
 
 ## Question card
 
-Number ids `q1`, `q2`, ... in document order; the page shows "Q1" from the order. The title is a full question. `.rec`, `.owner`, `.links`, and `.answer` add their own labels; keep `.answer` empty for the reader to fill in the editor. Once an answer is filled in, the card turns green and shows "Answered", so the section doubles as the decision record.
+Number ids `q1`, `q2`, ... in document order; the page shows "Q1" from the order. Once the report is shared, keep the ids (answers follow them) and give a new question the next unused number. The title is a full question. `.rec`, `.owner`, `.links`, and `.answer` add their own labels; keep `.answer` empty for the reader to fill in the editor. Once an answer is filled in, the card turns green and shows "Answered", so the section doubles as the decision record.
 
 ```html
 <article class="question" id="q1">

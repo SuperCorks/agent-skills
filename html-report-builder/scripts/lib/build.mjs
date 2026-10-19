@@ -1,10 +1,10 @@
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { attr, classes, escapeHtml, normalizeText, parse, splice, textContent } from "./scan.mjs";
-import { stripComments } from "./comments.mjs";
+import { ancestors, attr, classes, escapeHtml, normalizeText, parse, splice, textContent, visibleTextContent } from "./scan.mjs";
+import { STORE_ATTR, stripComments } from "./comments.mjs";
 import { libraryTag, readLibrary } from "./vendor.mjs";
-import { RUNTIME_VERSION, loadRuntime } from "./runtime.mjs";
+import { RUNTIME_VERSION, TEMPLATES, loadRuntime } from "./runtime.mjs";
 
 const MIME = {
   ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".gif": "image/gif",
@@ -36,6 +36,27 @@ export function setAttributeEdit(source, element, name, value) {
   if (existing) return { start: existing.start, end: existing.end, text: `${name}=${quoteAttribute(value)}` };
   const nameEnd = element.open.start + 1 + element.name.length;
   return { start: nameEnd, end: nameEnd, text: ` ${name}=${quoteAttribute(value)}` };
+}
+
+/**
+ * Edits that give an element these attributes: changed values through setAttributeEdit, missing
+ * ones appended together at the end of the open tag, in order. A value of "" writes a bare name.
+ */
+export function setAttributesEdits(source, element, entries) {
+  const edits = [];
+  let added = "";
+  for (const [name, value] of entries) {
+    if (!attrNode(element, name)) added += value === "" ? ` ${name}` : ` ${name}=${quoteAttribute(value)}`;
+    else if (attr(element, name) !== value) edits.push(setAttributeEdit(source, element, name, value));
+  }
+  if (!added) return edits;
+  const { open } = element;
+  let at = source[open.end - 1] === ">" ? open.end - 1 : -1;
+  if (at > 0 && source[at - 1] === "/") at--;
+  while (at > open.start && /\s/.test(source[at - 1])) at--;
+  if (at < 0) at = open.start + 1 + element.name.length;
+  edits.push({ start: at, end: at, text: added });
+  return edits;
 }
 
 export function removeAttributeEdit(source, element, name) {
@@ -96,12 +117,100 @@ export function renderToc(doc) {
   return `<nav class="toc" data-hr-generated="toc" aria-label="Contents">${links}</nav>`;
 }
 
+const SLUG_MAX = 40;
+
+/** A heading's words as a lowercase hyphenated id, cut at a word within SLUG_MAX characters. */
+function slugify(text) {
+  const words = String(text).normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+  let slug = "";
+  for (const word of words) {
+    const next = slug ? `${slug}-${word}` : word;
+    if (next.length > SLUG_MAX) break;
+    slug = next;
+  }
+  return slug || (words[0] || "").slice(0, SLUG_MAX);
+}
+
+/** The slides of a deck, as deck.js finds them: `.slide` children of `main.deck` (or `main`). */
+function deckSlides(doc) {
+  const main = doc.elements.find((e) => e.name === "main" && classes(e).includes("deck")) || doc.elements.find((e) => e.name === "main");
+  return main ? main.children.filter((c) => classes(c).includes("slide")) : [];
+}
+
 /**
- * Build in place: refresh the marked runtime blocks and TOC, and inline local images.
- * Authored bytes outside those edits are never touched, so building twice is a no-op.
+ * Kernel's document contract (https://app.krnl.work/api/document-contract.md), written into the
+ * source: the kind and contract version on <html>, data-kernel-slide on a deck's slides,
+ * data-kernel-question on question cards and data-kernel-answer on their direct `.answer` slot,
+ * and an id on every section, slide, figure, and question card without one. A new id comes from
+ * the block's first heading (a figure's caption), else its kind and position, de-duplicated
+ * against every id in the document. Ids already written are never changed, so they outlast
+ * heading edits and later builds.
  */
-export function buildSource(source, { file, inlineImages = true } = {}) {
-  const doc = parse(source);
+function contractEdits(source, doc, { deck }) {
+  const edits = [];
+  const html = doc.elements.find((e) => e.name === "html");
+  if (html) edits.push(...setAttributesEdits(source, html, [["data-kernel-kind", deck ? "deck" : "report"], ["data-kernel-contract", "1"]]));
+  const slides = new Set(deck ? deckSlides(doc) : []);
+  const skipped = (element) => element.foreign || ancestors(element).some((a) => a.name === "template" || attr(a, "data-hr-generated") !== null || attr(a, STORE_ATTR) !== null || classes(a).includes("device"));
+  const kindOf = (element) => {
+    if (classes(element).includes("question") || attr(element, "data-kernel-question") !== null) return "question";
+    if (element.name === "section") return slides.has(element) ? "slide" : "section";
+    return element.name === "figure" ? "figure" : null;
+  };
+  const blocks = new Map();
+  for (const element of doc.elements) {
+    const kind = kindOf(element);
+    if (kind && !skipped(element)) blocks.set(element, kind);
+  }
+  // Each block's title: its first heading that no nested block owns.
+  const headings = new Map();
+  for (const element of doc.elements) {
+    if (!/^h[1-6]$/.test(element.name) || skipped(element)) continue;
+    const owner = ancestors(element).find((a) => blocks.has(a));
+    if (owner && !headings.has(owner)) headings.set(owner, element);
+  }
+  const taken = new Set(doc.elements.map((e) => attr(e, "id")).filter(Boolean));
+  const unique = (base) => {
+    let id = base;
+    for (let n = 2; taken.has(id); n++) id = `${base}-${n}`;
+    taken.add(id);
+    return id;
+  };
+  const positions = {};
+  for (const [element, kind] of blocks) {
+    positions[kind] = (positions[kind] || 0) + 1;
+    const entries = [];
+    if (!(attr(element, "id") || "").trim()) {
+      const caption = kind === "figure" ? element.children.find((c) => c.name === "figcaption") : null;
+      const title = caption || headings.get(element);
+      let slug = title ? slugify(normalizeText(visibleTextContent(doc, title))) : "";
+      if (/^\d/.test(slug)) slug = `${kind}-${slug}`;
+      entries.push(["id", unique(slug || `${kind}-${positions[kind]}`)]);
+    }
+    if (kind === "slide" && attr(element, "data-kernel-slide") === null) entries.push(["data-kernel-slide", ""]);
+    if (kind === "question") {
+      if (attr(element, "data-kernel-question") === null) entries.push(["data-kernel-question", ""]);
+      const answer = element.children.find((c) => classes(c).includes("answer"));
+      if (answer && !element.children.some((c) => attr(c, "data-kernel-answer") !== null)) edits.push(...setAttributesEdits(source, answer, [["data-kernel-answer", ""]]));
+    }
+    edits.push(...setAttributesEdits(source, element, entries));
+  }
+  return edits;
+}
+
+/**
+ * Build in place: write Kernel's document contract into the source, refresh the marked runtime
+ * blocks and TOC, and inline local images. Authored bytes outside those edits are never touched,
+ * so building twice is a no-op.
+ */
+export function buildSource(original, { file, inlineImages = true } = {}) {
+  const authored = parse(original);
+  const root = authored.elements.find((e) => e.name === "html");
+  const deck = Boolean(TEMPLATES[root ? attr(root, "data-template") : null]?.deck);
+  const marks = contractEdits(original, authored, { deck });
+  // The rest of the build reads the marked source, so new ids reach the TOC in the same build.
+  const source = marks.length ? splice(original, marks) : original;
+  const doc = marks.length ? parse(source) : authored;
   const edits = [];
   const notes = [];
   const find = (predicate) => doc.elements.find(predicate);
@@ -161,7 +270,7 @@ export function buildSource(source, { file, inlineImages = true } = {}) {
     }
   }
   const output = splice(source, edits);
-  return { output, changed: output !== source, notes };
+  return { output, changed: output !== original, notes };
 }
 
 /** Regenerate only an existing generated TOC (used by the editor after a heading edit). */

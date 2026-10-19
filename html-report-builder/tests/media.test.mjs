@@ -161,7 +161,7 @@ test("the build inlines the pinned Plotly only while the report has charts", { s
   assert.match(charted, /<script data-hr-runtime="plotly" data-hr-lib="plotly\.js-cartesian-dist-min@4\.1\.2">/);
   assert.match(charted, /HRCharts/);
   assert.deepEqual(checkSource(charted).errors, []);
-  const plain = buildSource(charted.replace(/<figure class="chart">[\s\S]*?<\/figure>/, "<p>No chart now.</p>")).output;
+  const plain = buildSource(charted.replace(/<figure class="chart"[^>]*>[\s\S]*?<\/figure>/, "<p>No chart now.</p>")).output;
   assert.doesNotMatch(plain, /data-hr-runtime="plotly"|HRCharts/);
 });
 
@@ -182,7 +182,7 @@ test("pdf: skipped slides and their notes are hidden, and links resolve beside t
   const printable = printableSource(deck, { skip: ["s2", "#s9"], baseHref: "file:///tmp/decks/" });
   assert.equal(printable.deck, true);
   assert.deepEqual(printable.missing, ["s9"]);
-  assert.match(printable.source, /<section hidden class="slide" id="s2">/);
+  assert.match(printable.source, /<section hidden class="slide" id="s2" data-kernel-slide>/);
   assert.match(printable.source, /<aside hidden class="notes"><p>Second/);
   assert.doesNotMatch(printable.source, /<section hidden class="slide cover"/);
   assert.match(printable.source, /<head><base href="file:\/\/\/tmp\/decks\/">/);

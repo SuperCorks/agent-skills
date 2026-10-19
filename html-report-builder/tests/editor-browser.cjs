@@ -92,7 +92,7 @@ module.exports = async function editorTests({ browser, root, pass, watch }) {
     await page.click("#q1 .answer");
     await page.keyboard.type("Yes, retry with backoff.");
     await page.click("#risks p");
-    await waitFile((text) => text.includes('<p class="answer">Yes, retry with backoff.</p>'));
+    await waitFile((text) => text.includes('<p class="answer" data-kernel-answer>Yes, retry with backoff.</p>'));
     await page.keyboard.press("Escape");
     pass("editor: answers typed into the answer slot are saved when focus moves on");
 
@@ -108,7 +108,7 @@ module.exports = async function editorTests({ browser, root, pass, watch }) {
     await shadow("run").click();
     await page.waitForFunction(() => !document.getElementById("hre-host").shadowRoot.getElementById("result").hidden);
     assert.match(prompts.at(-1), /Instruction: Use plainer words\./);
-    assert.match(prompts.at(-1), /<article class="question" id="q1">/);
+    assert.match(prompts.at(-1), /<article class="question" id="q1" data-kernel-question>/);
     assert.ok(await page.evaluate(() => document.querySelector("#q1.hre-preview") !== null), "proposal previewed in place");
     const diff = await page.evaluate(() => [...document.getElementById("hre-host").shadowRoot.querySelectorAll("#diff ins, #diff del")].map((n) => `${n.tagName}:${n.textContent.trim()}`));
     assert.deepEqual(diff, ["DEL:short", "INS:brief provider"]);
@@ -137,7 +137,7 @@ module.exports = async function editorTests({ browser, root, pass, watch }) {
     assert.ok(await page.evaluate(() => document.getElementById("q1").classList.contains("hre-doomed")), "hovering Delete previews what goes");
     await Promise.all([page.waitForEvent("load"), shadow("delete").click()]);
     await page.waitForFunction(() => document.getElementById("hre-host"));
-    assert.equal(await read(), beforeDelete.replace(/<article class="question" id="q1">.*<\/article>\n/, ""));
+    assert.equal(await read(), beforeDelete.replace(/<article class="question" id="q1" data-kernel-question>.*<\/article>\n/, ""));
     assert.match(await shadow("toast").textContent(), /Deleted article#q1\. ⌘Z to undo\./);
     await Promise.all([page.waitForEvent("load"), page.keyboard.press("Meta+z")]);
     await page.waitForFunction(() => document.getElementById("hre-host"));

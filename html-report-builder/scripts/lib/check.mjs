@@ -155,7 +155,7 @@ export function checkSource(source, { file, mode = "local" } = {}) {
   const main = named("main")[0];
   if (main) {
     const loose = main.children.filter((c) => c.name === "section" && !attr(c, "id"));
-    if (loose.length) warnings.push(`${loose.length} <main> section(s) without an id (no anchor or TOC entry)`);
+    if (loose.length) warnings.push(`${loose.length} <main> section(s) without an id (no anchor or TOC entry): \`report.mjs build\` gives each one from its heading`);
   }
   if (TEMPLATES[template]?.deck && main) checkDeck(doc, main, warnings);
 
@@ -165,10 +165,11 @@ export function checkSource(source, { file, mode = "local" } = {}) {
     const heading = question.children.find((c) => /^h[2-4]$/.test(c.name));
     const label = heading ? normalizeText(textContent(doc, heading)).slice(0, 60) : `question ${index + 1}`;
     if (!id) errors.push(`question card without an id: "${label}"`);
-    else if (id !== `q${index + 1}`) warnings.push(`question ids should run q1, q2, ... in order (found #${id} at position ${index + 1}) so "Q${index + 1}" matches its anchor`);
+    else if (/^q\d+$/.test(id) && id !== `q${index + 1}`) warnings.push(`question ids should run q1, q2, ... in order (found #${id} at position ${index + 1}) so "Q${index + 1}" matches its anchor; once the report is shared, keep its ids and accept this warning`);
     if (!heading) errors.push(`question card #${id || index + 1} needs an <h3> with the full question`);
     else if (!/\?\s*$/.test(normalizeText(textContent(doc, heading)))) warnings.push(`question #${id || index + 1} title is not a full question: "${label}"`);
     if (!elements.some((e) => classes(e).includes("rec") && ancestors(e).includes(question))) warnings.push(`question #${id || index + 1} has no .rec: add a recommended default, or accept this warning when no recommendation is possible`);
+    if (!question.children.some((c) => classes(c).includes("answer") || attr(c, "data-kernel-answer") !== null)) warnings.push(`question #${id || index + 1} has no <p class="answer"> as a direct child, where readers' answers go`);
   });
 
   for (const token of doc.tokens) {

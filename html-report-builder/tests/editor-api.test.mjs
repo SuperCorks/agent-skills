@@ -128,10 +128,10 @@ test("editing an h2 refreshes the generated table of contents", async () => {
 test("answers can be typed into empty answer slots", async () => {
   const page = (await call("/")).text;
   const { version } = await state();
-  const id = /<p data-hre="(b\d+)" class="answer"><\/p>/.exec(page)[1];
+  const id = /<p data-hre="(b\d+)" class="answer" data-kernel-answer><\/p>/.exec(page)[1];
   const result = await call("/api/edit", { method: "POST", body: { id, version, text: "", html: "Yes, retry for 24 hours." } });
   assert.equal(result.status, 200, result.text);
-  assert.match(readFileSync(file(), "utf8"), /<p class="answer">Yes, retry for 24 hours\.<\/p>/);
+  assert.match(readFileSync(file(), "utf8"), /<p class="answer" data-kernel-answer>Yes, retry for 24 hours\.<\/p>/);
 });
 
 test("an AI rewrite protects code, previews a diff, and applies only after accept", async () => {
@@ -250,7 +250,7 @@ test("deleting removes whole sections, cards, rows, and paragraphs, and unlinks 
   const page = (await call("/")).text;
   assert.match(page, /<header data-hre="c\d+" class="hero">/, "the hero holds the h1, so it is not deletable");
   assert.match(page, /<h2 data-hre="b\d+">Findings/, "section titles are not deletable");
-  assert.match(page, /<p data-hre="b\d+" class="answer">/, "answer slots are not deletable");
+  assert.match(page, /<p data-hre="b\d+" class="answer" data-kernel-answer>/, "answer slots are not deletable");
   assert.match(page, /<article data-hre="c\d+" data-hre-del class="finding risk"/);
   assert.equal((await remove("Findings")).status, 400);
   const stale = await call("/api/delete", { method: "POST", body: { id: /data-hre="(c\d+)" data-hre-del/.exec(page)[1], version: "old" } });

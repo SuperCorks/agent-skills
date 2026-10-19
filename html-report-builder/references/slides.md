@@ -60,7 +60,7 @@ Add, merge, or drop middle slides to fit the story; keep the cover first and the
 <aside class="notes"><p>Close on the approval; offer the two-week plan as the fallback.</p></aside>
 ```
 
-Give slides ids `s1`, `s2`, ... in order and a short `data-toc` label; the review view's navigation lists them. Use `<div class="spacer"></div>` to push a closing line to the bottom of a slide.
+Give slides ids `s1`, `s2`, ... in order and a short `data-toc` label; the review view's navigation lists them. In a deck that was already shared, keep the ids: a new slide takes the next unused number. Use `<div class="spacer"></div>` to push a closing line to the bottom of a slide.
 
 ## Slide templates
 
