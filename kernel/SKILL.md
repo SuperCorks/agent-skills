@@ -154,13 +154,20 @@ organization it belongs to:
      document contract (`/api/document-contract.md`, summarised in the "HTML documents Kernel
      hosts" section Kernel appends to this skill); a hand-built deck uses the contract's slide
      snippet. Prefer `html-report-builder` and `user-journey-atlas`, which do this for you.
+   - Before building a report, deck, or atlas for a task, read `GET /api/v1/tasks/{taskId}/brand-kit`
+     (the project's kit, else its organization's; `kit: null` means none), save it as JSON, and pass
+     it to the builder with `--brand <file>`. Writing a kit (`PUT …/brand-kit` on an organization or
+     project) follows `portfolio_pages`, like other organization and project page upkeep.
 2. For an HTML or Markdown page with CSS, scripts, images, or data, upload each of those as a
    supporting file under the relative path the page uses, such as `css/app.css`. For a report
    built with `html-report-builder`, first run its `report.mjs export <report.html> --out <dir>`
    and publish the exported `<slug>.html` with each file in `<slug>.assets/` as a supporting file,
    so images are references rather than inlined data. For a catalog-layout atlas, publish
    `index.html` as the file and each `stories/*.html` page and asset as a supporting file at its
-   path; every page then takes feedback.
+   path; every page then takes feedback. Once the page and all its supporting files are uploaded,
+   read `GET …/attachments/{attachmentId}/checks` (or `…/files/{fileId}/checks`) and fix every
+   problem before sharing (D-117); on `brand_outdated`, rebuild with the current brand kit and
+   upload a new version.
 3. Create a public link, with an optional `label` naming who it is for, and give the user the
    returned `url`. To give one recipient a fixed copy, pin the link with `fileVersion`. For an HTML
    report the recipient should answer or comment on, set `feedback: "post"` (or `"view"` to show
