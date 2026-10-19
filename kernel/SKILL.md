@@ -145,12 +145,18 @@ and errors.
 When asked to share a file publicly through Kernel, publish it on the task, project, or
 organization it belongs to:
 
-1. Upload the file as a task attachment or an organization or project file.
+1. Upload the file as a task attachment or an organization or project file. Kernel reads what an
+   HTML file is from its markup: `html-report-builder` reports and slide decks and
+   `user-journey-atlas` atlases are recognized, and anything else is `code`. For a hand-built deck
+   or report, pass `htmlKind` (`deck`, `report`, `atlas`, or `code`) with the upload, or set it
+   later with `PATCH` on the attachment or file; the kind decides how feedback behaves.
 2. For an HTML or Markdown page with CSS, scripts, images, or data, upload each of those as a
    supporting file under the relative path the page uses, such as `css/app.css`. For a report
    built with `html-report-builder`, first run its `report.mjs export <report.html> --out <dir>`
    and publish the exported `<slug>.html` with each file in `<slug>.assets/` as a supporting file,
-   so images are references rather than inlined data.
+   so images are references rather than inlined data. For a catalog-layout atlas, publish
+   `index.html` as the file and each `stories/*.html` page and asset as a supporting file at its
+   path; every page then takes feedback.
 3. Create a public link, with an optional `label` naming who it is for, and give the user the
    returned `url`. To give one recipient a fixed copy, pin the link with `fileVersion`. For an HTML
    report the recipient should answer or comment on, set `feedback: "post"` (or `"view"` to show
@@ -169,6 +175,9 @@ cards; Kernel keeps them per link. `report_feedback` decides whether you offer t
 without a direct request; under every preset, show each reply and its thread and post only after
 approval, because readers outside the workspace see it. To act on them,
 `GET …/attachments/{attachmentId}/feedback?status=open` (or `…/files/{fileId}/feedback`) lists every link's open threads with the version each started on.
+On a deck a comment stays on its slide; on an atlas a comment names its story page
+(`anchor.page`), and each story's review notes, which readers write in the atlas's own notes box,
+are an answer thread whose `questionId` is `story:` and the story id.
 Revise the report and upload it as a new version; comments follow their element and answers their
 question id. Then reply to each thread (`POST /public-links/{linkId}/feedback/{threadId}/replies`
 with `{body}`) and resolve it (`PATCH /public-links/{linkId}/feedback/{threadId}` with
