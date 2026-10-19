@@ -292,6 +292,9 @@ class RendererTests(unittest.TestCase):
     def test_brand_kit_files_are_validated(self):
         self.assertIsNone(parse_brand({"source": "none", "owner": None, "kit": None}))
         self.assertEqual(self.kit()["stamp"], parse_brand({"source": "organization", "owner": {}, "kit": self.kit()}).stamp)
+        # A response saved as is, in the API's envelope.
+        self.assertEqual(self.kit()["stamp"], parse_brand({"data": {"source": "organization", "owner": None, "kit": self.kit()}}).stamp)
+        self.assertIsNone(parse_brand({"data": {"source": "none", "owner": None, "kit": None}}))
         for overrides, message in (({"bundleFormat": 2}, "bundleFormat 2"), ({"stylesheet": "a{}</style>"}, "</"),
                                    ({"stamp": 'x" onload="y'}, "invalid stamp"),
                                    ({"logos": {"light": "https://example.com/logo.png", "dark": None, "alt": ""}}, "data URI")):

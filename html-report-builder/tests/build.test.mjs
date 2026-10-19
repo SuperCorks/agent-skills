@@ -279,6 +279,9 @@ test("the brand logo goes first in the hero or the deck's cover, light and dark 
 test("brand kit files: the bundle or the task's wrapper, kit null means no brand, other bundle formats are refused", async (t) => {
   assert.equal(parseBrand({ source: "none", owner: null, kit: null }), null);
   assert.equal(parseBrand({ source: "project", owner: { kind: "project", id: "p" }, kit: kit() }).stamp, kit().stamp);
+  // A response saved as is, in the API's envelope.
+  assert.equal(parseBrand({ data: { source: "organization", owner: null, kit: kit() } }).stamp, kit().stamp);
+  assert.equal(parseBrand({ data: { source: "none", owner: null, kit: null } }), null);
   assert.throws(() => parseBrand(kit({ bundleFormat: 2 })), /bundleFormat 2, but this builder reads bundleFormat 1/);
   assert.throws(() => parseBrand({ ...kit(), bundleFormat: undefined }), /no bundleFormat/);
   assert.throws(() => parseBrand(kit({ stylesheet: "a{}</style><script>" })), /contains "<\/"/);

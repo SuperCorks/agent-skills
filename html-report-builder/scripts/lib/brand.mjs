@@ -17,11 +17,14 @@ const COLOR = /^(?:#[0-9a-f]{3,8}|(?:rgba?|hsla?)\([^()]*\))$/i;
 const COLOR_TOKENS = ["accent", "on-accent", "ink", "muted", "page", "surface", "line", "ok", "warn", "risk"];
 
 /**
- * A brand from the JSON Kernel serves: the bundle itself (`…/brand-kit/bundle`) or the task's
- * `{source, owner, kit}` (`/tasks/{taskId}/brand-kit`), where `kit: null` means no brand (null).
+ * A brand from the JSON Kernel serves: the bundle itself or the `{source, owner, kit}` of
+ * `/tasks/{taskId}/brand-kit` and `…/brand-kit/bundle`, where `kit: null` means no brand (null),
+ * either one inside the API's `{data}` envelope or not.
  */
 export function parseBrand(value, label = "brand kit") {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error(`${label} is not a Kernel brand kit bundle`);
+  /* The API wraps every response in {data}; a response saved as is reads the same. */
+  if ("data" in value && !("stylesheet" in value) && value.data && typeof value.data === "object") value = value.data;
   const bundle = "kit" in value && !("stylesheet" in value) ? value.kit : value;
   if (bundle === null) return null;
   if (!bundle || typeof bundle !== "object") throw new Error(`${label} is not a Kernel brand kit bundle`);

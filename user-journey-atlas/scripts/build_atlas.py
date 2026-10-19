@@ -103,6 +103,9 @@ def parse_brand(value, label="brand kit"):
     """The bundle Kernel serves, or the task's {source, owner, kit} wrapper; kit null is no brand."""
     if not isinstance(value, dict):
         raise ValueError(f"{label} is not a Kernel brand kit bundle")
+    # The API wraps every response in {data}; a response saved as is reads the same.
+    if "data" in value and "stylesheet" not in value and isinstance(value.get("data"), dict):
+        value = value["data"]
     bundle = value.get("kit") if "kit" in value and "stylesheet" not in value else value
     if bundle is None:
         return None
