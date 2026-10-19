@@ -96,6 +96,49 @@ class RendererTests(unittest.TestCase):
                     story_page = files["stories/first-story.html"].decode()
                     self.assertIn('"id": "second-story"', story_page)
 
+    def test_pages_follow_the_kernel_document_contract(self):
+        title = 'Finish "the" flow & leave'
+        self.data["stories"][0]["title"] = title
+        self.data["stories"][0]["alternatives"] = [{
+            "title": "Retry", "detail": "When the request times out, retry it.",
+            "steps": [{"action": "Choose Retry", "result": "The request runs again"},
+                      {"id": "retry-confirmed", "action": "Confirm", "result": "The request completes"}],
+        }]
+        for layout in ("single", "catalog"):
+            for notes in ("no", "yes"):
+                with self.subTest(layout=layout, notes=notes):
+                    files = self.render(layout, notes)
+                    pages = {name: body.decode() for name, body in files.items() if name.endswith(".html")}
+                    self.assertEqual(1 if layout == "single" else 3, len(pages))
+                    for name, body in pages.items():
+                        root = next(attrs for tag, attrs in Document(body).tags if tag == "html")
+                        self.assertEqual(("atlas", "1"), (root.get("data-kernel-kind"), root.get("data-kernel-contract")), name)
+                    page = pages["index.html" if layout == "single" else "stories/first-story.html"]
+                    tags = Document(page).tags
+                    steps = [attrs["id"] for tag, attrs in tags if tag == "li" and attrs.get("class") == "step"]
+                    expected = ["first-story-step-1", "first-story-alt-1-step-1", "retry-confirmed"]
+                    self.assertEqual(expected + (["second-story-step-1"] if layout == "single" else []), steps)
+                    boxes = [attrs for tag, attrs in tags if "data-kernel-notes" in attrs]
+                    local = [(tag, attrs.get("class")) for tag, attrs in tags if "data-kernel-local" in attrs]
+                    if notes == "no":
+                        self.assertEqual(([], []), (boxes, local))
+                        continue
+                    self.assertEqual("story:first-story", boxes[0]["data-kernel-notes"])
+                    self.assertEqual(title, boxes[0]["data-kernel-notes-title"])
+                    self.assertIn('data-kernel-notes-title="Finish &quot;the&quot; flow &amp; leave"', page)
+                    self.assertEqual([("p", "review-explanation"), ("label", None), ("textarea", None), ("p", "review-status")] * len(boxes), local)
+                    exports = [attrs for tag, attrs in tags if "data-export-notes" in attrs or "data-export-atlas-notes" in attrs]
+                    self.assertTrue(exports and not any("data-kernel-local" in attrs for attrs in exports))
+
+    def test_step_ids_are_valid_and_unique_in_the_atlas(self):
+        for layout in ("single", "catalog"):
+            for step_id in ("Bad Step", "main", "second-story", "first-story-step-1"):
+                with self.subTest(layout=layout, step_id=step_id):
+                    data = copy.deepcopy(self.data)
+                    data["stories"][0]["steps"].append({"id": step_id, "action": "Close", "result": "Closed"})
+                    with self.assertRaises(ValueError):
+                        self.render(layout, data=data)
+
     def test_html_and_embedded_json_remain_inert(self):
         data = copy.deepcopy(self.data)
         payload = '</script><img src=x onerror="alert(1)"> & {{TITLE}}'

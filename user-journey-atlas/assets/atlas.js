@@ -169,6 +169,11 @@
     link.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
+  // Kernel's document contract: a host that keeps the notes itself (Kernel) cancels this event
+  // and exports them; otherwise the page exports the notes it saved.
+  function hostExports(detail) {
+    return !document.dispatchEvent(new CustomEvent("kernel:export-notes", { cancelable: true, detail }));
+  }
   for (const notes of document.querySelectorAll(".review-notes")) {
     const story = notes.closest("[data-story-id]");
     const field = notes.querySelector("textarea");
@@ -189,12 +194,15 @@
       }
     });
     notes.querySelector("[data-export-notes]").addEventListener("click", () => {
+      const filename = `${atlasId}-${story.dataset.storyId}-notes.md`;
+      if (hostExports({ scope: "story", key: `story:${story.dataset.storyId}`, filename })) return;
       const heading = story.dataset.storyTitle.replace(/[\r\n]+/g, " ");
       const text = `# ${heading}\n\nStory: ${story.dataset.storyId}\nAtlas: ${atlasId}\n\n${field.value}\n`;
-      downloadMarkdown(`${atlasId}-${story.dataset.storyId}-notes.md`, text);
+      downloadMarkdown(filename, text);
     });
   }
   document.querySelector("[data-export-atlas-notes]").addEventListener("click", () => {
+    if (hostExports({ scope: "all", filename: `${atlasId}-notes.md` })) return;
     const catalog = JSON.parse(document.querySelector("[data-story-catalog]").textContent);
     const current = new Map(Array.from(document.querySelectorAll(".review-notes"), (notes) => [
       notes.closest("[data-story-id]").dataset.storyId, notes.querySelector("textarea").value,

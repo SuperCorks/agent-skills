@@ -28,6 +28,7 @@ Read [authoring.md](references/authoring.md) for the bundled renderer, content i
 
 - Default to a **single HTML document for a focused feature walkthrough**, or an **index plus individual story pages for a product-wide catalog**. Preserve an existing layout when refreshing unless restructuring is requested or necessary for usability.
 - Lead with a short product introduction and useful persona/feature navigation, then the stories. Keep story content visible. Use stable identifiers, direct story links, concise prose, and captions describing what the reader should notice.
+- The renderer writes [Kernel's document contract](https://app.krnl.work/api/document-contract.md) into every page, so Kernel can host the atlas with comments and keep each story's review notes. Never change a story ID once the atlas is shared: Kernel ties comments and notes to it.
 - Keep screenshots large enough to read and display complete images without cropping. Use separate image assets rather than enormous base64-embedded HTML.
 - Put sources at the end. Keep capture inventories, test logs, and maintenance/reproduction details in supporting working material. Do not fill the atlas with scope/authority essays, open-decision gates, architecture/build plans, reconciliation history, audit counters, or change ledgers.
 - Retain compact story-level warnings when evidence is missing or behavior differs from the reader's expected environment. A clean presentation must not conceal uncertainty.

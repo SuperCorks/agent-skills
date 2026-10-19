@@ -102,6 +102,14 @@ class Renderer:
                 raise ValueError(f"{key}.persona must name one of the persona IDs")
         self.files = {}
         self.image_names = {}
+        self.element_ids = set()
+
+    def claim_id(self, value):
+        """Story and step IDs are unique in the atlas: Kernel ties comments to them."""
+        if value in self.element_ids or value in RESERVED_IDS:
+            raise ValueError(f"Duplicate story or step ID: {value}")
+        self.element_ids.add(value)
+        return value
 
     def add_file(self, relative, content):
         self.files[relative] = content.encode("utf-8") if isinstance(content, str) else content
@@ -181,15 +189,18 @@ class Renderer:
             content += "</ul>"
         return content + "</nav>"
 
-    def render_steps(self, steps, key, prefix, heading_level=3):
+    def render_steps(self, steps, key, prefix, heading_level=3, id_prefix=None):
         steps = objects(steps, f"{key}.steps")
         if not steps:
             raise ValueError(f"{key}.steps must contain at least one action")
         content = '<ol class="steps">'
-        for step in steps:
+        for number, step in enumerate(steps, 1):
             action = text(step.get("action"), f"{key}.step.action", True)
             result = text(step.get("result"), f"{key}.step.result", True)
-            content += f'<li class="step"><div class="step-copy"><h{heading_level} class="step-heading">{esc(action)}</h{heading_level}>' + paragraph(result, "step-result") + "</div>"
+            # A step keeps its own ID when it has one, else its story's and its position.
+            step_id = self.claim_id(identifier(step["id"], f"{key}.step.id") if "id" in step
+                                    else f"{id_prefix or key + '-step'}-{number}")
+            content += f'<li class="step" id="{step_id}"><div class="step-copy"><h{heading_level} class="step-heading">{esc(action)}</h{heading_level}>' + paragraph(result, "step-result") + "</div>"
             screenshots = objects(step.get("images", []), f"{key}.step.images")
             if screenshots:
                 content += '<div class="screenshots">'
@@ -213,6 +224,7 @@ class Renderer:
         trigger = text(story.get("trigger"), f"{key}.trigger", True)
         preconditions = strings(story.get("preconditions"), f"{key}.preconditions")
         outcome = text(story.get("outcome"), f"{key}.outcome", True)
+        self.claim_id(key)
         content = (f'<article class="story" id="{key}" data-story-id="{key}" data-story-title="{esc(title)}">'
                    f'<h2 class="story-heading">{esc(title)}</h2><span class="story-id">{key}</span>'
                    + paragraph("Persona: " + self.persona_names[story["persona"]], "story-persona")
@@ -228,11 +240,11 @@ class Renderer:
         alternatives = objects(story.get("alternatives", []), f"{key}.alternatives")
         if alternatives:
             content += '<section class="story-section"><h3>Alternative and recovery paths</h3>'
-            for path in alternatives:
+            for number, path in enumerate(alternatives, 1):
                 content += f'<h4>{esc(text(path.get("title"), "alternative.title", True))}</h4>'
                 content += paragraph(text(path.get("detail"), "alternative.detail", True))
                 if "steps" in path:
-                    content += self.render_steps(path["steps"], key, prefix, heading_level=5)
+                    content += self.render_steps(path["steps"], key, prefix, heading_level=5, id_prefix=f"{key}-alt-{number}-step")
             content += "</section>"
         platforms = objects(story.get("platforms", []), f"{key}.platforms")
         if platforms:
@@ -255,14 +267,17 @@ class Renderer:
         if opportunities:
             content += '<section class="story-section"><h3>UX opportunities · proposed</h3>' + list_html(opportunities) + "</section>"
         if self.review_notes == "yes":
-            content += (f'<section class="review-notes" aria-labelledby="__atlas-notes-heading-{key}">'
+            # Kernel's document contract: Kernel keeps a hosted atlas's notes per story and hides
+            # the browser-only controls marked data-kernel-local while it does.
+            content += (f'<section class="review-notes" aria-labelledby="__atlas-notes-heading-{key}" '
+                        f'data-kernel-notes="story:{key}" data-kernel-notes-title="{esc(title)}">'
                         f'<h3 id="__atlas-notes-heading-{key}">Review notes</h3>'
-                        '<p class="review-explanation">Notes are private to this browser and origin. They are not shared or synchronized. '
+                        '<p class="review-explanation" data-kernel-local>Notes are private to this browser and origin. They are not shared or synchronized. '
                         'Export a copy to keep or share them.</p>'
-                        f'<label for="__atlas-notes-{key}">Notes for this story</label>'
-                        f'<textarea id="__atlas-notes-{key}" rows="4"></textarea>'
+                        f'<label for="__atlas-notes-{key}" data-kernel-local>Notes for this story</label>'
+                        f'<textarea id="__atlas-notes-{key}" rows="4" data-kernel-local></textarea>'
                         '<div class="review-tools"><button type="button" data-export-notes>Export Markdown</button>'
-                        '<p class="review-status" role="status"></p></div>'
+                        '<p class="review-status" role="status" data-kernel-local></p></div>'
                         '<noscript><p>JavaScript is required to save and export notes. Copy any notes before leaving.</p></noscript></section>')
         return content + "</article>"
 
@@ -285,6 +300,7 @@ class Renderer:
         return re.sub(r"\{\{([A-Z_]+)\}\}", lambda match: substitutions[match.group(1)], template)
 
     def build(self):
+        self.element_ids = set()
         for name in ("atlas.css", "atlas.js"):
             self.add_file(f"assets/{name}", (ASSETS / name).read_bytes())
         header = '<p class="eyebrow">User journey atlas</p>' + f"<h1>{esc(self.title)}</h1>"

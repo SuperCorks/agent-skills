@@ -144,6 +144,31 @@ const { chromium } = require('playwright');
     assert.match(exported, /Alpha feedback/);
     assert.match(exported, /alpha/);
     pass('notes support editing, persistence, and identified Markdown export');
+
+    const downloads = [];
+    const onDownload = download => downloads.push(download.suggestedFilename());
+    page.on('download', onDownload);
+    await page.evaluate(() => {
+      window.exportRequests = [];
+      document.addEventListener('kernel:export-notes', event => window.exportRequests.push(event.detail));
+    });
+    const passiveDownload = page.waitForEvent('download');
+    await page.locator('[data-story-id="alpha"] [data-export-notes]').click();
+    await passiveDownload;
+    assert.deepEqual(downloads, ['viewer-test-alpha-notes.md'], 'an uncancelled kernel:export-notes leaves the export to the page');
+    await page.evaluate(() => document.addEventListener('kernel:export-notes', event => event.preventDefault()));
+    await page.locator('[data-story-id="alpha"] [data-export-notes]').click();
+    await page.getByRole('button', { name: 'Export atlas notes', exact: true }).click();
+    await page.waitForTimeout(500);
+    assert.deepEqual(downloads, ['viewer-test-alpha-notes.md'], 'a cancelled kernel:export-notes stops the local download');
+    assert.deepEqual(await page.evaluate(() => window.exportRequests), [
+      { scope: 'story', key: 'story:alpha', filename: 'viewer-test-alpha-notes.md' },
+      { scope: 'story', key: 'story:alpha', filename: 'viewer-test-alpha-notes.md' },
+      { scope: 'all', filename: 'viewer-test-notes.md' }
+    ]);
+    assert.equal(await page.locator('.atlas-review-status').textContent(), '', 'the page reports no export of its own');
+    page.off('download', onDownload);
+    pass('notes exports dispatch kernel:export-notes first, and a host that cancels it takes over the export');
     build('single', 'single', 'yes', input, true);
     await page.reload();
     assert.equal(await note.inputValue(), 'Alpha feedback');
