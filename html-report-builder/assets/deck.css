@@ -59,6 +59,7 @@ main > section.slide { padding-top: 46px; border-top: 1px solid var(--line); }
 .slide.cover { gap: 18px; border-left: 10px solid var(--accent); }
 .slide.cover::after { content: none; }
 .slide.cover .meta { margin-top: 10px; font-size: 16px; }
+.slide.cover > .brand-logo > img { max-width: 320px; max-height: 64px; }
 .slide.statement h2 { font-size: 46px; max-width: 24ch; }
 .slide.statement p:not(.eyebrow) { font-size: 22px; color: var(--muted); max-width: 46ch; }
 .slide.divider { background: var(--ink); color: var(--page); border-color: var(--ink); }

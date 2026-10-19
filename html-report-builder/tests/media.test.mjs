@@ -4,6 +4,7 @@ import { existsSync, mkdtempSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { test } from "node:test";
+import { brandTheme, parseBrand } from "../scripts/lib/brand.mjs";
 import { buildSource } from "../scripts/lib/build.mjs";
 import { chartsIn, renderChartSnapshots } from "../scripts/lib/charts.mjs";
 import { checkSource } from "../scripts/lib/check.mjs";
@@ -186,4 +187,50 @@ test("pdf: skipped slides and their notes are hidden, and links resolve beside t
   assert.match(printable.source, /<aside hidden class="notes"><p>Second/);
   assert.doesNotMatch(printable.source, /<section hidden class="slide cover"/);
   assert.match(printable.source, /<head><base href="file:\/\/\/tmp\/decks\/">/);
+});
+
+const BRAND_CSS = '@font-face { font-family: "Inter"; src: url("data:font/woff2;base64,d09GMgABAAAAAA==") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }\n:root { --brand-accent: light-dark(#0a66ff, #66a3ff); --brand-ok: #118844; --brand-ink: #111111; --brand-series-1: #ff0000; --brand-series-2: light-dark(#00aa00, #33cc33); --brand-series-5: #7700ff; --brand-font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif; --brand-logo: url("data:image/png;base64,iVBORw0KGgo="); }\n@media (prefers-color-scheme: dark) { :root { --brand-accent: #ffffff; } }\n.hero h1 { letter-spacing: 0; }';
+const bundle = (stylesheet = BRAND_CSS) => parseBrand({ id: "kit", version: 1, stamp: "kit@1", bundleFormat: 1, name: "Ozie", colors: {}, typography: {}, logos: { light: null, dark: null, alt: "" }, stylesheet });
+
+test("brand theme: colours per scheme, series, and fonts from the stylesheet's top-level :root", () => {
+  const theme = brandTheme(BRAND_CSS);
+  assert.deepEqual([theme.light.accent, theme.dark.accent], ["#0a66ff", "#66a3ff"], "a :root inside @media does not count");
+  assert.deepEqual([theme.light.ink, theme.dark.ink], ["#111111", "#111111"], "a single value is both schemes, as in CSS");
+  assert.deepEqual(theme.light.series, ["#ff0000", "#00aa00", null, null, "#7700ff", null, null, null]);
+  assert.equal(theme.dark.series[1], "#33cc33");
+  assert.equal(theme.font.body, '"Inter", system-ui, -apple-system, "Segoe UI", sans-serif');
+  assert.match(theme.fontFaces, /^@font-face\{ font-family: "Inter"; src: url\("data:font\/woff2;base64,d09GMgABAAAAAA=="\)/);
+  assert.equal(brandTheme(null), null);
+  assert.deepEqual(brandTheme(":root { --brand-accent: var(--x); --brand-font-body: url(x); }").light, { series: [null, null, null, null, null, null, null, null] }, "values that cannot be drawn are left out");
+});
+
+test("a brand redraws snapshots and diagrams in its colours and font, and check sees the same theme", async () => {
+  const seen = [];
+  const render = async (items) => { seen.push(...items); return svgFor(items); };
+  const plain = await renderChartSnapshots(page(chart()), { render });
+  const branded = await renderChartSnapshots(page(chart()), { render, brand: bundle() });
+  assert.deepEqual(seen[0], { spec: JSON.parse(SPEC), deck: false }, "unbranded items carry no theme");
+  assert.deepEqual(seen[1].theme, { ink: "#111111", accent: "#0a66ff", ok: "#118844", "series-1": "#ff0000", "series-2": "#00aa00", "series-5": "#7700ff", font: '"Inter", system-ui, -apple-system, "Segoe UI", sans-serif' });
+  assert.notEqual(chartsIn(branded.source, undefined, { brand: bundle() })[0].hash, chartsIn(plain.source)[0].hash);
+
+  const applied = buildSource(branded.source, { brand: bundle() }).output;
+  assert.doesNotMatch(checkSource(applied).warnings.join("\n"), /snapshot/, "check reads the brand from the inlined style");
+  assert.equal((await renderChartSnapshots(applied, { render: never })).rendered, 0, "a rebuild without --brand keeps the snapshot");
+  assert.equal((await renderChartSnapshots(applied, { render, brand: bundle(BRAND_CSS.replace("#ff0000", "#ee0000")) })).rendered, 1, "a new palette redraws");
+  assert.equal((await renderChartSnapshots(applied, { render, brand: null })).rendered, 1, "removing the brand redraws");
+
+  const drawn = [];
+  const draw = async (items) => { drawn.push(...items); return drawings(items); };
+  const unbranded = await renderDiagrams(page(diagram()), { render: draw });
+  const diagrams = await renderDiagrams(page(diagram()), { render: draw, brand: bundle() });
+  assert.equal(drawn[0].fonts, "");
+  assert.match(drawn[1].fonts, /^@font-face\{/, "the brand's fonts are loaded while drawing");
+  assert.equal(drawn[1].configs.light.fontFamily, '"Inter", system-ui, -apple-system, "Segoe UI", sans-serif');
+  assert.match(drawn[1].configs.light.themeCSS, /\.node\.accent rect[^}]*stroke: #0a66ff/);
+  assert.match(drawn[1].configs.dark.themeCSS, /\.node\.accent rect[^}]*stroke: #66a3ff/);
+  assert.match(drawn[1].configs.light.themeCSS, /\.node\.new rect[^}]*stroke: #118844/);
+  assert.deepEqual(drawn[0].configs.light, (await import("../scripts/lib/diagrams.mjs")).mermaidConfig("light"), "unbranded diagrams keep their theme");
+  assert.notEqual(diagrams.source, unbranded.source);
+  const diagramApplied = buildSource(diagrams.source, { brand: bundle() }).output;
+  assert.doesNotMatch(checkSource(diagramApplied).warnings.join("\n"), /drawing/);
 });

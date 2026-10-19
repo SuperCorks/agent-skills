@@ -21,6 +21,8 @@ Components that add their own labels (`.rec` "Recommendation", `.owner` "Owner:"
 
 The TOC is generated from every `<section id>` in `<main>` that has an `<h2>`. `data-toc` sets a shorter TOC label. The `.meta` row takes any label/value pairs (status, date, owner, stack, client).
 
+With a Kernel brand kit (`report.mjs build --brand`), the build inlines the kit's stylesheet and puts its logo first in the hero (a deck's cover) as a generated `brand-logo` block holding one image, or `brand-logo-light` and `brand-logo-dark` when the kit has both. Never write either by hand.
+
 ```html
 <header class="hero">
   <p class="eyebrow">Implementation plan</p>
@@ -210,7 +212,7 @@ An `ol.checklist` numbers its steps (use it for next steps, with the owner in `s
 
 ## Charts (Plotly)
 
-Data charts are interactive Plotly charts. Write the Plotly spec as JSON inside the figure and the chart's title as its `figcaption`; colours and fonts come from the report, so leave them out. Use `"token:accent"`, `"token:risk"`, `"token:ok"`, `"token:warn"`, `"token:muted"`, or `"token:series-1"` to `"token:series-4"` for colours that follow light and dark mode. Plotly's cartesian bundle draws `bar` (also funnels, as centred bars with a `base`), `scatter` (lines and markers), `pie`, `heatmap`, `histogram`, `box`, and `violin`. Keep one y-axis, at most four series, and a legend only for two or more.
+Data charts are interactive Plotly charts. Write the Plotly spec as JSON inside the figure and the chart's title as its `figcaption`; colours and fonts come from the report, so leave them out. Use `"token:accent"`, `"token:risk"`, `"token:ok"`, `"token:warn"`, `"token:muted"`, or `"token:series-1"` to `"token:series-4"` for colours that follow light and dark mode (and a Kernel brand kit when the report has one). Plotly's cartesian bundle draws `bar` (also funnels, as centred bars with a `base`), `scatter` (lines and markers), `pie`, `heatmap`, `histogram`, `box`, and `violin`. Keep one y-axis, at most four series, and a legend only for two or more.
 
 ```html
 <figure class="chart">

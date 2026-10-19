@@ -99,3 +99,15 @@ test("large inlined images warn", () => {
   const big = "A".repeat(420 * 1024);
   assert.match(warningsOf(page(`<img src="data:image/png;base64,${big}" alt="">`)), /over 300 KB/);
 });
+
+test("a Kernel brand kit's style may style the whole page, but every URL and import check still applies to it", () => {
+  const brand = (css) => `<style data-kernel-brand="6f1c2a10-0000-4000-8000-000000000001@3">${css}</style>\n`;
+  const css = '@font-face { font-family: "Inter"; src: url("data:font/woff2;base64,d09GMgABAAAAAA==") format("woff2"); }\n:root { --brand-accent: light-dark(#0a66ff, #66a3ff); --brand-logo: url(data:image/png;base64,iVBORw0KGgo=); }\nh2 { letter-spacing: 0; }';
+  const clean = checkSource(page("", { head: brand(css) }));
+  assert.deepEqual(clean.errors, []);
+  assert.deepEqual(clean.warnings, [], "no unscoped-selector warning for the brand style");
+  assert.match(warningsOf(page("", { head: brand(css) + "<style>h2{color:red}</style>\n" })), /unscoped selectors: h2/, "authored styles still are checked");
+  assert.match(errorsOf(page("", { head: brand(':root { --brand-logo: url("https://cdn.test/logo.png"); }') })), /CSS references external URLs: https:\/\/cdn.test\/logo.png/);
+  assert.match(errorsOf(page("", { head: brand('@font-face { font-family: X; src: url(//fonts.test/x.woff2); }') })), /CSS references external URLs/);
+  assert.match(errorsOf(page("", { head: brand('@import url("data:text/css,a{}");') })), /CSS contains @import/);
+});

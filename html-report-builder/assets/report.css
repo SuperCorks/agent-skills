@@ -3,26 +3,34 @@
    Avoid ", " inside CSS strings; the build minifier keeps strings intact but the
    rule keeps generated content simple. */
 
+/* Each token falls back from a Kernel brand kit's --brand-* property (inlined by
+   `report.mjs build --brand`), so an unbranded report keeps these values. */
 :root {
   color-scheme: light dark;
-  --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
-  --page: light-dark(#f5f6f8, #0e1014);
-  --surface: light-dark(#ffffff, #171a21);
+  --font: var(--brand-font-body, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif);
+  --mono: var(--brand-font-mono, ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace);
+  --page: var(--brand-page, light-dark(#f5f6f8, #0e1014));
+  --surface: var(--brand-surface, light-dark(#ffffff, #171a21));
   --sunken: light-dark(#eef0f4, #1f232c);
-  --ink: light-dark(#151922, #e7e9ee);
-  --muted: light-dark(#596273, #9ba4b4);
-  --line: light-dark(#dde1e8, #2b303b);
-  --accent: light-dark(#2155cf, #84a6ff);
-  --ok: light-dark(#17703f, #63cf91);
-  --warn: light-dark(#9a5300, #f1b45c);
-  --risk: light-dark(#b3261e, #ff8f85);
+  --ink: var(--brand-ink, light-dark(#151922, #e7e9ee));
+  --muted: var(--brand-muted, light-dark(#596273, #9ba4b4));
+  --line: var(--brand-line, light-dark(#dde1e8, #2b303b));
+  --accent: var(--brand-accent, light-dark(#2155cf, #84a6ff));
+  --on-accent: var(--brand-on-accent, var(--surface));
+  --ok: var(--brand-ok, light-dark(#17703f, #63cf91));
+  --warn: var(--brand-warn, light-dark(#9a5300, #f1b45c));
+  --risk: var(--brand-risk, light-dark(#b3261e, #ff8f85));
   --accent-soft: color-mix(in srgb, var(--accent) 10%, var(--surface));
-  /* Chart series, in this order, checked for colourblind separation on both surfaces. */
-  --series-1: light-dark(#2155cf, #5b86f0);
-  --series-2: light-dark(#eb6834, #d95926);
-  --series-3: light-dark(#1baf7a, #199e70);
-  --series-4: light-dark(#eda100, #c98500);
+  /* Chart series, in this order, checked for colourblind separation on both surfaces. A brand
+     kit may replace them and add series 5 to 8, which exist only when it sets them. */
+  --series-1: var(--brand-series-1, light-dark(#2155cf, #5b86f0));
+  --series-2: var(--brand-series-2, light-dark(#eb6834, #d95926));
+  --series-3: var(--brand-series-3, light-dark(#1baf7a, #199e70));
+  --series-4: var(--brand-series-4, light-dark(#eda100, #c98500));
+  --series-5: var(--brand-series-5);
+  --series-6: var(--brand-series-6);
+  --series-7: var(--brand-series-7);
+  --series-8: var(--brand-series-8);
   --radius: 10px;
   --gap: 1rem;
 }
@@ -45,7 +53,7 @@ body {
   display: grid; grid-template-columns: minmax(0, 1fr); column-gap: 2.5rem;
   background: var(--page); color: var(--ink); font: 16px/1.6 var(--font);
 }
-h1, h2, h3, h4 { line-height: 1.25; margin: 1.5em 0 .5em; text-wrap: balance; }
+h1, h2, h3, h4 { line-height: 1.25; margin: 1.5em 0 .5em; text-wrap: balance; font-family: var(--brand-font-heading, inherit); }
 h1 { font-size: clamp(1.9rem, 1.4rem + 2vw, 2.75rem); letter-spacing: -.02em; margin: .25rem 0 .75rem; }
 h2 { font-size: 1.5rem; letter-spacing: -.01em; margin-top: 0; scroll-margin-top: 4.5rem; }
 h3 { font-size: 1.125rem; }
@@ -76,6 +84,17 @@ figcaption { font-size: .875rem; color: var(--muted); margin-top: .4rem; }
 /* Page structure */
 .hero { padding: 3rem 0 2rem; }
 .eyebrow { margin: 0; color: var(--accent); font-weight: 600; font-size: .9375rem; }
+/* A Kernel brand kit's logo, which the build puts first in the hero (a deck's cover): with a dark
+   logo too, each shows in its colour scheme and print uses the light one. */
+.brand-logo { display: block; margin: 0 0 1rem; line-height: 0; }
+.brand-logo > img { display: block; width: auto; height: auto; max-width: min(100%, 16rem); max-height: 40px; }
+.brand-logo > .brand-logo-dark { display: none; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .brand-logo > .brand-logo-light { display: none; }
+  :root:not([data-theme="light"]) .brand-logo > .brand-logo-dark { display: block; }
+}
+:root[data-theme="dark"] .brand-logo > .brand-logo-light { display: none; }
+:root[data-theme="dark"] .brand-logo > .brand-logo-dark { display: block; }
 .lede { font-size: 1.1875rem; line-height: 1.55; color: var(--muted); max-width: 70ch; margin: 0; }
 .meta { display: flex; flex-wrap: wrap; gap: .4rem 2rem; margin: 1.25rem 0 0; font-size: .875rem; }
 .meta > div { display: flex; gap: .4rem; }
@@ -248,7 +267,7 @@ th.recommended { color: var(--accent); }
 .option.recommended { border: 2px solid var(--accent); }
 .option.recommended::before {
   content: "Recommended"; position: absolute; top: -.75rem; left: 1rem; padding: 0 .55rem; border-radius: 999px;
-  background: var(--accent); color: var(--surface); font-size: .75rem; font-weight: 700; line-height: 1.5rem;
+  background: var(--accent); color: var(--on-accent); font-size: .75rem; font-weight: 700; line-height: 1.5rem;
 }
 .pros, .cons, .checklist, .sources { list-style: none; padding-left: 0; }
 .sources > li { margin: 0 0 .6rem; }
@@ -367,4 +386,6 @@ details[open] > summary { margin-bottom: .5rem; }
   .chart > .chart-static { display: block !important; }
   .diagram-light { display: block !important; }
   .diagram-dark { display: none !important; }
+  .brand-logo > .brand-logo-light { display: block !important; }
+  .brand-logo > .brand-logo-dark { display: none !important; }
 }

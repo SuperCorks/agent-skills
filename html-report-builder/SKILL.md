@@ -31,13 +31,15 @@ In the commands below, `$HRB` is this skill's folder (for example `~/.agents/ski
    Fix every `ERROR`. Treat each `WARNING` as a prompt to fix or consciously accept. Building twice changes nothing, and building an older report upgrades its runtime. The build also writes Kernel's document markers (see Publishing) and gives every section, slide, figure, and question card without an `id` one from its heading, in the file itself; keep ids once written, even when a heading changes, and never renumber them.
 
    Charts and diagrams: the first build of a report that has them downloads the pinned Plotly and Mermaid once (hash-checked, cached in `~/.cache/html-report-builder`). The build then draws each chart's print snapshot and each diagram in a headless browser: the installed Chrome, or Playwright's Chromium, which it downloads once (about 100 MB) on machines without Chrome. It redraws only what changed (`--redraw` redraws everything) and inlines Plotly only into reports with charts. Without a network or a browser, the build still finishes and says what it skipped.
+
+   Brand kits: for a report or deck built for a Kernel task, `GET /api/v1/tasks/{taskId}/brand-kit` with the `kernel` skill's auth, save the response as JSON, and build with `--brand <file>`. The build inlines the kit's stylesheet (`<style data-kernel-brand>`), puts its logo in the hero or cover, and draws charts and diagrams in its colours and font; later builds without `--brand` keep it, and `--brand none` removes it. A response with `"kit": null` means the task has no brand. When Kernel's upload checks report `brand_outdated`, fetch the kit again and rebuild with it.
 5. **Look at it** when a browser tool is available: check desktop (about 1280 px) and mobile (390 px) widths, both color schemes if the report has mockups, and the console.
 6. **Hand off** with the file path, a one-paragraph summary, and the open questions. When the user will review the report, offer the local editor (below) so they can fix wording, answer question cards, and rewrite sections in place.
 
 ## Revising a report
 
 - Run `node "$HRB/scripts/report.mjs" outline <file>` first. It lists each section's line range and size, every question with its answer, every finding, and every open review comment with the section and line it is pinned to, so you can read and edit only the sections that change.
-- Lines containing `data-hr-runtime` or `data-hr-generated` are generated (the runtime, the inlined Plotly, chart snapshots, and drawn diagrams); never edit them, and skip them when reading. They and inlined images make some lines very long, so read line ranges with truncated lines, for example `sed -n '120,180p' report.html | cut -c1-400`. To change a chart or diagram, edit its JSON or Mermaid source and rebuild.
+- Lines containing `data-hr-runtime` or `data-hr-generated` are generated (the runtime, the inlined Plotly, chart snapshots, drawn diagrams, and the brand logo), as is the brand kit's `<style data-kernel-brand>` in the head; never edit them, and skip them when reading. They and inlined images make some lines very long, so read line ranges with truncated lines, for example `sed -n '120,180p' report.html | cut -c1-400`. To change a chart or diagram, edit its JSON or Mermaid source and rebuild.
 - Keep every id as it is so answers and comments stay attached; a new block gets a new id rather than renumbering the others. Then rebuild.
 - Answers the reader typed into `.answer` slots appear in `outline`; fold them into the decisions.
 - For a report shared through a Kernel link with feedback, readers' answers and comments live in Kernel, not in the file: list the file's open feedback with the Kernel Agent API (`GET …/feedback?status=open`), fold the answers into the decisions and make the requested changes, rebuild, export, and upload the result as a new version of the same Kernel file, then reply to each thread and resolve it there (see the `kernel` skill).
@@ -92,7 +94,7 @@ The templates and references encode corrections reviewers have made before. When
 
 | Command | Purpose |
 | --- | --- |
-| `report.mjs build <file> [--redraw]` | Refresh runtime CSS/JS and TOC, draw chart snapshots and diagrams, inline local images, validate |
+| `report.mjs build <file> [--redraw] [--brand kit.json\|none]` | Refresh runtime CSS/JS and TOC, draw chart snapshots and diagrams, inline local images, apply or remove a Kernel brand kit, validate |
 | `report.mjs check <file> [--json]` | Validate only |
 | `report.mjs outline <file> [--json]` | Section map, questions with answers, findings, review comments |
 | `report.mjs export <file> --out <dir>` | Publish copy with images as files |

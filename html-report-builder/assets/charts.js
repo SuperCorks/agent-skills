@@ -3,8 +3,9 @@
    the report's colours and fonts, replacing the build's static SVG snapshot (which stays for
    print, PDF, and readers without JavaScript). The build also loads this file to draw those
    snapshots. Strings "token:ink", "token:risk", "token:series-2" and so on in a spec become the
-   report's colours. Block comments only and a semicolon after every statement: the build joins
-   lines. */
+   report's colours, which follow a Kernel brand kit when the report has one (series 5 to 8 exist
+   only when the brand sets them). Block comments only and a semicolon after every statement: the
+   build joins lines. */
 (function () {
   "use strict";
   var doc = document;
@@ -13,7 +14,7 @@
     ink: "#151922", muted: "#596273", line: "#dde1e8", surface: "#ffffff", sunken: "#eef0f4", accent: "#2155cf",
     ok: "#17703f", warn: "#9a5300", risk: "#b3261e", "series-1": "#2155cf", "series-2": "#eb6834", "series-3": "#1baf7a", "series-4": "#eda100", font: FONT
   };
-  var NAMES = ["ink", "muted", "line", "surface", "sunken", "accent", "ok", "warn", "risk", "series-1", "series-2", "series-3", "series-4"];
+  var NAMES = ["ink", "muted", "line", "surface", "sunken", "accent", "ok", "warn", "risk", "series-1", "series-2", "series-3", "series-4", "series-5", "series-6", "series-7", "series-8"];
   var CONFIG = { displaylogo: false, responsive: true, displayModeBar: "hover", modeBarButtons: [["toImage"]], toImageButtonOptions: { format: "png", scale: 2 } };
   var DECK_CONFIG = { displaylogo: false, responsive: true, displayModeBar: false };
 
@@ -34,6 +35,13 @@
     return out;
   }
 
+  /* The four series, then any of 5 to 8 a brand adds. */
+  function colorway(t) {
+    var colors = [t["series-1"], t["series-2"], t["series-3"], t["series-4"]];
+    [5, 6, 7, 8].forEach(function (n) { if (t["series-" + n]) colors.push(t["series-" + n]); });
+    return colors;
+  }
+
   /* A guide line follows the pointer on line charts only; on bars it would cut through them. */
   function template(t, deck, spikes) {
     var size = deck ? 18 : 13;
@@ -42,7 +50,7 @@
     return {
       layout: {
         font: { family: t.font, size: size, color: t.ink },
-        colorway: [t["series-1"], t["series-2"], t["series-3"], t["series-4"]],
+        colorway: colorway(t),
         paper_bgcolor: "rgba(0,0,0,0)", plot_bgcolor: "rgba(0,0,0,0)",
         margin: { l: deck ? 24 : 16, r: 16, t: 16, b: deck ? 24 : 16, pad: 4 },
         xaxis: xaxis, yaxis: axis,
@@ -173,14 +181,16 @@
     });
   }
 
-  /* Used by the build: an SVG snapshot of one spec in the light palette. */
+  /* Used by the build: an SVG snapshot of one spec in the light palette, with the brand's
+     tokens (options.theme) over it when the report has a brand. */
   function snapshot(spec, options) {
     var deck = Boolean(options && options.deck);
+    var t = options && options.theme ? Object.assign({}, LIGHT, options.theme) : LIGHT;
     var width = (options && options.width) || (deck ? 832 : 880);
     var holder = doc.createElement("div");
     holder.style.width = width + "px";
     doc.body.appendChild(holder);
-    var built = figureFor(spec, LIGHT, deck);
+    var built = figureFor(spec, t, deck);
     built.layout.width = width;
     return window.Plotly.newPlot(holder, built.data, built.layout, { staticPlot: true }).then(function (gd) {
       return Promise.resolve(roomForText(gd)).then(function () { return window.Plotly.toImage(gd, { format: "svg", width: width, height: built.layout.height }); });

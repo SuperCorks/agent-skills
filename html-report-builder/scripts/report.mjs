@@ -3,6 +3,7 @@
 import { realpathSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { loadBrandFile } from "./lib/brand.mjs";
 import { buildFile, exportFile } from "./lib/build.mjs";
 import { checkFile } from "./lib/check.mjs";
 import { formatOutline, outlineFile } from "./lib/outline.mjs";
@@ -10,7 +11,8 @@ import { renderMediaFile } from "./lib/media.mjs";
 import { pdfFile } from "./lib/pdf.mjs";
 
 const USAGE = `Usage:
-  report.mjs build <file.html> [--redraw]  refresh runtime and TOC, draw chart snapshots and diagrams, inline images, check
+  report.mjs build <file.html> [--redraw] [--brand kit.json|none]  refresh runtime and TOC, draw chart snapshots and diagrams, inline images, check
+                                           (--brand applies a Kernel brand kit; none removes it; without it the file keeps its brand)
   report.mjs check <file.html> [--json]    validate without changing the file
   report.mjs export <file.html> --out <dir>  publish copy with images as files in <dir>/<slug>.assets/
   report.mjs outline <file.html> [--json]  section line ranges, questions with answers, findings, review comments
@@ -48,10 +50,17 @@ export async function main(argv = process.argv.slice(2)) {
   const target = path.resolve(file);
   try {
     if (command === "build") {
-      const media = await renderMediaFile(target, { force: flag("--redraw") });
+      let brand;
+      if (flag("--brand")) {
+        const value = option("--brand");
+        if (!value || value.startsWith("--")) { console.error("build --brand needs the brand kit JSON saved from Kernel, or none"); return 2; }
+        brand = value === "none" ? null : loadBrandFile(path.resolve(value));
+        if (value !== "none" && !brand) console.log("NOTE: the brand kit file has no kit (Kernel found none for the task), so the report is built without a brand");
+      }
+      const media = await renderMediaFile(target, { force: flag("--redraw"), brand });
       for (const note of media.notes) console.log(`NOTE: ${note}`);
       if (media.drawn.charts || media.drawn.diagrams) console.log(`Drew ${media.drawn.charts} chart snapshot(s) and ${media.drawn.diagrams} diagram(s)`);
-      const result = buildFile(target);
+      const result = buildFile(target, { brand });
       for (const note of result.notes) console.log(`NOTE: ${note}`);
       console.log(result.changed || media.changed ? `Built ${file}` : `${file} already up to date`);
       const checked = checkFile(target);

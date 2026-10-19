@@ -96,6 +96,8 @@ const { chromium } = require("playwright");
     if (await fs.stat(deckTests).then(() => true, () => false)) await require(deckTests)({ browser, root, pass, watch });
     const chartTests = path.join(__dirname, "charts-browser.cjs");
     if (await fs.stat(chartTests).then(() => true, () => false)) await require(chartTests)({ browser, root, pass, watch });
+    const brandTests = path.join(__dirname, "brand-browser.cjs");
+    if (await fs.stat(brandTests).then(() => true, () => false)) await require(brandTests)({ browser, root, pass, watch });
     const templateTests = path.join(__dirname, "templates-browser.cjs");
     if (await fs.stat(templateTests).then(() => true, () => false)) await require(templateTests)({ browser, root, pass, watch });
     const editorTests = path.join(__dirname, "editor-browser.cjs");

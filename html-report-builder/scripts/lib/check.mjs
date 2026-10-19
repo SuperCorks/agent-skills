@@ -8,6 +8,7 @@ import { createHash } from "node:crypto";
 import { chartsIn } from "./charts.mjs";
 import { diagramsIn } from "./diagrams.mjs";
 import { LIBRARIES } from "./vendor.mjs";
+import { BRAND_ATTR } from "./brand.mjs";
 
 const IMAGE_WARN_BYTES = 300 * 1024;
 const IMAGES_TOTAL_WARN_BYTES = 2 * 1024 * 1024;
@@ -97,7 +98,8 @@ export function checkSource(source, { file, mode = "local" } = {}) {
     if (/@import/i.test(css)) errors.push("CSS contains @import");
     const urls = [...css.matchAll(/url\s*\(\s*([^)]+?)\s*\)/gi)].map((m) => m[1].replace(/^["']|["']$/g, "")).filter((u) => !u.startsWith("data:") && !u.startsWith("#"));
     if (urls.length) errors.push(`CSS references external URLs: ${summarize(urls, 4)}`);
-    if (attr(style, "data-hr-runtime") !== null) continue;
+    // The runtime and a Kernel brand kit's stylesheet style the whole page; authored CSS may not.
+    if (attr(style, "data-hr-runtime") !== null || attr(style, BRAND_ATTR) !== null) continue;
     const selectors = css.replace(/\/\*[\s\S]*?\*\//g, "").replace(/@media[^{]*\{/g, "").match(/[^{}]+(?=\{)/g) || [];
     const unscoped = selectors.flatMap((s) => s.split(",")).map((s) => s.trim()).filter((s) => s && !s.startsWith("@") && !/\.mock-/.test(s) && !/^(from|to|\d+%)$/.test(s));
     if (unscoped.length) warnings.push(`authored <style> should only target .mock-* classes; unscoped selectors: ${summarize(unscoped, 4)}`);

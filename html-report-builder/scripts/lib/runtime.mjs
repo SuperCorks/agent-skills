@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-export const RUNTIME_VERSION = "1.1.0";
+export const RUNTIME_VERSION = "1.2.0";
 export const SKILL_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 export const ASSETS_DIR = path.join(SKILL_DIR, "assets");
 

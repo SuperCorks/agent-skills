@@ -11,11 +11,15 @@ import { ensureLibrary, withBrowser } from "./vendor.mjs";
 
 export const chartsJs = () => readFileSync(path.join(ASSETS_DIR, "charts.js"), "utf8");
 
-export async function renderMedia(source, { force = false, runBrowser = withBrowser, loadLibrary = ensureLibrary } = {}) {
+/**
+ * `brand` is the brand the build is about to apply (a parsed Kernel bundle, or null to remove it);
+ * left out, drawings follow the brand already inlined in the source.
+ */
+export async function renderMedia(source, { force = false, brand, runBrowser = withBrowser, loadLibrary = ensureLibrary } = {}) {
   const notes = [];
   const doc = parse(source);
-  const charts = chartsIn(source, doc);
-  const diagrams = diagramsIn(source, doc);
+  const charts = chartsIn(source, doc, { brand });
+  const diagrams = diagramsIn(source, doc, { brand });
   const staleCharts = charts.some((c) => c.spec && c.figure && (force || !c.snapshot || attr(c.snapshot, "data-hr-hash") !== c.hash));
   const staleDiagrams = diagrams.some((d) => d.figure && d.text && (force || !d.rendered || attr(d.rendered, "data-hr-hash") !== d.hash));
   const load = async (name) => {
@@ -26,10 +30,10 @@ export async function renderMedia(source, { force = false, runBrowser = withBrow
   const unavailable = (what) => async () => { throw new Error(`${what} is not available`); };
   let next = source;
   const draw = async (chartPage, diagramPage) => {
-    const chartResult = await renderChartSnapshots(next, { force, render: plotly && chartPage ? chartRenderer(chartPage, { plotly, chartsJs: chartsJs() }) : unavailable("Plotly") });
+    const chartResult = await renderChartSnapshots(next, { force, brand, render: plotly && chartPage ? chartRenderer(chartPage, { plotly, chartsJs: chartsJs() }) : unavailable("Plotly") });
     next = chartResult.source;
     notes.push(...chartResult.notes);
-    const diagramResult = await renderDiagrams(next, { force, render: mermaid && diagramPage ? diagramRenderer(diagramPage, { mermaid }) : unavailable("Mermaid") });
+    const diagramResult = await renderDiagrams(next, { force, brand, render: mermaid && diagramPage ? diagramRenderer(diagramPage, { mermaid }) : unavailable("Mermaid") });
     next = diagramResult.source;
     notes.push(...diagramResult.notes);
     return { charts: chartResult.rendered, diagrams: diagramResult.rendered };

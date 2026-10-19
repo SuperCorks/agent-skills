@@ -5,6 +5,7 @@ import { ancestors, attr, classes, escapeHtml, normalizeText, parse, splice, tex
 import { STORE_ATTR, stripComments } from "./comments.mjs";
 import { libraryTag, readLibrary } from "./vendor.mjs";
 import { RUNTIME_VERSION, TEMPLATES, loadRuntime } from "./runtime.mjs";
+import { BRAND_ATTR, BRAND_LOGO, brandLogoTag, brandStyleTag } from "./brand.mjs";
 
 const MIME = {
   ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".gif": "image/gif",
@@ -198,12 +199,53 @@ function contractEdits(source, doc, { deck }) {
   return edits;
 }
 
+/** Where the brand logo goes: a deck's cover slide, else the report's hero. */
+function logoHost(doc, deck) {
+  return (deck ? deckSlides(doc).find((s) => classes(s).includes("cover")) : doc.elements.find((e) => classes(e).includes("hero") && !e.foreign)) || null;
+}
+
+/**
+ * Brand edits for `brand` (a parsed Kernel bundle; null removes the brand, undefined keeps
+ * whatever the file has): one <style data-kernel-brand> right after the runtime style, and the
+ * logo block as the first child of the hero or cover. Returns the edits and, when the brand style
+ * is new, the line to put after the runtime style.
+ */
+function brandEdits(source, doc, brand, { deck, notes }) {
+  const edits = [];
+  const styles = doc.elements.filter((e) => e.name === "style" && attr(e, BRAND_ATTR) !== null);
+  const logos = doc.elements.filter((e) => attr(e, "data-hr-generated") === BRAND_LOGO);
+  if (brand === undefined) return { edits, styleLine: null };
+  if (brand === null) {
+    for (const element of [...styles, ...logos]) edits.push(removeLine(source, element));
+    return { edits, styleLine: null };
+  }
+  const styleLine = brandStyleTag(brand);
+  styles.forEach((style, index) => {
+    if (index) edits.push(removeLine(source, style));
+    else if (source.slice(style.start, style.end) !== styleLine) edits.push({ start: style.start, end: style.end, text: styleLine });
+  });
+  const logoLine = brandLogoTag(brand);
+  const host = logoLine ? logoHost(doc, deck) : null;
+  if (logoLine && !host) notes.push(`the brand logo goes in the ${deck ? "cover slide (<section class=\"slide cover\">)" : "hero (<header class=\"hero\">)"}, which this ${deck ? "deck" : "report"} does not have`);
+  const kept = host ? logos.find((logo) => logo.parent === host) : null;
+  for (const logo of logos) {
+    if (logo !== kept) edits.push(removeLine(source, logo));
+    else if (source.slice(logo.start, logo.end) !== logoLine) edits.push({ start: logo.start, end: logo.end, text: logoLine });
+  }
+  if (host && !kept) {
+    const first = host.children.find((c) => !logos.includes(c));
+    edits.push(first ? insertLineBefore(source, first.start, logoLine) : { start: host.innerStart, end: host.innerStart, text: logoLine });
+  }
+  return { edits, styleLine: styles.length ? null : styleLine };
+}
+
 /**
  * Build in place: write Kernel's document contract into the source, refresh the marked runtime
- * blocks and TOC, and inline local images. Authored bytes outside those edits are never touched,
- * so building twice is a no-op.
+ * blocks and TOC, apply a Kernel brand kit when given one (`brand`: a parsed bundle, or null to
+ * remove the brand; left out, the file keeps its brand), and inline local images. Authored bytes
+ * outside those edits are never touched, so building twice is a no-op.
  */
-export function buildSource(original, { file, inlineImages = true } = {}) {
+export function buildSource(original, { file, inlineImages = true, brand } = {}) {
   const authored = parse(original);
   const root = authored.elements.find((e) => e.name === "html");
   const deck = Boolean(TEMPLATES[root ? attr(root, "data-template") : null]?.deck);
@@ -235,8 +277,12 @@ export function buildSource(original, { file, inlineImages = true } = {}) {
   const addPlotly = plotlyLine && !plotlyScript;
   const nav = find((e) => e.name === "nav" && attr(e, "data-hr-generated") === "toc");
 
-  if (style) edits.push({ start: style.start, end: style.end, text: styleLine });
-  else if (head && head.close) edits.push(insertLineBefore(source, head.innerEnd, styleLine));
+  const branded = brandEdits(source, doc, brand, { deck, notes });
+  edits.push(...branded.edits);
+  // A new brand style goes right after the runtime style, so the kit's own CSS wins over it.
+  const styleLines = branded.styleLine ? `${styleLine}\n${branded.styleLine}` : styleLine;
+  if (style) edits.push({ start: style.start, end: style.end, text: styleLines });
+  else if (head && head.close) edits.push(insertLineBefore(source, head.innerEnd, styleLines));
   else notes.push("no explicit </head>; runtime CSS not inserted");
 
   if (script) edits.push({ start: script.start, end: script.end, text: addPlotly ? `${plotlyLine}\n${scriptLine}` : scriptLine });

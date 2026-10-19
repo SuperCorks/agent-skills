@@ -71,7 +71,7 @@ export function outlineData(source) {
 export function formatOutline(data) {
   const out = [];
   out.push(`${data.title || "(untitled)"} | template: ${data.template || "none"} | audience: ${data.audience} | runtime: ${data.runtime || "not built"} | ${kb(data.bytes)}, ${data.lines} lines`);
-  out.push("Generated runtime lines contain data-hr-runtime / data-hr-generated; skip them when reading.");
+  out.push("Generated runtime lines contain data-hr-runtime / data-hr-generated, and the brand kit style starts at data-kernel-brand; skip them when reading.");
   if (data.hero) out.push(`hero          L${data.hero.from}-${data.hero.to}`);
   if (data.slides.length) {
     out.push(`Slides (${data.slides.length}); line ranges include each slide's notes:`);

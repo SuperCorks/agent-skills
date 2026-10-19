@@ -3,8 +3,10 @@ import { existsSync, mkdtempSync, readFileSync, writeFileSync, mkdirSync } from 
 import os from "node:os";
 import path from "node:path";
 import { test } from "node:test";
+import { parseBrand } from "../scripts/lib/brand.mjs";
 import { buildFile, buildSource, exportFile } from "../scripts/lib/build.mjs";
-import { checkFile } from "../scripts/lib/check.mjs";
+import { checkFile, checkSource } from "../scripts/lib/check.mjs";
+import { main } from "../scripts/report.mjs";
 import { ASSETS_DIR, SKILL_DIR, cssClasses, loadRuntime, minifyCss } from "../scripts/lib/runtime.mjs";
 
 const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
@@ -195,4 +197,112 @@ test("templates build cleanly once guide comments are filled", () => {
 
 test("cssClasses ignores numbers and strings", () => {
   assert.deepEqual([...cssClasses('.a{margin:.5rem} .b-c:hover{content:".nope"}')].sort(), ["a", "b-c"]);
+});
+
+const LOGO = `data:image/png;base64,${PNG.toString("base64")}`;
+const DARK_LOGO = `data:image/png;base64,${Buffer.concat([PNG, Buffer.from([1])]).toString("base64")}`;
+const STYLESHEET = '@font-face { font-family: "Inter"; src: url("data:font/woff2;base64,d09GMgABAAAAAA==") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }\n:root { --brand-accent: light-dark(#0a66ff, #66a3ff); --brand-on-accent: #ffffff; --brand-series-1: #ff0000; --brand-font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif; }\n.hero h1 { letter-spacing: 0; }';
+const kit = (overrides = {}) => ({
+  id: "6f1c2a10-0000-4000-8000-000000000001", version: 3, stamp: "6f1c2a10-0000-4000-8000-000000000001@3", bundleFormat: 1,
+  name: "Ozie", owner: { kind: "organization", id: "org-1", name: "Ozie Inc." },
+  colors: { light: { accent: "#0a66ff", onAccent: "#ffffff", series: ["#ff0000"] }, dark: { accent: "#66a3ff" } },
+  typography: { body: "Inter", heading: null, mono: null },
+  logos: { light: LOGO, dark: null, alt: "Ozie" },
+  stylesheet: STYLESHEET,
+  ...overrides
+});
+const brandStyles = (source) => [...source.matchAll(/<style data-kernel-brand="([^"]*)">([\s\S]*?)<\/style>/g)].map((m) => ({ stamp: m[1], css: m[2] }));
+const logoBlocks = (source) => source.match(/<div class="brand-logo" data-hr-generated="brand-logo">.*?<\/div>/g) || [];
+
+test("--brand inlines the kit's stylesheet verbatim, stamped, right after the runtime style", () => {
+  const output = buildSource(minimal(), { brand: parseBrand(kit()) }).output;
+  assert.deepEqual(brandStyles(output), [{ stamp: "6f1c2a10-0000-4000-8000-000000000001@3", css: STYLESHEET }]);
+  assert.match(output, /<style data-hr-runtime="[^"]+">[^\n]*<\/style>\n<style data-kernel-brand=/, "the kit's own CSS comes after the runtime");
+  assert.deepEqual(checkSource(output).errors, []);
+  assert.deepEqual(checkSource(output).warnings.filter((w) => !/template sections missing/.test(w)), []);
+  const rebuilt = buildSource(buildSource(minimal()).output, { brand: parseBrand(kit()) }).output;
+  assert.equal(rebuilt, output, "a report built before gets the same brand style");
+});
+
+test("a rebuild without --brand keeps the brand; the same stamp changes nothing and a new one replaces it", () => {
+  const branded = buildSource(minimal(), { brand: parseBrand(kit()) }).output;
+  assert.equal(buildSource(branded).changed, false, "no --brand keeps the brand style and logo");
+  assert.equal(buildSource(branded, { brand: parseBrand(kit()) }).changed, false, "the same kit again changes nothing");
+  const newer = buildSource(branded, { brand: parseBrand(kit({ version: 4, stamp: "6f1c2a10-0000-4000-8000-000000000001@4", stylesheet: ":root { --brand-accent: #123456; }" })) }).output;
+  assert.deepEqual(brandStyles(newer), [{ stamp: "6f1c2a10-0000-4000-8000-000000000001@4", css: ":root { --brand-accent: #123456; }" }]);
+  assert.equal(logoBlocks(newer).length, 1);
+  assert.equal(buildSource(newer).changed, false);
+});
+
+test("--brand none removes the brand style and logo, back to the unbranded build", () => {
+  const plain = buildSource(minimal()).output;
+  const branded = buildSource(plain, { brand: parseBrand(kit()) }).output;
+  const removed = buildSource(branded, { brand: null });
+  assert.equal(removed.changed, true);
+  assert.deepEqual(brandStyles(removed.output), []);
+  assert.deepEqual(logoBlocks(removed.output), []);
+  assert.doesNotMatch(removed.output, /data-kernel-brand|data-hr-generated="brand-logo"/);
+  assert.equal(buildSource(plain, { brand: null }).changed, false, "removing no brand changes nothing");
+});
+
+test("the brand logo goes first in the hero or the deck's cover, light and dark when the kit has both", () => {
+  const multiline = minimal().replace('<header class="hero"><h1>Test report</h1></header>', '<header class="hero">\n  <p class="eyebrow">Investigation</p>\n  <h1>Test report</h1>\n</header>');
+  const report = buildSource(multiline, { brand: parseBrand(kit()) }).output;
+  assert.match(report, /<header class="hero">\n<div class="brand-logo" data-hr-generated="brand-logo"><img src="data:image\/png;base64,[^"]+" alt="Ozie"><\/div>\n  <p class="eyebrow">/);
+  assert.equal(buildSource(report, { brand: null }).output, buildSource(multiline).output, "removing the logo restores the hero");
+  const both = buildSource(report, { brand: parseBrand(kit({ logos: { light: LOGO, dark: DARK_LOGO, alt: "" } })) }).output;
+  assert.deepEqual(logoBlocks(both), [`<div class="brand-logo" data-hr-generated="brand-logo"><img class="brand-logo-light" src="${LOGO}" alt="Ozie"><img class="brand-logo-dark" src="${DARK_LOGO}" alt="Ozie"></div>`], "the kit's name is the alt text by default");
+  assert.deepEqual(checkSource(both).warnings.filter((w) => /vocabulary/.test(w)), [], "the logo classes are in the vocabulary");
+  const noLogo = buildSource(both, { brand: parseBrand(kit({ logos: { light: null, dark: null, alt: "" } })) }).output;
+  assert.deepEqual(logoBlocks(noLogo), [], "a kit without a logo removes the old one");
+  assert.equal(brandStyles(noLogo).length, 1);
+
+  const deck = buildSource(`<!doctype html>
+<html lang="en" data-template="slides">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Deck</title></head>
+<body>
+<main class="deck">
+<section class="slide cover" id="s1">
+<h1>Move bookings safely</h1>
+</section>
+<aside class="notes"><p>Open.</p></aside>
+</main>
+</body>
+</html>
+`, { brand: parseBrand(kit()) }).output;
+  assert.match(deck, /<section class="slide cover" id="s1" data-kernel-slide>\n<div class="brand-logo" data-hr-generated="brand-logo"><img src="data:image\/png;base64,[^"]+" alt="Ozie"><\/div>\n<h1>/);
+  assert.equal(buildSource(deck).changed, false);
+  const { notes } = buildSource(minimal().replace(/<header class="hero">.*<\/header>\n/, ""), { brand: parseBrand(kit()) });
+  assert.match(notes.join("\n"), /brand logo goes in the hero/);
+});
+
+test("brand kit files: the bundle or the task's wrapper, kit null means no brand, other bundle formats are refused", async (t) => {
+  assert.equal(parseBrand({ source: "none", owner: null, kit: null }), null);
+  assert.equal(parseBrand({ source: "project", owner: { kind: "project", id: "p" }, kit: kit() }).stamp, kit().stamp);
+  assert.throws(() => parseBrand(kit({ bundleFormat: 2 })), /bundleFormat 2, but this builder reads bundleFormat 1/);
+  assert.throws(() => parseBrand({ ...kit(), bundleFormat: undefined }), /no bundleFormat/);
+  assert.throws(() => parseBrand(kit({ stylesheet: "a{}</style><script>" })), /contains "<\/"/);
+  assert.throws(() => parseBrand(kit({ logos: { light: "https://x.test/logo.png", dark: null, alt: "" } })), /logos.light is not a base64 image data URI/);
+  assert.throws(() => parseBrand(kit({ stamp: 'x" onload="y' })), /invalid stamp/);
+
+  t.mock.method(console, "log", () => {});
+  const errors = t.mock.method(console, "error", () => {});
+  const dir = tmp();
+  const file = path.join(dir, "r.html");
+  writeFileSync(file, minimal());
+  const save = (name, value) => { writeFileSync(path.join(dir, name), JSON.stringify(value)); return path.join(dir, name); };
+  assert.equal(await main(["build", file, "--brand", save("kit.json", kit())]), 0);
+  assert.equal(brandStyles(readFileSync(file, "utf8")).length, 1);
+  assert.equal(await main(["build", file]), 0);
+  assert.equal(brandStyles(readFileSync(file, "utf8")).length, 1, "a build without --brand keeps it");
+  const before = readFileSync(file, "utf8");
+  assert.equal(await main(["build", file, "--brand", save("future.json", kit({ bundleFormat: 2 }))]), 1);
+  assert.match(errors.mock.calls.at(-1).arguments[0], /^ERROR: brand kit .*future\.json has bundleFormat 2/);
+  assert.equal(readFileSync(file, "utf8"), before, "a refused kit leaves the report alone");
+  assert.equal(await main(["build", file, "--brand"]), 2);
+  assert.equal(await main(["build", file, "--brand", save("task.json", { source: "none", owner: null, kit: null })]), 0);
+  assert.deepEqual(brandStyles(readFileSync(file, "utf8")), [], "a task without a kit builds without a brand");
+  assert.equal(await main(["build", file, "--brand", save("kit.json", kit())]), 0);
+  assert.equal(await main(["build", file, "--brand", "none"]), 0);
+  assert.doesNotMatch(readFileSync(file, "utf8"), /data-kernel-brand|brand-logo"/);
 });
