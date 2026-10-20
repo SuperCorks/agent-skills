@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en" data-template="findings" data-audience="internal" data-kernel-kind="report" data-kernel-contract="1">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Canvas name feedback, Month D</title>
+</head>
+<body>
+<!--
+  Base template for a Pastel feedback-round report. build-report.mjs writes this
+  same structure from a review folder; use this file to hand-write or extend a
+  report. Only html-report-builder classes are used: never add CSS. Build with
+  `node <html-report-builder>/scripts/report.mjs build <file> [--brand kit.json]`.
+  Ids are stable keys for Kernel comments: c<number> for each Pastel comment,
+  q1, q2, ... for decisions. Never renumber them.
+-->
+<header class="hero">
+  <p class="eyebrow">Pastel feedback</p>
+  <h1>Canvas name feedback, Month D</h1>
+  <p class="lede"><!-- guide: one or two sentences: how many comments, what happened to them, where the change lives (a PR link). --></p>
+  <dl class="meta"><div><dt>Canvas</dt><dd><a href="https://usepastel.com/link/SLUG/">Canvas name</a></dd></div><div><dt>Version</dt><dd>2.0</dd></div><div><dt>Reviewer</dt><dd>Reviewer name</dd></div><div><dt>Updated</dt><dd>Mon D, YYYY</dd></div><div><dt>Pull request</dt><dd><a href="https://github.com/OWNER/REPO/pull/N">REPO#N</a></dd></div><div><dt>Task</dt><dd><a href="https://app.krnl.work/t/KEY">KEY</a></dd></div></dl>
+</header>
+<main>
+<section id="summary" data-toc="At a glance">
+  <h2>At a glance</h2>
+  <!-- guide: four tiles (comments, changed, already done, need attention; tone the last warn when above 0), then one table row per comment in report order. -->
+  <div class="tiles">
+    <div class="tile"><span>Comments</span><b>3</b></div>
+    <div class="tile ok"><span>Changed</span><b>1</b></div>
+    <div class="tile"><span>Already done</span><b>1</b></div>
+    <div class="tile warn"><span>Need attention</span><b>1</b></div>
+  </div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Comment</th><th>Request</th><th>Outcome</th><th>What changed</th></tr></thead>
+    <tbody>
+      <tr><td><a href="#c38">#38</a></td><td>Short excerpt of the comment</td><td class="ok">Changed</td><td>Short description of the change</td></tr>
+      <tr><td><a href="#c22">#22</a></td><td>Short excerpt of the comment</td><td class="info">Already done</td><td>Where it already works</td></tr>
+      <tr><td><a href="#c35">#35</a></td><td>Short excerpt of the comment</td><td class="warn">Needs a decision</td><td>What is waiting on whom</td></tr>
+    </tbody>
+  </table></div>
+</section>
+<section id="decisions" data-toc="Decisions">
+  <h2>Decisions made before the work</h2>
+  <!-- guide: one answered .question per question asked before the work (step 2 of the round). The filled .answer turns the card green. Delete the section if nothing was asked. -->
+  <article class="question" id="q1">
+    <h3>Full-sentence question the user answered?</h3>
+    <p>What it affected.</p>
+    <p class="rec">The recommended answer offered.</p>
+    <p class="answer">The answer given (Name)</p>
+  </article>
+</section>
+<section id="findings" data-toc="Comments">
+  <h2>Comment by comment</h2>
+  <!-- guide: one .card.wide per comment inside the .grid (the grid spaces the cards). Order: as in the table. -->
+  <div class="grid">
+  <!-- Changed: comment, reviewer images, change, files, before/after. -->
+  <article class="card wide" id="c38">
+    <h3><a href="https://usepastel.com/link/SLUG/comment/ID/">#38</a> Short title of the request</h3>
+    <p><span class="pill ok">Changed</span> <small>Reviewer name · Mon D, YYYY · <a href="https://example.com/page">/page</a></small></p>
+    <div class="callout"><p><b>Comment:</b> The reviewer's words, verbatim.</p></div>
+    <div class="shots"><figure><img src="report.assets/38-pastel.jpg" alt="Pastel screenshot for comment 38"><figcaption>Pastel screenshot</figcaption></figure><figure><img src="report.assets/38-attachment-1.png" alt="Attachment for comment 38"><figcaption>Attachment name</figcaption></figure></div>
+    <p><b>Change:</b> One or two sentences on what changed and why.</p>
+    <ul class="chips"><li><code>src/path/to/file.tsx</code></li></ul>
+    <div class="compare">
+      <figure class="before"><img src="report.assets/38-before.jpg" alt="Before the change for comment 38"></figure>
+      <figure class="after"><img src="report.assets/38-after.jpg" alt="After the change for comment 38"></figure>
+    </div>
+    <p class="muted">Optional note: what the screenshots cannot show, or a caveat.</p>
+  </article>
+  <!-- Already done: no before/after unless it helps; say where it already works. -->
+  <article class="card wide" id="c22">
+    <h3><a href="https://usepastel.com/link/SLUG/comment/ID/">#22</a> Short title of the request</h3>
+    <p><span class="pill info">Already done</span> <small>Reviewer name · Mon D, YYYY</small></p>
+    <div class="callout"><p><b>Comment:</b> The reviewer's words.</p></div>
+    <p><b>Response:</b> Where and since when it already works.</p>
+  </article>
+  <!-- Needs a decision, partly changed, or not changed: say what is open and who decides. -->
+  <article class="card wide" id="c35">
+    <h3><a href="https://usepastel.com/link/SLUG/comment/ID/">#35</a> Short title of the request</h3>
+    <p><span class="pill warn">Needs a decision</span> <small>Reviewer name · Mon D, YYYY</small></p>
+    <div class="callout"><p><b>Comment:</b> The reviewer's words.</p><p><small>Reply author:</small> A reply on the comment.</p></div>
+    <p><b>Response:</b> What is open, the options, and who decides.</p>
+  </article>
+  </div>
+</section>
+<section id="next" data-toc="Next steps">
+  <h2>Next steps</h2>
+  <ol class="checklist">
+    <li>Review and merge the pull request, then check it on staging <small>Owner</small></li>
+    <li>Move the comments to In review once the change is on staging <small>Owner</small></li>
+  </ol>
+</section>
+<section id="limits" data-toc="Method">
+  <h2>Method and verification</h2>
+  <!-- guide: where each set of screenshots came from (environment, data, date), then how the change was verified; the build's screenshot warnings go in a .callout.warn. -->
+  <p>Before screenshots: where and when. After screenshots: where and when. Each screenshot is the element the comment points at, at the reviewer’s window width, with some of the page around it.</p>
+  <ul>
+    <li>How the change was verified.</li>
+  </ul>
+</section>
+</main>
+</body>
+</html>

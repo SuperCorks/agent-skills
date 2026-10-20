@@ -1,0 +1,4 @@
+interface:
+  display_name: "Pastel"
+  short_description: "Apply Pastel feedback rounds and report before/after"
+  default_prompt: "Use $pastel to work through the open comments on this Pastel canvas, from clarifying questions to a before/after report on the Kernel task."

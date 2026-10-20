@@ -14,6 +14,11 @@ const REMEDIATIONS = {
   PASTEL_COMMENT_NOT_FOUND: 'Verify the comment id in the URL and confirm the token can access the canvas.',
   PASTEL_DATE_INVALID: 'Use an ISO date such as 2026-06-30 or 2026-06-30T12:00:00Z.',
   PASTEL_FORMAT_INVALID: 'Use --format json, markdown, or csv.',
+  PASTEL_STATUS_INVALID: 'Use one of: active, in-progress, in-review, resolved.',
+  PASTEL_VERSION_EXISTS: 'Pick a new version name, or pass --allow-duplicate-name if a repeated name is intended.',
+  PASTEL_VERSION_TOO_SOON: 'A version was created moments ago, probably by this same request. Run list-versions.js, and pass --force only if a second version is intended.',
+  PASTEL_INPUT_INVALID: 'Check the input file path and that it contains the JSON the script expects.',
+  PASTEL_PLAYWRIGHT_MISSING: 'Run from a project that has playwright or @playwright/test installed, or pass --project-dir pointing at one.',
   PASTEL_API_ERROR: 'Inspect the API error details and adjust the request.',
 };
 

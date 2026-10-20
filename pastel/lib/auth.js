@@ -3,6 +3,8 @@ const os = require('os');
 const path = require('path');
 const { SkillError } = require('./errors');
 
+// The skill was called pastel-reader; existing ~/.zshrc blocks use these
+// markers, so they keep the old name.
 const START_MARKER = '# >>> pastel-reader auth >>>';
 const END_MARKER = '# <<< pastel-reader auth <<<';
 const MANAGED_COMMENT = '# Managed by agent-skills pastel-reader. Edit with scripts/auth.js.';

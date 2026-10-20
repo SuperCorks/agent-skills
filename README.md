@@ -53,7 +53,7 @@ A collection of AI agent skills for GitHub Copilot and other AI assistants.
 | [lovable-workflow](lovable-workflow) | Safely modify, validate, synchronize, and release Lovable-managed projects |
 | [merge-conflict-resolution](merge-conflict-resolution) | Resolve active Git merge, rebase, or cherry-pick conflicts by preserving both sides' intended behavior |
 | [my-voice](my-voice) | Draft in the user's writing voice and build or update a private local profile from sources they choose |
-| [pastel-reader](pastel-reader) | Read and audit Pastel canvases, comments, replies, labels, attachments, and metadata with multi-account support |
+| [pastel](pastel) | Read Pastel canvases and comments, run feedback rounds with before/after screenshot reports for Kernel tasks, set comment statuses, and start new versions |
 | [posthog](posthog) | Analyze PostHog data and manage product tooling with multi-account support |
 | [pr-babysit](pr-babysit) | Drive a PR to merge-ready: conflicts, review threads, and CI failures fixed one at a time, without force-pushing or merging |
 | [pr-review-guidelines](pr-review-guidelines) | Code review rubric focused on correctness, maintainability, consistency, and evidence-backed gates |

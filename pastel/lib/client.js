@@ -29,6 +29,30 @@ async function get(client, pathOrHref, options = {}) {
   throw mapApiError(response, body);
 }
 
+/**
+ * Write to Pastel (PUT, POST, DELETE). Callers own the confirmation: these
+ * changes are visible to everyone on the canvas.
+ */
+async function send(client, pathOrHref, { method, body } = {}) {
+  const url = buildUrl(client.baseUrl, pathOrHref);
+  const response = await fetch(url, {
+    method,
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${client.apiToken}`,
+    },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+
+  const responseBody = await readBody(response);
+  if (response.ok) {
+    return responseBody;
+  }
+
+  throw mapApiError(response, responseBody);
+}
+
 function buildUrl(baseUrl, pathOrHref, query) {
   const normalizedPath = pathOrHref.startsWith('/') ? pathOrHref.slice(1) : pathOrHref;
   const url = pathOrHref.startsWith('http')
@@ -92,5 +116,6 @@ module.exports = {
   DEFAULT_BASE_URL,
   createClient,
   get,
+  send,
   buildUrl,
 };
