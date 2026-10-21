@@ -7,6 +7,7 @@ import { readComments } from "./comments.mjs";
 import { createHash } from "node:crypto";
 import { chartsIn } from "./charts.mjs";
 import { diagramsIn } from "./diagrams.mjs";
+import { codeBlocksIn, staleCodeBlocks } from "./code.mjs";
 import { LIBRARIES } from "./vendor.mjs";
 import { BRAND_ATTR } from "./brand.mjs";
 
@@ -142,7 +143,9 @@ export function checkSource(source, { file, mode = "local" } = {}) {
     const list = classes(element);
     if (!list.length) continue;
     if (element.foreign || ancestors(element).some((a) => a.name === "svg" || classes(a).includes("device"))) continue;
-    for (const name of list) if (!vocabulary.has(name) && !name.startsWith("mock-")) unknown.push(name);
+    // highlight.js writes its own token classes inside a coloured code block.
+    if (ancestors(element).some((a) => a.name === "code" && attr(a, "data-hr-highlight") !== null)) continue;
+    for (const name of list) if (!vocabulary.has(name) && !name.startsWith("mock-") && !(element.name === "code" && /^(?:language|lang)-/.test(name))) unknown.push(name);
   }
   if (unknown.length) warnings.push(`classes outside the component vocabulary (no styling): ${summarize(unknown)}`);
 
@@ -188,8 +191,10 @@ export function checkSource(source, { file, mode = "local" } = {}) {
   for (const token of doc.tokens) {
     if (token.type !== "text" || token.raw || inComments(token)) continue;
     const text = source.slice(token.start, token.end);
-    if (/\{\{[^}]+\}\}|\[PLACEHOLDER\]/.test(text)) errors.push(`unfinished placeholder: ${text.trim().slice(0, 60)}`);
-    if (/\bTODO\b/.test(text) && !codeRanges.some(([s, e]) => token.start >= s && token.end <= e)) visibleText.push(text.trim().slice(0, 50));
+    // Code legitimately contains {{ }} (Liquid, Handlebars, GTM variables) and TODO.
+    const inCode = codeRanges.some(([s, e]) => token.start >= s && token.end <= e);
+    if (/\{\{[^}]+\}\}|\[PLACEHOLDER\]/.test(text) && !inCode) errors.push(`unfinished placeholder: ${text.trim().slice(0, 60)}`);
+    if (/\bTODO\b/.test(text) && !inCode) visibleText.push(text.trim().slice(0, 50));
   }
   if (visibleText.length) warnings.push(`"TODO" appears in visible text: ${summarize(visibleText, 3)}`);
 
@@ -231,6 +236,12 @@ export function checkSource(source, { file, mode = "local" } = {}) {
     if (!diagram.figure) errors.push(`diagram ${index + 1} must sit directly inside a <figure class="diagram">`);
     else if (!diagram.rendered || attr(diagram.rendered, "data-hr-hash") !== diagram.hash) warnings.push(`diagram ${index + 1} has a missing or stale drawing: run \`report.mjs build\` with Chrome available`);
   });
+  const codeBlocks = codeBlocksIn(source, doc);
+  const uncoloured = staleCodeBlocks(codeBlocks);
+  if (uncoloured.length) warnings.push(`${uncoloured.length} code block(s) not coloured yet: run \`report.mjs build\` (it downloads highlight.js once)`);
+  const languageBlocks = new Set(codeBlocks.map((b) => b.code.parent));
+  const plainBlocks = named("pre").filter((pre) => !languageBlocks.has(pre) && !ancestors(pre).some((a) => classes(a).includes("device")));
+  if (plainBlocks.length) warnings.push(`${plainBlocks.length} code block(s) name no language, so they are not coloured: write <pre><code class="language-sql"> (or language-text for plain output)`);
   return { errors: [...new Set(errors)], warnings: [...new Set(warnings)], template, audience };
 }
 

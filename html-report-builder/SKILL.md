@@ -32,6 +32,8 @@ In the commands below, `$HRB` is this skill's folder (for example `~/.agents/ski
 
    Charts and diagrams: the first build of a report that has them downloads the pinned Plotly and Mermaid once (hash-checked, cached in `~/.cache/html-report-builder`). The build then draws each chart's print snapshot and each diagram in a headless browser: the installed Chrome, or Playwright's Chromium, which it downloads once (about 100 MB) on machines without Chrome. It redraws only what changed (`--redraw` redraws everything) and inlines Plotly only into reports with charts. Without a network or a browser, the build still finishes and says what it skipped.
 
+   Code blocks: write `<pre><code class="language-sql">` (any highlight.js common language, or `language-text` for plain output). The build colours each block for its language with the pinned highlight.js, downloaded once into the same cache and run without a browser, labels it with the language, and recolours only blocks whose text changed. See Code blocks in `references/components.md`.
+
    Brand kits: for a report or deck built for a Kernel task, `GET /api/v1/tasks/{taskId}/brand-kit` with the `kernel` skill's auth, save the response as JSON, and build with `--brand <file>`. The build inlines the kit's stylesheet (`<style data-kernel-brand>`), puts its logo in the hero or cover, and draws charts and diagrams in its colours and font; later builds without `--brand` keep it, and `--brand none` removes it. A response with `"kit": null` means the task has no brand. When Kernel's upload checks report `brand_outdated`, fetch the kit again and rebuild with it.
 5. **Look at it** when a browser tool is available: check desktop (about 1280 px) and mobile (390 px) widths, both color schemes if the report has mockups, and the console.
 6. **Hand off** with the file path, a one-paragraph summary, and the open questions. When the user will review the report, offer the local editor (below) so they can fix wording, answer question cards, and rewrite sections in place.
@@ -94,7 +96,7 @@ The templates and references encode corrections reviewers have made before. When
 
 | Command | Purpose |
 | --- | --- |
-| `report.mjs build <file> [--redraw] [--brand kit.json\|none]` | Refresh runtime CSS/JS and TOC, draw chart snapshots and diagrams, inline local images, apply or remove a Kernel brand kit, validate |
+| `report.mjs build <file> [--redraw] [--brand kit.json\|none]` | Refresh runtime CSS/JS and TOC, colour code blocks, draw chart snapshots and diagrams, inline local images, apply or remove a Kernel brand kit, validate |
 | `report.mjs check <file> [--json]` | Validate only |
 | `report.mjs outline <file> [--json]` | Section map, questions with answers, findings, review comments |
 | `report.mjs export <file> --out <dir>` | Publish copy with images as files |
