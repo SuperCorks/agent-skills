@@ -102,7 +102,7 @@ It prints a JSON report and exits non-zero with a `problems` list when something
 The Speechify path uses the same managed voice profile as Swipe News:
 
 - Voice: `SPEECHIFY_VOICE_ID` (`harper_32`)
-- Model: `SPEECHIFY_MODEL_ID` (`simba-english`)
+- Model: `SPEECHIFY_MODEL_ID` (`simba-3.5`)
 - Speed: `SPEECHIFY_VOICE_SPEED` (`1.1`), overridden by `--speed`
 - Language: `SPEECHIFY_LANGUAGE` (`en-US`)
 

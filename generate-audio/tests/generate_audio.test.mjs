@@ -70,7 +70,7 @@ async function speechifyStub(context) {
 // Runs main with an isolated environment so the developer's real shared runtime
 // and credentials never influence a test.
 async function runMain(argv, environment, deps = APPLE_SILICON) {
-  const names = ["GENERATE_AUDIO_HOME", "SPEECHIFY_API_KEY", "SPEECHIFY_VOICE_ID", "SPEECHIFY_VOICE_SPEED", "GENERATE_AUDIO_ENV_FILE", "AUDIO_SUMMARY_ENV_FILE"];
+  const names = ["GENERATE_AUDIO_HOME", "SPEECHIFY_API_KEY", "SPEECHIFY_VOICE_ID", "SPEECHIFY_MODEL_ID", "SPEECHIFY_VOICE_SPEED", "GENERATE_AUDIO_ENV_FILE", "AUDIO_SUMMARY_ENV_FILE"];
   const original = Object.fromEntries(names.map((name) => [name, process.env[name]]));
   for (const name of names) delete process.env[name];
   Object.assign(process.env, environment);
@@ -288,7 +288,7 @@ test("main falls back to Speechify and says why when Voxtral is not installed", 
 
   const { result, stdout, stderr } = await runMain(
     ["--text", "The task completed and validation passed.", "--output", outputPath, "--speed", "1.1", "--speechify-base-url", stub.baseUrl],
-    { GENERATE_AUDIO_HOME: path.join(directory, "empty-runtime"), SPEECHIFY_API_KEY: SPEECHIFY_KEY }
+    { GENERATE_AUDIO_HOME: path.join(directory, "empty-runtime"), SPEECHIFY_API_KEY: SPEECHIFY_KEY, SPEECHIFY_MODEL_ID: "" }
   );
 
   assert.equal(result.requestedProvider, "auto");
@@ -300,22 +300,24 @@ test("main falls back to Speechify and says why when Voxtral is not installed", 
   assert.equal(stub.requests.length, 1);
   assert.equal(stub.requests[0].url, "/v1/audio/stream");
   assert.equal(stub.requests[0].authorization, `Bearer ${SPEECHIFY_KEY}`);
+  assert.equal(stub.requests[0].body.model, "simba-3.5");
   assert.match(stub.requests[0].body.input, /prosody rate="\+10%"/);
   assert.ok(!stdout.includes(SPEECHIFY_KEY) && !stderr.includes(SPEECHIFY_KEY), "credentials must never be printed");
 });
 
-test("main falls back on unsupported platforms", async (context) => {
+test("main falls back on unsupported platforms and respects the configured Speechify model", async (context) => {
   const directory = await temporaryDirectory(context);
   const stub = await speechifyStub(context);
 
   const { result } = await runMain(
     ["--text", "Validation passed.", "--output", path.join(directory, "audio.mp3"), "--speechify-base-url", stub.baseUrl],
-    { GENERATE_AUDIO_HOME: path.join(directory, "empty-runtime"), SPEECHIFY_API_KEY: SPEECHIFY_KEY },
+    { GENERATE_AUDIO_HOME: path.join(directory, "empty-runtime"), SPEECHIFY_API_KEY: SPEECHIFY_KEY, SPEECHIFY_MODEL_ID: "simba-3.0" },
     { platform: "linux", arch: "x64" }
   );
   assert.equal(result.provider, "speechify");
   assert.equal(result.fallbackReason, "unsupported-platform");
   assert.equal(result.speed, 1.1, "Speechify keeps the managed profile speed when --speed is absent");
+  assert.equal(stub.requests[0].body.model, "simba-3.0");
 });
 
 test("main falls back when the Voxtral worker fails", async (context) => {

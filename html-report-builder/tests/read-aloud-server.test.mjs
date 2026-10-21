@@ -33,7 +33,7 @@ test("streamSpeech yields audio and word marks, and fails as unavailable on brok
   assert.equal(requests[0].url, "https://x/v1/audio/stream/with-timestamps");
   assert.equal(requests[0].init.headers.Authorization, "Bearer k");
   assert.equal(requests[0].init.headers.Accept, "text/event-stream");
-  assert.deepEqual(JSON.parse(requests[0].init.body), { input: "<speak>Hi.</speak>", voice_id: "harper_32", model: "simba-3.2", language: "en-US", output_format: "mp3_24000_64" });
+  assert.deepEqual(JSON.parse(requests[0].init.body), { input: "<speak>Hi.</speak>", voice_id: "harper_32", model: "simba-3.5", language: "en-US", output_format: "mp3_24000_64" });
 
   const drain = async (response) => { for await (const _ of streamSpeech({ apiKey: "k", input: "x", fetch: async () => response })) { /* drain */ } };
   await assert.rejects(drain(sseResponse("event: speech.error\ndata: {}\n\n")), (error) => error instanceof SpeechifyError && error.kind === "unavailable");
@@ -96,7 +96,7 @@ after(async () => { await editor?.close(); await fake?.close(); });
 
 test("status probes once, caches the answer, and probes again on request", async () => {
   const first = await json(await call(editor, "/api/read-aloud/status", { body: {} }));
-  assert.deepEqual([first.status, first.body.state, first.body.voice, first.body.model], [200, "ready", "harper_32", "simba-3.2"]);
+  assert.deepEqual([first.status, first.body.state, first.body.voice, first.body.model], [200, "ready", "harper_32", "simba-3.5"]);
   await call(editor, "/api/read-aloud/status", { body: {} });
   assert.equal(fake.probes, 1);
   await call(editor, "/api/read-aloud/status", { body: { refresh: true } });
