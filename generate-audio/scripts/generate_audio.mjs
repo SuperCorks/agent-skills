@@ -13,7 +13,7 @@ const WORKER_PATH = path.join(path.dirname(fileURLToPath(import.meta.url)), "vox
 
 const DEFAULT_SPEECHIFY_BASE_URL = "https://api.speechify.ai";
 const DEFAULT_SPEECHIFY_VOICE_ID = "harper_32";
-const DEFAULT_SPEECHIFY_MODEL_ID = "simba-english";
+const DEFAULT_SPEECHIFY_MODEL_ID = "simba-3.5";
 const DEFAULT_SPEECHIFY_SPEED = 1.1;
 const DEFAULT_SPEECHIFY_LANGUAGE = "en-US";
 const DEFAULT_TIMEOUT_MS = 180_000;

@@ -1,7 +1,7 @@
 // Speechify's REST API as read aloud uses it, ported from t3code (speechifyApi.ts and
 // transcriptChunks.ts). Audio streams as server-sent events with word timestamps on the same
 // clock; a key is checked by spending two characters on "Hi".
-export const SPEECHIFY_MODEL = "simba-3.2";
+export const SPEECHIFY_MODEL = "simba-3.5";
 export const DEFAULT_VOICE = "harper_32";
 export const SSML_VERSION = "ssml-breaks-v1";
 export const SPOKEN_CHARS_PER_SECOND = 15.4;
