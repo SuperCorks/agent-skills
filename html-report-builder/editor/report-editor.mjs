@@ -2,7 +2,7 @@
 // Local point-and-click editor for one HTML report, with AI rewrites of a paragraph or section,
 // deletion of sections, cards, rows, and paragraphs, and review comments pinned to any part.
 // Usage: report-editor.mjs <file.html> [--port 0] [--provider codex|openrouter] [--model gpt-6-luna]
-//                          [--effort low] [--author "Name"] [--voice harper_32] [--no-open]
+//                          [--effort low] [--author "Name"] [--voice beatrice_32] [--no-open]
 import { execFileSync, spawn } from "node:child_process";
 import { createHash, randomBytes } from "node:crypto";
 import { copyFileSync, existsSync, mkdirSync, readFileSync, realpathSync, renameSync, statSync, writeFileSync } from "node:fs";
@@ -461,7 +461,7 @@ function parseArgs(argv) {
 async function main() {
   const options = parseArgs(process.argv.slice(2));
   if (options.help || !options.file) {
-    console.log("Usage: report-editor.mjs <file.html> [--port 0] [--provider codex|openrouter] [--model gpt-6-luna] [--effort low] [--author \"Name\"] [--voice harper_32] [--no-open]");
+    console.log("Usage: report-editor.mjs <file.html> [--port 0] [--provider codex|openrouter] [--model gpt-6-luna] [--effort low] [--author \"Name\"] [--voice beatrice_32] [--no-open]");
     process.exitCode = options.help ? 0 : 2;
     return;
   }

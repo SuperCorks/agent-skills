@@ -77,7 +77,7 @@ function harness({ fail = null } = {}) {
       calls.prepare.push([unit.key, synthesize, text]);
       if (fail === unit.key) return Promise.reject(new Error(`no ${unit.key}`));
       return new Promise((resolve) => pending.set(`${unit.key}:${calls.prepare.length}`, () => resolve({
-        audioUrl: `/audio/${unit.key}.mp3`, timingsUrl: `/audio/${unit.key}.timings.json`, transcript: text, estimatedSeconds: 30, cached: false, script: { model: "m" }, voice: "harper_32"
+        audioUrl: `/audio/${unit.key}.mp3`, timingsUrl: `/audio/${unit.key}.timings.json`, transcript: text, estimatedSeconds: 30, cached: false, script: { model: "m" }, voice: "beatrice_32"
       })));
     },
     loadTimings: (url) => { calls.timings.push(url); return Promise.resolve([{ text: "Alpha", start: 0.5, end: 1 }, { text: "section.", start: 1, end: 2 }]); },

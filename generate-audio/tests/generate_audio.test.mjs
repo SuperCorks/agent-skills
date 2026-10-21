@@ -118,21 +118,21 @@ test("parseArgs rejects ambiguous text sources, unknown providers, and unknown v
   assert.throws(() => parseArgs(["--output", "a.mp3"]), /--text-file or --text is required/);
   assert.throws(() => parseArgs(["--text", "a", "--text-file", "b", "--output", "a.mp3"]), /not both/);
   assert.throws(() => parseArgs(["--text", "a", "--output", "a.mp3", "--provider", "elevenlabs"]), /--provider must be/);
-  assert.throws(() => parseArgs(["--text", "a", "--output", "a.mp3", "--voice", "harper_32"]), /--voice must be one of/);
+  assert.throws(() => parseArgs(["--text", "a", "--output", "a.mp3", "--voice", "beatrice_32"]), /--voice must be one of/);
 });
 
 test("parseEnvText reads the Speechify credential and the Swipe News profile", () => {
   assert.deepEqual(
     parseEnvText(`
 SPEECHIFY_API_KEY=speechify-secret
-SPEECHIFY_VOICE_ID=harper_32
+SPEECHIFY_VOICE_ID=beatrice_32
 SPEECHIFY_MODEL_ID="simba-english"
 export SPEECHIFY_VOICE_SPEED=1.1
 SPEECHIFY_LANGUAGE='en-US'
     `),
     {
       SPEECHIFY_API_KEY: "speechify-secret",
-      SPEECHIFY_VOICE_ID: "harper_32",
+      SPEECHIFY_VOICE_ID: "beatrice_32",
       SPEECHIFY_MODEL_ID: "simba-english",
       SPEECHIFY_VOICE_SPEED: "1.1",
       SPEECHIFY_LANGUAGE: "en-US"
@@ -144,14 +144,14 @@ test("buildSpeechifyRequest matches the managed Swipe News voice shape", () => {
   assert.deepEqual(
     buildSpeechifyRequest({
       narration: "R&D < APIs.\n\nValidation passed.",
-      voiceId: "harper_32",
+      voiceId: "beatrice_32",
       modelId: "simba-english",
       speed: 1.1,
       language: "en-US"
     }),
     {
       input: '<speak><break time="0.3s" /><prosody rate="+10%">R&amp;D &lt; APIs.<break strength="weak" />Validation passed.</prosody></speak>',
-      voice_id: "harper_32",
+      voice_id: "beatrice_32",
       model: "simba-english",
       language: "en-US"
     }
@@ -288,36 +288,39 @@ test("main falls back to Speechify and says why when Voxtral is not installed", 
 
   const { result, stdout, stderr } = await runMain(
     ["--text", "The task completed and validation passed.", "--output", outputPath, "--speed", "1.1", "--speechify-base-url", stub.baseUrl],
-    { GENERATE_AUDIO_HOME: path.join(directory, "empty-runtime"), SPEECHIFY_API_KEY: SPEECHIFY_KEY, SPEECHIFY_MODEL_ID: "" }
+    { GENERATE_AUDIO_HOME: path.join(directory, "empty-runtime"), SPEECHIFY_API_KEY: SPEECHIFY_KEY, SPEECHIFY_VOICE_ID: "", SPEECHIFY_MODEL_ID: "" }
   );
 
   assert.equal(result.requestedProvider, "auto");
   assert.equal(result.provider, "speechify");
   assert.equal(result.fallbackReason, "voxtral-not-installed");
-  assert.equal(result.voice, "harper_32");
+  assert.equal(result.voice, "beatrice_32");
   assert.match(stderr, /using Speechify \(paid\) because voxtral-not-installed/);
   assert.deepEqual(await fs.readFile(outputPath), EXPECTED_AUDIO);
   assert.equal(stub.requests.length, 1);
   assert.equal(stub.requests[0].url, "/v1/audio/stream");
   assert.equal(stub.requests[0].authorization, `Bearer ${SPEECHIFY_KEY}`);
   assert.equal(stub.requests[0].body.model, "simba-3.5");
+  assert.equal(stub.requests[0].body.voice_id, "beatrice_32");
   assert.match(stub.requests[0].body.input, /prosody rate="\+10%"/);
   assert.ok(!stdout.includes(SPEECHIFY_KEY) && !stderr.includes(SPEECHIFY_KEY), "credentials must never be printed");
 });
 
-test("main falls back on unsupported platforms and respects the configured Speechify model", async (context) => {
+test("main falls back on unsupported platforms and respects the configured Speechify voice and model", async (context) => {
   const directory = await temporaryDirectory(context);
   const stub = await speechifyStub(context);
 
   const { result } = await runMain(
     ["--text", "Validation passed.", "--output", path.join(directory, "audio.mp3"), "--speechify-base-url", stub.baseUrl],
-    { GENERATE_AUDIO_HOME: path.join(directory, "empty-runtime"), SPEECHIFY_API_KEY: SPEECHIFY_KEY, SPEECHIFY_MODEL_ID: "simba-3.0" },
+    { GENERATE_AUDIO_HOME: path.join(directory, "empty-runtime"), SPEECHIFY_API_KEY: SPEECHIFY_KEY, SPEECHIFY_VOICE_ID: "harper_32", SPEECHIFY_MODEL_ID: "simba-3.0" },
     { platform: "linux", arch: "x64" }
   );
   assert.equal(result.provider, "speechify");
   assert.equal(result.fallbackReason, "unsupported-platform");
   assert.equal(result.speed, 1.1, "Speechify keeps the managed profile speed when --speed is absent");
   assert.equal(stub.requests[0].body.model, "simba-3.0");
+  assert.equal(stub.requests[0].body.voice_id, "harper_32");
+  assert.equal(result.voice, "harper_32");
 });
 
 test("main falls back when the Voxtral worker fails", async (context) => {
