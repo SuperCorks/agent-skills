@@ -175,10 +175,12 @@ test("components.md snippets only use classes that report.css defines, and docum
   const snippets = [...catalog.matchAll(/```html\n([\s\S]*?)```/g)].map((m) => m[1]).join("\n");
   const css = loadRuntime().classes;
   const used = new Set([...snippets.matchAll(/class="([^"]+)"/g)].flatMap((m) => m[1].split(/\s+/)));
-  const unknown = [...used].filter((c) => !css.has(c) && !c.startsWith("mock-"));
+  const unknown = [...used].filter((c) => !css.has(c) && !c.startsWith("mock-") && !c.startsWith("language-"));
   assert.deepEqual(unknown, []);
   const internalOnly = new Set(["hr-copy", "toc", "note"]);
-  const undocumented = [...css].filter((c) => !used.has(c) && !internalOnly.has(c) && !catalog.includes(`\`${c}\``) && !catalog.includes(`.${c}`));
+  // highlight.js writes these token classes inside coloured code; authors never do.
+  const generated = (c) => c.startsWith("hljs-") || /[a-z]_+$/.test(c);
+  const undocumented = [...css].filter((c) => !used.has(c) && !internalOnly.has(c) && !generated(c) && !catalog.includes(`\`${c}\``) && !catalog.includes(`.${c}`));
   assert.deepEqual(undocumented, []);
 });
 

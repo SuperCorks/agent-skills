@@ -30,6 +30,7 @@ These rules come from repeated reviewer corrections on HTML plans and reports. A
 - Use sharp images: capture at device pixel ratio 2 and crop to the region that matters; compress before referencing. Keep each inlined image under 300 KB.
 - Data charts are Plotly charts (see Charts in `components.md`, and the templates for common shapes). The heading or slide title states the takeaway; the `figcaption` names the measure, unit, and period. Keep one y-axis and at most four series, start bars at zero, and show a legend only for two or more series. Label only the values that matter (the latest, the target, the outlier) and draw thresholds and events as shapes. Colour with `token:` names: grey for context, the accent or a tone for the point. Prefer a stacked bar to a pie. Put the data in the JSON, plus a `details` table when readers need exact numbers.
 - Diagrams with branches or more than about five parts are Mermaid; a straight sequence of up to five steps is a `.flow`, phases are `.steps`, and a few simple comparisons can stay `.bars`.
+- Show code, queries, configuration, and commands as code blocks with their language (`<pre><code class="language-sql">`) so the build colours them, and keep each to the lines that make the point.
 - Keep key content visible. Use `details` only for optional depth such as queries or raw logs.
 
 ## Keep the document a single source of truth

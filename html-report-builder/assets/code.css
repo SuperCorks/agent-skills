@@ -1,0 +1,38 @@
+/* html-report-builder code stylesheet: inlined after report.css only into reports with code
+   blocks (<pre><code class="language-*">), so reports without code do not carry it. Classes are
+   append-only, as in report.css. */
+/* `report.mjs build` colours <pre><code class="language-sql"> blocks with the pinned
+   highlight.js and labels each with its language (data-lang). GitHub's palettes, which stay
+   readable on --sunken in both schemes; print uses the light one. A .code figure adds a file-name
+   header above the block. */
+:root {
+  --code-keyword: light-dark(#cf222e, #ff7b72);
+  --code-title: light-dark(#8250df, #d2a8ff);
+  --code-constant: light-dark(#0550ae, #79c0ff);
+  --code-string: light-dark(#0a3069, #a5d6ff);
+  --code-builtin: light-dark(#953800, #ffa657);
+  --code-comment: light-dark(#59636e, #8b949e);
+  --code-name: light-dark(#116329, #7ee787);
+}
+pre:has(> code[data-lang]) { padding-top: 2.1rem; }
+pre > code[data-lang]::before {
+  content: attr(data-lang); position: absolute; top: .55rem; left: 1rem;
+  font: 600 .6875rem var(--font); letter-spacing: .05em; text-transform: uppercase; color: var(--muted);
+}
+.hljs-doctag, .hljs-keyword, .hljs-meta .hljs-keyword, .hljs-template-tag, .hljs-template-variable, .hljs-type, .hljs-variable.language_ { color: var(--code-keyword); }
+.hljs-title, .hljs-title.class_, .hljs-title.class_.inherited__, .hljs-title.function_ { color: var(--code-title); }
+.hljs-attr, .hljs-attribute, .hljs-literal, .hljs-meta, .hljs-number, .hljs-operator, .hljs-variable, .hljs-selector-attr, .hljs-selector-class, .hljs-selector-id { color: var(--code-constant); }
+.hljs-regexp, .hljs-string, .hljs-meta .hljs-string { color: var(--code-string); }
+.hljs-built_in, .hljs-symbol, .hljs-bullet { color: var(--code-builtin); }
+.hljs-comment, .hljs-code, .hljs-formula { color: var(--code-comment); font-style: italic; }
+.hljs-name, .hljs-quote, .hljs-selector-tag, .hljs-selector-pseudo { color: var(--code-name); }
+.hljs-section { color: var(--code-constant); font-weight: 650; }
+.hljs-emphasis { font-style: italic; }
+.hljs-strong { font-weight: 650; }
+.hljs-addition { color: var(--code-name); background: color-mix(in srgb, var(--ok) 14%, transparent); }
+.hljs-deletion { color: var(--code-keyword); background: color-mix(in srgb, var(--risk) 14%, transparent); }
+figure.code > figcaption {
+  margin: 0; padding: .45rem 1rem; font: 600 .8125rem var(--mono); color: var(--muted);
+  background: var(--surface); border: 1px solid var(--line); border-bottom: 0; border-radius: 8px 8px 0 0;
+}
+figure.code > figcaption + pre { margin: 0; border-top-left-radius: 0; border-top-right-radius: 0; }

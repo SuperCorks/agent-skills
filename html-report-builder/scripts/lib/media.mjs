@@ -1,9 +1,11 @@
-// The asynchronous part of `report.mjs build`: draws stale chart snapshots and Mermaid diagrams
-// in headless Chrome, and makes sure Plotly is cached so the synchronous build can inline it.
+// The asynchronous part of `report.mjs build`: colours code blocks with highlight.js, draws stale
+// chart snapshots and Mermaid diagrams in headless Chrome, and makes sure Plotly is cached so the
+// synchronous build can inline it.
 // Without a network or a browser the build still succeeds, keeping what it has and noting why.
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { chartRenderer, chartsIn, renderChartSnapshots } from "./charts.mjs";
+import { codeBlocksIn, highlightCode, loadHighlighter, staleCodeBlocks } from "./code.mjs";
 import { diagramRenderer, diagramsIn, renderDiagrams } from "./diagrams.mjs";
 import { ASSETS_DIR } from "./runtime.mjs";
 import { attr, parse } from "./scan.mjs";
@@ -25,10 +27,18 @@ export async function renderMedia(source, { force = false, brand, runBrowser = w
   const load = async (name) => {
     try { return readFileSync(await loadLibrary(name), "utf8"); } catch (error) { notes.push(error.message); return null; }
   };
+  const staleCode = staleCodeBlocks(codeBlocksIn(source, doc), force).length > 0;
   const plotly = charts.length ? await load("plotly") : null;
   const mermaid = staleDiagrams ? await load("mermaid") : null;
+  const highlighter = staleCode ? await load("highlight") : null;
   const unavailable = (what) => async () => { throw new Error(`${what} is not available`); };
-  let next = source;
+  let hljs = null;
+  if (highlighter) {
+    try { hljs = loadHighlighter(highlighter); } catch (error) { notes.push(error.message); }
+  }
+  const coloured = highlightCode(source, { hljs, force });
+  notes.push(...coloured.notes);
+  let next = coloured.source;
   const draw = async (chartPage, diagramPage) => {
     const chartResult = await renderChartSnapshots(next, { force, brand, render: plotly && chartPage ? chartRenderer(chartPage, { plotly, chartsJs: chartsJs() }) : unavailable("Plotly") });
     next = chartResult.source;
@@ -47,7 +57,7 @@ export async function renderMedia(source, { force = false, brand, runBrowser = w
       drawn = await draw(null, null);
     }
   } else drawn = await draw(null, null);
-  return { source: next, changed: next !== source, notes: [...new Set(notes)], drawn, charts: charts.length, diagrams: diagrams.length };
+  return { source: next, changed: next !== source, notes: [...new Set(notes)], drawn, coloured: coloured.highlighted, charts: charts.length, diagrams: diagrams.length, code: coloured.blocks };
 }
 
 export async function renderMediaFile(file, options = {}) {

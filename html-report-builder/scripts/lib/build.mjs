@@ -6,6 +6,7 @@ import { STORE_ATTR, stripComments } from "./comments.mjs";
 import { libraryTag, readLibrary } from "./vendor.mjs";
 import { RUNTIME_VERSION, TEMPLATES, loadRuntime } from "./runtime.mjs";
 import { BRAND_ATTR, BRAND_LOGO, brandLogoTag, brandStyleTag } from "./brand.mjs";
+import { codeBlocksIn } from "./code.mjs";
 
 const MIME = {
   ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".gif": "image/gif",
@@ -261,7 +262,8 @@ export function buildSource(original, { file, inlineImages = true, brand } = {})
   const main = find((e) => e.name === "main");
   const html = find((e) => e.name === "html");
   const charted = doc.elements.some((e) => e.name === "script" && attr(e, "data-hr-chart") !== null);
-  const runtime = loadRuntime(html ? attr(html, "data-template") : null, { charts: charted });
+  const coded = codeBlocksIn(source, doc).length > 0 || doc.elements.some((e) => e.name === "figure" && classes(e).includes("code"));
+  const runtime = loadRuntime(html ? attr(html, "data-template") : null, { charts: charted, code: coded });
 
   const styleLine = `<style data-hr-runtime="${RUNTIME_VERSION}">${runtime.css}</style>`;
   const scriptLine = `<script data-hr-runtime="${RUNTIME_VERSION}">${runtime.js}</script>`;

@@ -56,17 +56,19 @@ export function oneLineJs(js) {
 const cache = new Map();
 /**
  * Runtime CSS/JS for a template: every report gets report.css/js; decks add deck.css/js; reports
- * with charts add charts.js (Plotly itself is a separate, pinned script).
+ * with charts add charts.js (Plotly itself is a separate, pinned script); reports with code blocks
+ * add code.css. `classes`, the component vocabulary, always includes code.css's classes.
  */
-export function loadRuntime(template = null, { charts = false } = {}) {
+export function loadRuntime(template = null, { charts = false, code = false } = {}) {
   const deck = Boolean(TEMPLATES[template]?.deck);
-  const key = `${deck}:${charts}`;
+  const key = `${deck}:${charts}:${code}`;
   if (cache.has(key)) return cache.get(key);
   const read = (name) => readFileSync(path.join(ASSETS_DIR, name), "utf8");
-  const css = minifyCss(read("report.css") + (deck ? `\n${read("deck.css")}` : ""));
+  const codeCss = minifyCss(read("code.css"));
+  const css = minifyCss(read("report.css") + (deck ? `\n${read("deck.css")}` : "")) + (code ? codeCss : "");
   const js = oneLineJs(read("report.js")) + (deck ? ` ${oneLineJs(read("deck.js"))}` : "") + (charts ? ` ${oneLineJs(read("charts.js"))}` : "");
-  if (/<\/(style|script)/i.test(css + js)) throw new Error("runtime assets must not contain closing style/script tags");
-  const runtime = { css, js, classes: cssClasses(css) };
+  if (/<\/(style|script)/i.test(css + js + codeCss)) throw new Error("runtime assets must not contain closing style/script tags");
+  const runtime = { css, js, classes: new Set([...cssClasses(css), ...cssClasses(codeCss)]) };
   cache.set(key, runtime);
   return runtime;
 }

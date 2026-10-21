@@ -343,18 +343,36 @@ A glossary or label-value list: one `div` per term.
 </ul>
 ```
 
+## Code blocks
+
+Write code as `<pre><code class="language-…">` with the code HTML-escaped (`&lt;` for `<`, `&amp;` for `&`). `report.mjs build` colours it for that language with the pinned highlight.js (downloaded once, like Plotly) and labels the block with the language's name; the colours follow light and dark mode and print in the light palette. Use the language's usual name or alias: `sql`, `js` or `javascript`, `ts` or `typescript`, `bash` or `shell`, `json`, `yaml`, `html` or `xml`, `css`, `python`, `php`, `go`, `diff`, and the other highlight.js common languages (the build lists them when it meets one it does not know). Use `language-text` for command output or logs that should not be coloured. Wrap the block in `figure.code` with a `figcaption` to show a file name or title above it. `{{ }}` and `TODO` inside code are not flagged as placeholders.
+
+```html
+<pre><code class="language-sql">select count(*) from sync_runs where status = 'failed';</code></pre>
+<figure class="code">
+  <figcaption>apps/sync/worker.ts</figcaption>
+  <pre><code class="language-ts">export async function retry(job: Job): Promise&lt;void&gt; {
+  await queue.add(job, { attempts: 5, backoff: "exponential" });
+}</code></pre>
+</figure>
+<pre><code class="language-diff">- setCookie("impact_cid", value, { "max-age": 604800 });
++ setCookie("impact_cid", value, { "max-age": 2592000 });</code></pre>
+```
+
+The build writes the coloured spans into the file and records `data-lang` and a `data-hr-highlight` hash on each `<code>`; it recolours a block only when its text or language changes, so editing the text later is safe. Never write `hljs-*` classes by hand.
+
 ## Details and internal notes
 
 Use `details` only for optional depth, never for key content. `.internal` marks notes that must not reach a client; `check` fails client reports that contain one.
 
 ```html
-<details><summary>Query used</summary><pre><code>select count(*) from sync_runs where status = 'failed';</code></pre></details>
+<details><summary>Query used</summary><pre><code class="language-sql">select count(*) from sync_runs where status = 'failed';</code></pre></details>
 <div class="internal"><p>Confirm pricing with Simon before sharing.</p></div>
 ```
 
 ## Inline text
 
-Use `<strong>` for decision-relevant phrases, `<code>` for paths and identifiers, `<mark>` sparingly for a highlight, `<small>` or `.muted` for secondary text, and `<kbd>` for keys.
+Use `<strong>` for decision-relevant phrases, `<code>` for paths and identifiers (blocks of code are [Code blocks](#code-blocks)), `<mark>` sparingly for a highlight, `<small>` or `.muted` for secondary text, and `<kbd>` for keys.
 
 ```html
 <p>The client must <strong>approve the alert rule by Friday</strong>. The worker lives in <code>apps/sync/worker.ts</code>; <mark>staging only</mark> for now. <span class="muted">Press <kbd>Cmd</kbd>+<kbd>K</kbd> in the editor.</span></p>

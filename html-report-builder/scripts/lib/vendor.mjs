@@ -1,5 +1,6 @@
-// Pinned third-party code the builder needs only when a report has charts or diagrams:
-// Plotly (inlined into charted reports) and Mermaid (build time only), downloaded once,
+// Pinned third-party code the builder needs only when a report has charts, diagrams, or code
+// blocks: Plotly (inlined into charted reports), Mermaid, and highlight.js (both build time only),
+// downloaded once,
 // checked against a SHA-256 hash, and cached; plus a headless browser through playwright-core,
 // installed once into the same cache: the user's own Chrome, or Playwright's Chromium,
 // downloaded once, on machines without one.
@@ -20,6 +21,11 @@ export const LIBRARIES = {
   mermaid: {
     pkg: "mermaid", version: "12.1.0", file: "dist/mermaid.min.js",
     sha256: "6484afc32872a3aa16cac9a76ba1816a1ed4cc870a6593cc2e17757750f518b2"
+  },
+  // The common bundle: 36 languages, including SQL, TypeScript, Bash, JSON, YAML, and HTML.
+  highlight: {
+    pkg: "@highlightjs/cdn-assets", version: "11.12.0", file: "highlight.min.js",
+    sha256: "8ab71eb09c51f501e5e25157d9cff100e46cc29bcbfc744d0b746d451fca7f53"
   }
 };
 
@@ -51,7 +57,7 @@ export async function ensureLibrary(name, { cacheDir = CACHE_DIR, fetch: fetchIm
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     bytes = Buffer.from(await response.arrayBuffer());
   } catch (error) {
-    throw new Error(`charts and diagrams need a one-time download of ${lib.pkg} ${lib.version}, which failed (${error.message}); connect to the internet and build again`);
+    throw new Error(`charts, diagrams, and code colouring need a one-time download of ${lib.pkg} ${lib.version}, which failed (${error.message}); connect to the internet and build again`);
   }
   if (sha256(bytes) !== lib.sha256) throw new Error(`${lib.pkg} ${lib.version} from ${url} does not match its pinned hash; refusing to use it`);
   mkdirSync(path.dirname(file), { recursive: true });

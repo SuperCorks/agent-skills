@@ -11,7 +11,7 @@ import { renderMediaFile } from "./lib/media.mjs";
 import { pdfFile } from "./lib/pdf.mjs";
 
 const USAGE = `Usage:
-  report.mjs build <file.html> [--redraw] [--brand kit.json|none]  refresh runtime and TOC, draw chart snapshots and diagrams, inline images, check
+  report.mjs build <file.html> [--redraw] [--brand kit.json|none]  refresh runtime and TOC, colour code, draw chart snapshots and diagrams, inline images, check
                                            (--brand applies a Kernel brand kit; none removes it; without it the file keeps its brand)
   report.mjs check <file.html> [--json]    validate without changing the file
   report.mjs export <file.html> --out <dir>  publish copy with images as files in <dir>/<slug>.assets/
@@ -60,6 +60,7 @@ export async function main(argv = process.argv.slice(2)) {
       const media = await renderMediaFile(target, { force: flag("--redraw"), brand });
       for (const note of media.notes) console.log(`NOTE: ${note}`);
       if (media.drawn.charts || media.drawn.diagrams) console.log(`Drew ${media.drawn.charts} chart snapshot(s) and ${media.drawn.diagrams} diagram(s)`);
+      if (media.coloured) console.log(`Coloured ${media.coloured} code block(s)`);
       const result = buildFile(target, { brand });
       for (const note of result.notes) console.log(`NOTE: ${note}`);
       console.log(result.changed || media.changed ? `Built ${file}` : `${file} already up to date`);
