@@ -121,7 +121,7 @@ module.exports = async function readAloudTests({ browser, root, pass, watch }) {
     assert.match(await tab.evaluate(() => window.__fakeAudio.state.src), /^\/api\/read-aloud\/audio\/[a-f0-9]{32}\.mp3$/);
     assert.ok(await tab.evaluate(() => document.getElementById("summary").classList.contains("hre-reading")), "the section being read is outlined");
     assert.match(await reader(tab, "ra-label").textContent(), /^At a glance · 2 \/ 4$/);
-    await tab.waitForFunction(() => document.getElementById("hre-host").shadowRoot.getElementById("ra-status").textContent.startsWith("Speechify · Harper · script by gpt-6-luna"));
+    await tab.waitForFunction(() => document.getElementById("hre-host").shadowRoot.getElementById("ra-status").textContent.startsWith("Speechify · Beatrice · script by gpt-6-luna"));
     // Transcript: "At a glance" then the paragraph; the fake voices 0.4 s per word.
     await time(tab, 0.4 * 5 + 0.05);
     await waitHighlight(tab, "most");
