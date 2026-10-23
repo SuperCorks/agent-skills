@@ -42,9 +42,17 @@ Per machine, before any mapping write:
 
 ## Kernel org and projects
 
-- Org: `POST /organizations` (`name`, `slug`, `keyPrefix`, optional `notes`, avatar fields); image avatar via `POST /organizations/{id}/image`. Pricing: `PATCH /organizations/{id}/pricing` then `POST …/pricing/terms`. Payer: Kernel UI only.
+- Org: `POST /organizations` (`name`, `slug`, `keyPrefix`, optional `notes`, avatar fields); image avatar via `POST /organizations/{id}/image`. Pricing: a new org starts with tracking off and an undated USD term with no rate: `PATCH …/pricing/terms/{termId}` (`version`, `effectiveFrom: null`, `currency`, `hourlyRateMinor`), then `PATCH /organizations/{id}/pricing` (`version`, `trackingEnabled: true`). Payer: `GET`/`PATCH /organizations/{id}/payer` (`version`, `masterPayerOrganizationId`; `confirmReassignment: true` to move an org that already has a different master payer).
 - Project: `POST /projects` (`organizationId`, `name`, `slug`, optional `keyPrefix`, `notes`, `billing`).
 - Tabs: `POST …/documents` (`title`, `body`), order with `PUT …/documents/order`. LLM.txt: `PUT …/llm-txt` (`body`, `version`, 0 creates).
+
+## Kernel Asana and Toggl
+
+- Asana: `GET /integrations/asana/connections` lists one connection per Asana workspace. Tracking a project means its gid is in `settings.projectGids` (with `projectMode: "selected"`). `PATCH /integrations/asana/connections/{sourceId}` takes `version` and the **whole** `settings` object: read it, append, and send everything back.
+  - Routing rule: `{id, name, action: "route", projectGid, assigneeFilter, organizationId, projectId}`. Use `me` unless the client's unassigned Asana tasks are Simon's work; agency projects are full of unassigned client milestones.
+  - Section mapping: `{projectGid, sections: {backlog, ready, active, in_review, done, blocked?, dropped?}}` with section gids from `GET …/connections/{sourceId}/projects/{projectGid}/sections`. Leave out lifecycles the project has no section for.
+  - Duplicates: `POST /integrations/asana/tasks/{taskId}/link` with `{sourceId, asanaTaskGid, syncProjectGid}` links an existing Kernel task to its Asana task.
+- Toggl: `GET /integrations/toggl` lists accounts and mappings; `GET /integrations/toggl/accounts/{accountId}/catalog` lists Toggl workspaces and projects. `PUT /integrations/toggl/mappings` with `{scope, scopeId, mode: "mapped", version: 0, destination: {accountId, workspaceId, projectId}}`. A project-level mapping overrides the org's.
 
 ## Chrome
 
@@ -64,6 +72,12 @@ Per machine, before any mapping write:
   These are browser UI toggles: **User step**, or Computer Use with the user's go-ahead.
 - BrowserSkill instance ids: `scripts/bsk_profiles.py resolve "<name>"` in the web-computer-use skill refreshes `~/.local/state/web-computer-use/bsk-profiles.json`.
 - Launcher: `~/.raycast-scripts/chrome-<client>.sh` opening `--profile-directory="Profile N"`, copied from an existing one.
+
+## ProfileRouter
+
+- `~/supercorks/profile-router` is the default browser. It reads Chrome's `Local State` and reloads when it changes, so a new profile appears in its picker without any change.
+- Client rules live in `Sources/RouterCore/Rules.swift` under a `// MARK: <Client>` header, one named rule per host, using `l.host(is:)` and `l.chrome("<profile name>", rule:)`. Before adding one, grep `~/Library/Application Support/ProfileRouter/decisions.jsonl` for the host: earlier picks to another profile make the live-log replay test fail, and mean the host is shared.
+- Add a test with a router built from the fixture profiles plus the new one, run `swift test` and `swift run replay --conflicts`, install with `scripts/install.sh`, and commit on a branch. If the restart fails with launch error -600, start it with `open ~/Applications/ProfileRouter.app`.
 
 ## Remote host
 

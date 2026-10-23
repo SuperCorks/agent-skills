@@ -73,6 +73,8 @@ def render_repos_yaml(org: str, workspace_url: str, repos: list[dict[str, str]])
         "",
         "repositories:",
     ]
+    if not repos:
+        lines[-1] = "repositories: []"
     for i, repo in enumerate(repos):
         if i:
             lines.append("")
@@ -101,8 +103,8 @@ def main() -> int:
                         help='First README sentence, e.g. "This is Red Krypton\'s meta-repository for Acme Health work."')
     parser.add_argument("--intro", required=True, help="One- or two-sentence AGENTS.md intro (who owns the code, how we contribute)")
     parser.add_argument("--gateway-command", help="Gateway command if it lives at this workspace root (adds its test to CI)")
-    parser.add_argument("--repo", action="append", type=parse_repo, required=True,
-                        help="Child repo as 'folder|url|branch|description' (repeat)")
+    parser.add_argument("--repo", action="append", type=parse_repo, default=[],
+                        help="Child repo as 'folder|url|branch|description' (repeat; omit when no child exists yet)")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
 
@@ -139,8 +141,9 @@ def main() -> int:
         "AGENTS_INTRO": args.intro,
         "GATEWAY_CI_STEP": gateway_step,
         "CHILD_IGNORES": "\n".join(f"/{f}" for f in folders),
-        "CHILD_LIST_INLINE": ", ".join(f"`./{f}`" for f in folders),
-        "AGENTS_REPO_BULLETS": "\n".join(f"- `{r['folder']}/`: {r['description']}" for r in args.repo),
+        "CHILD_LIST_INLINE": ", ".join(f"`./{f}`" for f in folders) or "child repositories, once added,",
+        "AGENTS_REPO_BULLETS": "\n".join(f"- `{r['folder']}/`: {r['description']}" for r in args.repo)
+        or 'There are no child repositories yet. Add each one by following "Adding, renaming, or removing a project" in `README.md`.',
         "README_REPO_ROWS": "\n".join(
             f"| `{r['folder']}` | [{r['owner']}/{r['name']}]({r['url']}) | `{r['branch']}` | {r['description']} |"
             for r in args.repo
