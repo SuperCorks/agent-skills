@@ -39,7 +39,7 @@ Run [references/intake.md](references/intake.md). Output: the intake summary (cl
 - For a non-trivial client, write a short design note (repos, risks, blockers, open questions) and attach it to the setup task in Kernel.
 
 ### 2. Workspace repo
-- Render the scaffold with [scripts/init_workspace.py](scripts/init_workspace.py) (run `--help`; it refuses to overwrite). It writes `repos.yaml`, `README.md`, `AGENTS.md`, `CLAUDE.md` (`@AGENTS.md`), `.gitignore`, `.ai-memory.toml`, `scripts/bootstrap.sh`, `scripts/validate-workspace.sh`, `tests/bootstrap.sh`, and the CI workflow.
+- Render the scaffold with [scripts/init_workspace.py](scripts/init_workspace.py) (run `--help`; it refuses to overwrite). Omit `--repo` when no child repository exists yet (for example a hosted CMS site whose theme repo comes later); the manifest is then `repositories: []`, which bootstrap and validation accept. It writes `repos.yaml`, `README.md`, `AGENTS.md`, `CLAUDE.md` (`@AGENTS.md`), `.gitignore`, `.ai-memory.toml`, `scripts/bootstrap.sh`, `scripts/validate-workspace.sh`, `tests/bootstrap.sh`, and the CI workflow.
 - Fill or delete every `TODO(setup)` block; validation fails until you do. Section guidance: [references/conventions.md](references/conventions.md#agentsmd).
 - No `.code-workspace` file.
 - If the repo lives on the client's GitHub org, keep Simon's machine paths, other clients, and personal accounts out of it: they go in the private host map.
@@ -62,7 +62,8 @@ Run [references/intake.md](references/intake.md). Output: the intake summary (cl
 
 ### 5. Chrome profile
 Check the client's profile per [references/machine-wiring.md](references/machine-wiring.md#chrome): BrowserSkill, Web Computer Use, ChatGPT, Keeper installed; ChatGPT has "Allow access to file URLs" on and its optional `downloads.open` permission granted. Add a Raycast launcher `~/.raycast-scripts/chrome-<client>.sh` if intake asked. Refresh the BrowserSkill profile cache.
-- **User step:** create the profile, install missing extensions, and toggle settings the agent can't reach.
+- **User step:** create the profile, install missing extensions, and toggle settings the agent can't reach. Computer Use can do it with the user's go-ahead: offer a ready-to-run Codex prompt.
+- ProfileRouter (`~/supercorks/profile-router`) picks the new profile up from Chrome on its own. Add rules only for hosts the client alone uses (its own domains, a client-only SaaS); leave shared hosts (WP Engine, Google Docs, GitHub) to the picker. Follow that repo's `AGENTS.md`: `swift test` (it replays the live log), `swift run replay --conflicts`, `scripts/install.sh`, then commit on a branch. See [machine-wiring.md](references/machine-wiring.md#profilerouter).
 
 ### 6. Remote host (`sim.agents.hoptech.ca`)
 Load `remote-hosts`. Then:
@@ -80,7 +81,11 @@ Per [references/machine-wiring.md](references/machine-wiring.md#agent-projects):
 - Folders that aren't git repos (docs-only clients) have no clean way onto the remote: ask whether to copy them, sync them, or keep the client Mac-only.
 
 ### 8. Kernel organization and projects
-Load `kernel`. Create or update the org (name, slug, key prefix, avatar, billing) and any Kernel projects, then draft Overview, LLM.txt, and the People, Dates, and Resources tabs in the formats in [references/conventions.md](references/conventions.md#kernel-pages). Get approval, then write them. **User step:** set the billing payer in the Kernel UI (the API can't).
+Load `kernel`. Create or update the org (name, slug, key prefix, avatar, billing) and any Kernel projects, then draft Overview, LLM.txt, and the People, Dates, and Resources tabs in the formats in [references/conventions.md](references/conventions.md#kernel-pages). Get approval, then write them. Set the master payer when the client is billed through an agency (Red Krypton clients sit beneath Red Krypton) with `PATCH /organizations/{id}/payer`.
+
+Then wire the client's tracking into Kernel ([machine-wiring.md](references/machine-wiring.md#kernel-asana-and-toggl)):
+- **Asana**: if the client has an Asana project, make sure the right connection tracks it, add a `route` rule to the org (and project), and map its sections to Kernel statuses. Link any Kernel task you created that duplicates an Asana task assigned to Simon, so routing doesn't import it twice.
+- **Toggl**: map the org (or each project, when they have separate Toggl projects) to the client's Toggl project.
 
 ### 9. Kernel preflight and mappings
 Preflight each machine before any mapping write ([references/machine-wiring.md](references/machine-wiring.md#kernel-preflight)): companion connected under the expected `CODEX_HOME` and account, all Kernel hooks present and trusted, target model in the host catalog, T3 host reachable. If a T3 host is unreachable, save the mapping request bodies under `~/.local/state/client-workspace-setup/pending-mappings/` and create them once it's back.

@@ -237,8 +237,7 @@ while IFS='|' read -r repo_name folder url branch description; do
 done < "$ENTRIES_FILE"
 
 if [ "$entry_count" -eq 0 ]; then
-  error "Manifest contains no repositories."
-  manifest_errors=$((manifest_errors + 1))
+  info "Manifest contains no repositories yet; nothing to clone." >&2
 fi
 
 if [ "$manifest_errors" -gt 0 ]; then

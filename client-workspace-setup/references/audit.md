@@ -27,10 +27,13 @@ To audit everything, enumerate clients from Kernel organizations and their mappi
 **Chrome**
 - Profile exists with BrowserSkill, Web Computer Use, ChatGPT, Keeper; ChatGPT file URL access on and `downloads.open` granted.
 - `AGENTS.md` Browser Profile section names it.
+- ProfileRouter rules for the client's own hosts, if any, with no replay conflicts.
 
 **Agent projects and Kernel**
 - T3 Code project on each machine, with an icon.
 - Codex project on each machine (remote one on the remote's server), named per convention.
 - Kernel org (and projects) with Overview, LLM.txt, People, Dates, Resources; LLM.txt paths match reality.
+- Billing: pricing tracking and rate set; master payer set when the client is billed through an agency.
+- Asana: the client's project is tracked by the right connection, has a `route` rule to the org, and has a section mapping. Toggl: the org or each project is mapped to the client's Toggl project.
 - Mappings for every agent and machine the intake chose, pointing at saved projects that exist, with the defaults or a recorded reason for deviating.
 - Kernel machine health: reachable, hooks ready, no issue, model available.
