@@ -1,0 +1,4 @@
+interface:
+  display_name: "Client Workspace Setup"
+  short_description: "Set up or audit a client workspace across machines, agents, and Kernel"
+  default_prompt: "Use $client-workspace-setup to set up a new client workspace, or to audit an existing one."

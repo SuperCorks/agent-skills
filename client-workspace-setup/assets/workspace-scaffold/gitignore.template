@@ -1,0 +1,23 @@
+# Child repositories are managed by repos.yaml and remain independent Git repos.
+# No trailing slash: a child may be a symlink to a clone kept elsewhere.
+{{CHILD_IGNORES}}
+
+# Task worktrees (.worktrees/<task>) and generated artifacts.
+/.worktrees/
+/outputs/
+/tmp/
+
+# Local agent/tool state.
+/.agent-orchestrator/
+/.claude/
+/.codex/
+/.playwright-mcp/
+
+# Secrets and local overrides.
+/.env
+/.env.*
+!/.env.example
+.DS_Store
+
+# Provider CLI container state.
+/.devcontainer/secrets.env

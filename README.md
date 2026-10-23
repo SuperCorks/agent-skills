@@ -28,6 +28,7 @@ A collection of AI agent skills for GitHub Copilot and other AI assistants.
 | [candidate-bakeoff](candidate-bakeoff) | Give N candidates (including Claude vs Codex) one brief, judge them against a hidden rubric, and graft the best parts onto one base; blind-test skill or prompt variants |
 | [change-explainer](change-explainer) | Create evidence-grounded HTML walkthroughs that teach how a bounded code change works |
 | [change-impact-audit](change-impact-audit) | Audit a code change's blast radius and test the assumptions that keep it safe |
+| [client-workspace-setup](client-workspace-setup) | Set up or audit a client workspace across the Mac, the remote host, T3 Code, Codex, Chrome, provider gateways, and Kernel |
 | [code-simplifier](code-simplifier) | Behavior-preserving refactor workflow for reducing complexity and improving readability |
 | [codebase-explorer](codebase-explorer) | Read-only architecture mapping and execution tracing for unfamiliar or complex codebases |
 | [codebase-simplification-audit](codebase-simplification-audit) | Audit a codebase or bounded subsystem for material structural simplifications without changing it |
