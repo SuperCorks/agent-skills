@@ -246,7 +246,7 @@ direct request under every preset.
 
 This list is not exhaustive. If what you need is missing, check the guide and OpenAPI contract in [Documentation and contract](#documentation-and-contract) before telling the user it is unsupported.
 
-The Agent API deliberately cannot administer API keys, OAuth grants, provider connections or synchronization, provider-owned calendar events, billing beyond pricing (payers, valuations, invoices, payments, write-offs), Inbox message content beyond what a suggestion review shows, or unrestricted analysis internals. Do not use signed-in/internal routes, direct database access, or provider gateways to bypass those boundaries.
+The Agent API deliberately cannot administer API keys, OAuth grants, provider connections or synchronization, provider-owned calendar events, billing beyond pricing and master payers (valuations, invoices, payments, write-offs, fixed-fee conversion reviews), Inbox message content beyond what a suggestion review shows, or unrestricted analysis internals. Do not use signed-in/internal routes, direct database access, or provider gateways to bypass those boundaries.
 
 ## Attach the current thread
 
