@@ -6,7 +6,7 @@ Charts and diagrams are drawn by `report.mjs build` (see "Charts" and "Diagrams"
 
 ## 1. Key findings
 
-The top of a findings report or brief: the verdict in a `.callout`, three to five `.tiles`, then three to five numbered `ol.keypoints`. A tone on a key point (`ok`, `risk`) marks good or bad news. A reader who stops here should know the answer.
+An optional opening for a findings report or brief. Choose a verdict callout, key numbers, or numbered key points according to the material; combine them only when each adds information. The sample shows all three for layout reference. A tone on a key point (`ok`, `risk`) marks good or bad news. A reader who stops here should know the answer.
 
 ```html
 <section id="summary" data-toc="Key findings">
@@ -27,7 +27,7 @@ The top of a findings report or brief: the verdict in a `.callout`, three to fiv
 
 ## 2. Decisions needed
 
-Full-sentence questions with context, a `.rec`, the `.owner`, `.links` to the detail, and an empty `.answer`. When the reader types an answer, the card turns green and shows Answered, so the section doubles as the decision record.
+Use only for choices that need reader input, wherever the reader has enough context to answer. Full-sentence questions have brief context, a `.rec` when supported, an owner when known, links to detail, and an empty `.answer` for an unanswered choice. Factual explanations belong in the content. When the reader types an answer, the card turns green and shows Answered, so it can remain a decision record after leaving the open questions.
 
 ```html
 <section id="decisions" data-toc="Decisions">

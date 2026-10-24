@@ -1,6 +1,6 @@
 # Slide templates
 
-Copyable slides for decks, built from the components in `slides.md` and `components.md`. Read only the ones you need: pick them from the catalogue in `slides.md`, copy the markup, renumber the ids (`s1`, `s2`, ... in order), and replace the sample content (Red Krypton's checkout pilot for Harbor & Pine) with yours. Every slide is followed by its speaker notes; the notes here are placeholders.
+Copyable slides for decks, built from the components in `slides.md` and `components.md`. Read only the ones you need: pick them from the catalogue in `slides.md`, copy the markup, assign ids (`s1`, `s2`, ... in a new deck; preserve ids on revisions), and replace the sample content (Red Krypton's checkout pilot for Harbor & Pine) with yours. The sample notes are placeholders; omit them when there is nothing useful to add.
 
 Charts and diagrams are drawn by `report.mjs build` at the slide's size; copy only the `figure` with its JSON or Mermaid source. Check fit after building (see `slides.md`).
 
@@ -21,7 +21,7 @@ Who it is for, who it is from, and the promise in under ten words. A `p.footnote
 
 ## 2. Agenda
 
-Numbered chapters with a one-line description each (`ol.agenda`), for decks over ten slides or ones read without a presenter. Repeat it as a chapter opener with `li.current` on the chapter that starts.
+Optional navigation for a deck with distinct chapters, using numbered chapters with a one-line description each (`ol.agenda`). Include or repeat it only when it helps the reader navigate; length or delivery without a presenter does not by itself require an agenda.
 
 ```html
 <section class="slide" id="s2" data-toc="Agenda">
@@ -41,7 +41,7 @@ Numbered chapters with a one-line description each (`ol.agenda`), for decks over
 
 ## 3. Decision requested
 
-The answer as slide two: a statement slide with the one-sentence ask and the three facts needed to say yes as `.tiles`.
+A statement slide for a real decision, placed where the audience can assess it. Use the one-sentence ask and only the facts needed to decide; the sample's three tiles are not a required count.
 
 ```html
 <section class="slide statement" id="s3" data-toc="Decision requested">

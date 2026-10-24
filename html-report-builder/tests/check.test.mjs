@@ -51,13 +51,27 @@ test("ids must be unique and anchors must resolve", () => {
   assert.match(errorsOf(page('<a href="#nowhere">x</a>')), /missing ids: #nowhere/);
 });
 
-test("vocabulary, template sections, and table wrapping are warnings", () => {
+test("unknown vocabulary and templates, table wrapping, and missing ids are warnings", () => {
   assert.match(warningsOf(page('<div class="fancy-box">x</div>')), /fancy-box/);
   assert.doesNotMatch(warningsOf(page('<div class="device phone"><div class="whatever">x</div></div><p class="mock-x">y</p>')), /vocabulary/);
-  assert.match(warningsOf(page("").replace('<section id="next"><h2>N</h2></section>', "")), /sections missing: #next/);
+  assert.match(warningsOf(page("", { htmlAttrs: 'data-template="unknown"' })), /unknown data-template/);
   assert.match(warningsOf(page("<table><tr><td>1</td></tr></table>")), /table-wrap/);
   assert.match(warningsOf(unbuilt("<section><h2>No id</h2></section>")), /without an id[\s\S]*`report.mjs build` gives each one/);
   assert.doesNotMatch(warningsOf(page("<section><h2>No id</h2></section>")), /without an id/, "the build gives the section an id");
+});
+
+test("report templates accept concise topical outlines without invented decisions or next steps", () => {
+  const outlines = {
+    findings: '<section id="recovery"><h2>Guests can book again</h2><p>The corrected checkout accepts valid bookings.</p></section>',
+    brief: '<section id="audience"><h2>The audience is ready to import</h2><p>Subscribed members with verified activity are included.</p></section>',
+    plan: '<section id="verification"><h2>Prove retry recovery</h2><p>Repeat a failed write and check that it saves once.</p></section><section id="execution"><h2>Enable retries</h2><p>Add bounded retries for transient failures.</p></section>'
+  };
+  for (const [template, body] of Object.entries(outlines)) {
+    const source = unbuilt("", { htmlAttrs: `data-template="${template}"` }).replace(/<main>[\s\S]*?<\/main>/, `<main>${body}</main>`);
+    const result = checkSource(buildSource(source).output);
+    assert.deepEqual(result.errors, [], template);
+    assert.deepEqual(result.warnings, [], template);
+  }
 });
 
 test("question cards need ids, numbered ones in order, a full question, a recommendation, and an answer slot", () => {

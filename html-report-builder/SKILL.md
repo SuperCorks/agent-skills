@@ -5,24 +5,26 @@ description: Build, validate, publish, and locally edit self-contained HTML repo
 
 # HTML Report Builder
 
-Write reports as plain semantic HTML using a fixed component vocabulary, then let the builder inline the shared CSS and JavaScript runtime. Agents never write stylesheets, so reports cost far fewer output tokens and every report has the same familiar structure.
+Write concise reports as plain semantic HTML using a shared component vocabulary, then let the builder inline the CSS and JavaScript runtime. Keep the visual language familiar; choose the content and sequence for this reader and purpose.
 
 In the commands below, `$HRB` is this skill's folder (for example `~/.agents/skills/html-report-builder` or `~/.claude/skills/html-report-builder`).
 
 ## Workflow
 
-1. **Pick a template** from `assets/templates/` using `references/templates.md`:
+1. **Shape the report before choosing markup.** Identify the reader, the question it must answer, and any decision or action needed. Sketch the shortest outline that covers those needs. Use relevant earlier revisions and feedback to anticipate factual questions; see `references/writing.md`. An outline is working material, not another deliverable.
+2. **Pick a starting template** from `assets/templates/` using `references/templates.md`:
    - `plan.html`: implementation, QA, rollout, architecture, or design plans (the `html-plan` skill decides the content).
    - `findings.html`: investigations, diagnoses, analyses, QA runs, audits, incidents.
    - `brief.html`: stakeholder or client briefs, vision documents, executive summaries.
    - `slides.html`: presentation decks (executive briefings, client pitches, CEO or CTO decks). Also read `references/slides.md`.
-2. **Read** the template, `references/components.md`, and `references/writing.md` (plus `references/slides.md` for a deck). For sections or slides beyond the template (charts, funnels, phases, a team slide), pick them from the catalogue in `references/templates.md` or `references/slides.md` and read just those entries in `references/section-templates.md` or `references/slide-templates.md`. Read nothing else from this skill unless needed.
-3. **Write the report** as one `.html` file:
+3. **Read** the template, `references/components.md`, and `references/writing.md` (plus `references/slides.md` for a deck). For additional sections or slides (charts, funnels, phases, a team slide), pick from the catalogues and read only the entries you need in `references/section-templates.md` or `references/slide-templates.md`. These are layout examples, not a checklist of content to include.
+4. **Write the report** as one `.html` file:
    - Inside a repository, prefer `docs/plans/YYYY-MM-DD-<slug>.html` for plans and `docs/reports/YYYY-MM-DD-<slug>.html` for other reports; otherwise use the workspace's `outputs/` folder.
-   - Keep the template's `<head>`, `<html>` attributes, and section ids. Replace every `<!-- guide: -->` comment with content or delete the section.
+   - Keep the template's `<head>` and `<html>` attributes. Add, reorder, merge, or omit sections and slides to match the outline; none of the starter sections is mandatory. Use meaningful ids in a new report; preserve existing ids when revising a shared one. Replace every `<!-- guide: -->` comment with content or delete the block.
+   - Give each fact one main home. Remove repeated summaries, empty sections, and generic background; retain the evidence and caveats needed to assess the conclusion. Questions for the reader belong only where an unresolved choice needs their input.
    - Use only the documented classes. Write no CSS or JavaScript, except mockup styles in one `<style>` whose selectors all use `.mock-*` classes.
    - Put images in a sibling `<slug>.assets/` folder and reference them with relative paths.
-4. **Build** in place (refreshes the runtime and table of contents, inlines local images, then validates):
+5. **Build** in place (refreshes the runtime and table of contents, inlines local images, then validates):
 
    ```bash
    node "$HRB/scripts/report.mjs" build path/to/report.html
@@ -35,8 +37,8 @@ In the commands below, `$HRB` is this skill's folder (for example `~/.agents/ski
    Code blocks: write `<pre><code class="language-sql">` (any highlight.js common language, or `language-text` for plain output). The build colours each block for its language with the pinned highlight.js, downloaded once into the same cache and run without a browser, labels it with the language, and recolours only blocks whose text changed. See Code blocks in `references/components.md`.
 
    Brand kits: for a report or deck built for a Kernel task, `GET /api/v1/tasks/{taskId}/brand-kit` with the `kernel` skill's auth, save the response as JSON, and build with `--brand <file>`. The build inlines the kit's stylesheet (`<style data-kernel-brand>`), puts its logo in the hero or cover, and draws charts and diagrams in its colours and font; later builds without `--brand` keep it, and `--brand none` removes it. A response with `"kit": null` means the task has no brand. When Kernel's upload checks report `brand_outdated`, fetch the kit again and rebuild with it.
-5. **Look at it** when a browser tool is available: check desktop (about 1280 px) and mobile (390 px) widths, both color schemes if the report has mockups, and the console.
-6. **Hand off** with the file path, a one-paragraph summary, and the open questions. When the user will review the report, offer the local editor (below) so they can fix wording, answer question cards, and rewrite sections in place.
+6. **Review content and presentation.** Read the opening, headings, and conclusion for repetition, missing explanations, and unnecessary sections. For a deck, judge the visible slides separately from the notes. When a browser tool is available, check desktop (about 1280 px) and mobile (390 px) widths, both color schemes if the report has mockups, and the console.
+7. **Hand off** with the file path and a short summary; mention open questions only when any remain. When the user will review the report, offer the local editor (below) so they can fix wording, answer question cards, and rewrite sections in place.
 
 ## Revising a report
 
@@ -44,6 +46,7 @@ In the commands below, `$HRB` is this skill's folder (for example `~/.agents/ski
 - Lines containing `data-hr-runtime` or `data-hr-generated` are generated (the runtime, the inlined Plotly, chart snapshots, drawn diagrams, and the brand logo), as is the brand kit's `<style data-kernel-brand>` in the head; never edit them, and skip them when reading. They and inlined images make some lines very long, so read line ranges with truncated lines, for example `sed -n '120,180p' report.html | cut -c1-400`. To change a chart or diagram, edit its JSON or Mermaid source and rebuild.
 - Keep every id as it is so answers and comments stay attached; a new block gets a new id rather than renumbering the others. Then rebuild.
 - Answers the reader typed into `.answer` slots appear in `outline`; fold them into the decisions.
+- Rewrite affected passages into the current account instead of appending successive updates beside old recommendations. Distinguish settled, deferred, and still-open decisions; preserve their anchors and feedback. Prior versions hold the history unless the reader needs a short change note.
 - For a report shared through a Kernel link with feedback, readers' answers and comments live in Kernel, not in the file: list the file's open feedback with the Kernel Agent API (`GET …/feedback?status=open`), fold the answers into the decisions and make the requested changes, rebuild, export, and upload the result as a new version of the same Kernel file, then reply to each thread and resolve it there (see the `kernel` skill).
 - Review comments are requests from the reader: make the change, then answer each one in the comment store after `</main>` by adding `<p data-by="Codex" data-at="2026-10-09T16:00Z">What changed.</p>` to its `<article data-hr-thread>` (use your own agent name and the current UTC time), and add `data-status="resolved"` when it is done. Never edit or remove the reader's own entries, and keep each pinned element's `data-hr-comment` attribute.
 
@@ -82,13 +85,13 @@ A `slides` report opens as stacked 16:9 slides with speaker notes under each one
 
 ## Keeping the templates current
 
-The templates and references encode corrections reviewers have made before. When the user corrects a report or deck in a way that would apply to future ones (structure, voice, a missing component, a recurring layout fix), ask whether to fold it into `references/writing.md`, `references/slides.md`, `references/components.md`, or a template, and make the change in the skills repository rather than in an installed copy. Keep report-specific feedback out of the skill.
+The templates and references encode reusable corrections. When the user asks to improve the skill, update the relevant guidance or template in the skills source repository, then ensure the installation uses that source. Otherwise, ask before making shared guidance changes. Compare revisions with their feedback: a newer upload alone is not evidence of approval. Keep client facts and report-specific feedback out of shared instructions; do not turn one document's section order into a universal rule.
 
 ## Rules
 
 - Self-contained: no CDN scripts, web fonts, remote images, iframes, or network calls (the build inlines Plotly into reports with charts). External hyperlinks are fine.
 - Every `<main>` section has an `id` and an `<h2>`; the TOC is generated from them.
-- Question cards: ids `q1`, `q2`, ... in order in a new report (never renumber a shared one), full-sentence titles ending in `?`, a `.rec` when there is a recommended answer, and an empty `.answer` slot.
+- Question cards are optional and reserved for decisions requiring reader input: ids `q1`, `q2`, ... in order in a new report (never renumber a shared one), full-sentence titles ending in `?`, a `.rec` when there is a recommended answer, and an empty `.answer` slot for unanswered questions. Preserve actual recorded answers on revisions.
 - Client reports (`data-audience="client"`) contain no `.internal` blocks, evidence pills, task IDs, tool names, or provenance notes; `check` enforces the first two.
 - Do not copy component CSS into a report or invent classes. If a needed component is missing, use the closest existing one and mention the gap in the handoff.
 

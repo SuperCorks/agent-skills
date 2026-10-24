@@ -6,23 +6,14 @@ export const RUNTIME_VERSION = "1.2.0";
 export const SKILL_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 export const ASSETS_DIR = path.join(SKILL_DIR, "assets");
 
-// Section ids each template expects, in reading order. Missing required ids are warnings:
-// small reports may merge sections.
+// Templates select the runtime, not the editorial outline. Reports may use any section ids
+// and reading order; decks additionally need the slide runtime and structural checks.
 export const TEMPLATES = {
-  plan: {
-    required: ["scope", "questions", "sources", "current", "target", "phases", "qa", "acceptance", "risks", "handoff"],
-    order: ["summary", "scope", "questions", "sources", "current", "target", "architecture", "phases", "rollout", "qa", "acceptance", "risks", "handoff"]
-  },
-  findings: {
-    required: ["summary", "findings", "recommendation", "next"],
-    order: ["summary", "scope", "findings", "impact", "options", "recommendation", "decisions", "next", "limits", "sources"]
-  },
-  brief: {
-    required: ["summary", "decisions", "next"],
-    order: ["summary", "overview", "decisions", "working", "visuals", "options", "risks", "phases", "next"]
-  },
+  plan: {},
+  findings: {},
+  brief: {},
   // Decks are a sequence of <section class="slide">; check validates slides instead of ids.
-  slides: { required: [], order: [], deck: true }
+  slides: { deck: true }
 };
 
 const STRING = /("(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*')/;

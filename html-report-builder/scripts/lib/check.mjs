@@ -152,10 +152,6 @@ export function checkSource(source, { file, mode = "local" } = {}) {
   if (template) {
     const spec = TEMPLATES[template];
     if (!spec) warnings.push(`unknown data-template "${template}" (expected ${Object.keys(TEMPLATES).join(", ")})`);
-    else {
-      const missing = spec.required.filter((id) => !ids.has(id));
-      if (missing.length) warnings.push(`${template} template sections missing: ${missing.map((id) => `#${id}`).join(", ")}`);
-    }
   }
   const main = named("main")[0];
   if (main) {

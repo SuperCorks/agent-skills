@@ -1,6 +1,6 @@
 # Templates
 
-Copy a template from `assets/templates/`, replace every `<!-- guide: ... -->` comment with content (or delete the section), and keep the section ids so the TOC, anchors, `check`, and `outline` work. Sections marked optional can be deleted; required ids only produce a warning when missing, because small reports may merge sections.
+Start with the appropriate shell in `assets/templates/`, then select content for the reader's purpose. Every starter section is optional: add, reorder, merge, or delete sections, and replace every `<!-- guide: ... -->` comment. The TOC and `outline` follow the authored headings and ids, not a prescribed outline. Preserve ids when revising an existing report so links and feedback stay attached.
 
 ## Choosing
 
@@ -11,23 +11,21 @@ Copy a template from `assets/templates/`, replace every `<!-- guide: ... -->` co
 | `brief.html` | Stakeholder or client briefs, vision documents, executive summaries, proposals: a non-technical reader making decisions. | client |
 | `slides.html` | Presentation decks: executive briefings, client pitches, CEO or CTO decks, anything presented in a meeting. Rules and layouts in `slides.md`. | client |
 
-## Section order and ids
+## Choose the reading order
 
-**Plan**: `summary` (at a glance, optional) → `scope` → `questions` → `sources` → `current` → `target` → `architecture` (optional) → `phases` → `rollout` (optional) → `qa` → `acceptance` → `risks` → `handoff`.
+Begin with the answer or the purpose, then follow the reader's next necessary question. These are examples of different useful shapes, not alternative mandatory outlines:
 
-**Findings**: `summary` (verdict and key numbers) → `scope` (question, scope, method) → `findings` → `impact` → `options` (optional) → `recommendation` → `decisions` (optional) → `next` → `limits` (limits, definitions, sources).
+- A resolved incident may need only the result, cause and impact, and recovery evidence. Add follow-up work only if any remains.
+- A proposal may explain the concrete change, compare the meaningful alternatives, then request a decision. Put a self-contained blocking choice earlier when that helps.
+- An analytical report may follow the metric, funnel, or business question, with definitions and caveats beside the evidence. It need not recommend a change.
+- A review update may lead with the current outcome and remaining actions. Fold corrections into the relevant passages rather than carrying the whole revision history at the top.
+- An executable plan needs enough scope, intended behavior, sequencing, and verification for its implementer. The `html-plan` skill owns that content; several concerns can share a section.
 
-**Slides**: `s1` cover → `s2` the answer (statement) → context → options → the path (phases) → risks → the ask (divider). Slide ids run `s1`, `s2`, ...; each slide is followed by its `aside.notes`. See `slides.md`.
-
-**Brief**: `summary` (the one-minute version) → `overview` (plain-English description) → `decisions` → `working` (optional) → `visuals` (optional) → `options` (optional) → `risks` (optional) → `phases` (phase 1, 2, 3) → `next`.
-
-Add extra sections when the work needs them (for example `ux`, `data`, `mechanism`, `timeline`); give each an id and an `<h2>`. Place a plan's extra sections next to the closest related section. In a findings report, supporting evidence sections go after `next` and before `limits`, so the answer, decisions, and next steps stay near the top. Keep decisions where each template puts them: right after `scope` in a plan, after `recommendation` in a findings report, and after `overview` in a brief.
-
-When the source has nothing for a required section, keep it short and say what is missing (for example, "No owner assigned yet; Red Krypton proposes ...") rather than inventing content.
+Give each section a meaningful id and an `<h2>`; topic-specific ids such as `email`, `checkout`, or `recovery` work as well as `findings`. No template-specific section ids or section order are required by `check`. Keep material limitations near the claims they qualify, and optional supporting detail where it is easiest to consult. Use the slide guidance for decks.
 
 ## Section templates
 
-`section-templates.md` has copyable markup for common sections; read only the ones you use, and keep the ids of the report template you started from.
+`section-templates.md` has copyable markup for common sections; read only the ones you use. Adapt sample headings, ids, component counts, and order to the report. Preserve existing ids on revisions.
 
 | # | Section | Use for | Built from |
 | --- | --- | --- | --- |
@@ -55,5 +53,5 @@ When the source has nothing for a required section, keep it short and say what i
 ## Variants
 
 - Client-facing plan: start from `plan.html`, set `data-audience="client"`, add `data-numbered` if the reader will refer to sections by number, and drop engineering-only sections (`sources`, `handoff`) or move their content into an internal copy.
-- Short report: delete optional sections and merge small ones; a findings report can be a hero, `summary`, `findings`, and `next`.
+- Short report: a hero and one substantive section may be enough; add more only when the reader needs them.
 - Multi-document packages: build each report separately and add a small index report (`brief.html` stripped to a hero and a `.grid` of `.card` links).

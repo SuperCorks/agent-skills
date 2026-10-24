@@ -1,29 +1,25 @@
 # Slide decks
 
-Read this with `components.md` and `writing.md` when building `assets/templates/slides.html`. A deck is a report whose `<main class="deck">` holds a sequence of `<section class="slide">` elements, each followed by its speaker notes in `<aside class="notes">`. The builder adds the deck runtime: slides scaled to fit, a review view with notes under each slide, a present mode, and one-slide-per-page printing.
+Read this with `components.md` and `writing.md` when building `assets/templates/slides.html`. A deck is a report whose `<main class="deck">` holds a sequence of `<section class="slide">` elements. When a slide needs speaker notes, put them directly after it in `<aside class="notes">`; omit empty notes. The builder adds the deck runtime: slides scaled to fit, a review view with any notes under their slide, a present mode, and one-slide-per-page printing.
 
 ## Structure
 
-The default arc, from past executive and client decks:
+Choose the sequence from the audience's purpose before copying layouts. Open with a cover that states the answer or promise; a short deck can make its main point there without a separate answer slide. There is no required seven-part arc or target slide count.
 
-1. **Cover** (`slide cover`): who it is for and from (or the meeting it is for, when the preparer is not known), the promise in under ten words.
-2. **The answer** (`slide statement`): the recommendation or conclusion in one sentence.
-3. **Context**: what is true today, with numbers.
-4. **Options**: the choice, with the recommended option marked.
-5. **The path**: phases (phase 1, 2, 3), not calendar estimates unless dates were requested.
-6. **Risks**: the two or three that matter and how they are contained.
-7. **The ask** (`slide divider`): one sentence the audience can say yes to, then next steps.
+- A briefing can move from the result to the evidence and its implication, ending on the conclusion without an approval request.
+- A proposal can show the practical change, compare alternatives, then ask for a decision. Include phases or a dedicated risk slide only when they help assess that choice.
+- An analysis can follow the funnel, metric, or business question. Put the definitions and caveats that change its interpretation with the evidence.
 
-Add, merge, or drop middle slides to fit the story; keep the cover first and the ask last. Aim for 6 to 14 slides.
+Add, merge, reorder, or omit slides to fit that story. An agenda, options, phases, risks, and a closing ask are all conditional. When a decision is needed, make the requested action clear at the point where the audience can assess it.
 
 ## Writing slides
 
 - **Every title is a takeaway sentence**, not a label: "Hybrid lowers migration risk, not operating complexity", not "Hybrid option". `check` warns on titles under four words, except cover and divider slides.
-- **One idea per slide.** At most about 70 visible words (`check` warns above that) and at most five bullets. Move explanation, sources, caveats, and likely questions into the notes. Word count is only a ceiling: what actually overflows is titles over about 50 characters (they wrap to two lines), wrapped table rows, three-line cards, and more than four `.steps`. Check fit (below).
+- **One idea per slide.** At most about 70 visible words (`check` warns above that) and at most five bullets; these are ceilings, not targets. Keep the main reasoning and decision-changing caveats visible. Move secondary explanation, source detail, and follow-up answers into notes. What actually overflows is titles over about 50 characters (they wrap to two lines), wrapped table rows, three-line cards, and more than four `.steps`. Check fit (below).
 - **One component carries the slide**: `.tiles` for numbers, `.bignum` for the one number that matters, `.grid` of `.card` for 2 to 4 points (`.grid.three` or `.grid.four` for short ones), `.options` for a choice, `.matrix` for a 2×2, `.steps` for up to four phases, `.roadmap` for overlapping workstreams, `.compare` for two sides (give each side an `<h3>` to replace the Before/After labels; a `.flow` inside each side stacks vertically), `.flow` for up to five steps of how something works, a Plotly `figure.chart` for data, a Mermaid `figure.diagram` for architecture, `.bars` for simple comparisons, a `.table-wrap` table of at most five rows, `.agenda` for chapters, `.card.person` for people, `dl.terms` for terms, a `figure` screenshot, or `.device` mockups. A `.callout`, a closing `<p class="takeaway">` (the "so what" line, pinned to the bottom of the slide), or `<p class="footnotes">` (sources pinned to the bottom) can accompany the main component.
 - The `.eyebrow` above each title names the topic in a few words ("The choice", "Why now").
 - Voice for client decks: the company and product by name ("Red Krypton", "the app"), "we" for the team, never "I" or "me". Give best estimates instead of hedges and define any term the audience might not know.
-- **Speaker notes** say what the presenter would say, where each number comes from, and the likely questions with short answers. Notes are shown under each slide in the review view and hidden while presenting (N toggles them). Notes travel with the deck, so in a client deck keep them client-safe: no internal tool names, task IDs, or Slack links (`check` warns about tool names in client decks).
+- **Speaker notes** add what the presenter needs beyond the visible slide, such as a source or a likely follow-up answer; do not write a second report or repeat the slide verbatim. For a deck read without a presenter, make the slides understandable without opening notes. Notes are shown under each slide in the review view and hidden while presenting (N toggles them). Notes travel with the deck, so in a client deck keep them client-safe: no internal tool names, task IDs, or Slack links (`check` warns about tool names in client decks).
 
 ## Layouts
 
@@ -64,13 +60,13 @@ Give slides ids `s1`, `s2`, ... in order and a short `data-toc` label; the revie
 
 ## Slide templates
 
-`slide-templates.md` has copyable markup for each of these; read only the ones you use. The default arc above maps to them as: cover 1, the answer 3, context 4 to 9, options 11 and 12, the path 14, risks 10 or 13, and the ask 19.
+`slide-templates.md` has copyable markup for each of these; read only the layouts that serve your outline. The catalogue order is not a presentation sequence.
 
 | # | Template | Use for | Built from |
 | --- | --- | --- | --- |
 | 1 | Cover | Who it is for and from, and the promise | `cover`, `.meta`, `.footnotes` |
-| 2 | Agenda | Decks over ten slides or read without a presenter; chapter openers | `.agenda` (`li.current`) |
-| 3 | Decision requested | The answer as slide two, with the three facts behind it | `statement`, `.tiles` |
+| 2 | Agenda | Navigation for a deck with distinct chapters, when useful | `.agenda` (`li.current`) |
+| 3 | Decision requested | A real choice and the facts needed to assess it | `statement`, `.tiles` |
 | 4 | Big number | One figure that carries the argument, with its reasons | `.bignum`, `.grid.center`, `.footnotes` |
 | 5 | Funnel | Counts that narrow step by step, worst step marked | Plotly centred bars |
 | 6 | Part to whole | Up to four parts of 100% | Plotly stacked bar |

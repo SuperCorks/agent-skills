@@ -34,8 +34,8 @@ Create a durable planning artifact that turns messy source context into a decisi
 - Prefer `docs/plans/<yyyy-mm-dd-topic>.html` inside a repo.
 - If no repo docs location is obvious, use a local `outputs/` folder in the current workspace.
 - Load the `html-report-builder` skill and start from its `assets/templates/plan.html`. Use only the classes in its `references/components.md` and follow its `references/writing.md`. Write no CSS or JavaScript except mockup styles scoped to `.mock-*` classes; the builder inlines the shared runtime.
-- Build each section from the matching entry in the builder's `references/section-templates.md` (its `references/templates.md` lists all twenty; read only the entries you use), keeping the plan template's section ids: the decisions template goes in `questions`; current-versus-target paths in `current` and `target`; the options comparison in `target`; phases with owners, `.gate` exit criteria, and parallel lanes in `phases`; the Mermaid architecture diagram in `architecture`; the QA matrix and acceptance checklist in `qa` and `acceptance`; risks in `risks`. Draw metrics as Plotly charts and data flows as Mermaid diagrams, as those templates show.
-- Put open questions and recommended decisions immediately after scope so the reviewer sees decision needs before reading the full plan.
+- Choose the smallest outline that covers the plan's substantive needs. Use matching components from the builder's catalogue only where useful; merge related concerns and omit sections that have no material content. Draw metrics as Plotly charts and data flows as Mermaid diagrams when those visuals help. Give new sections meaningful ids and preserve existing ids on revisions.
+- Include question cards only for unresolved choices requiring reviewer input. Put a self-contained blocking choice early; put a choice after the context or comparison it needs. Investigate factual questions before asking the reviewer.
 - Include concrete paths, commands, links, identifiers, source names, and open decisions so a future agent can execute from the plan.
 - Link question cards to the relevant detail sections by their section ids.
 - Run `node <html-report-builder>/scripts/report.mjs build <file>` and fix every error.
@@ -49,28 +49,27 @@ Create a durable planning artifact that turns messy source context into a decisi
 - Respond with the artifact path, recommendation summary, top open decisions, and whether the plan is ready for implementation.
 - When revising an existing plan, run `report.mjs outline <file>` first, edit only the affected sections, keep question ids stable, fold in any answers the reader recorded, and rebuild.
 
-## Required Sections
+## Content Coverage
 
-Every HTML plan should include these sections (the `plan` template's section id is in parentheses):
+Cover the material needed to execute and assess this plan. These are content concerns, not mandatory separate sections or a fixed sequence; use the suggested ids when they fit and preserve existing ones on revisions.
 
 - Title and one-paragraph north star (hero), with an optional at-a-glance summary (`summary`).
 - Scope, non-goals, assumptions, and authority boundaries (`scope`).
-- Open questions and recommended decisions immediately after scope (`questions`).
+- Open questions and recommended decisions, only when unresolved choices need reviewer input (`questions`).
 - Sources reviewed with links or local paths (`sources`).
 - Current state or current gap (`current`).
 - Target behavior or desired outcome (`target`).
-- Recommended path and alternatives considered (`target`, or an `options` block where it fits).
-- Phases or workstreams, with sequential versus parallelizable work marked (`phases`).
+- Recommended path and meaningful alternatives when there is a choice (`target`, or an `options` block where it fits).
+- Executable steps or workstreams, with phases and parallel work marked when useful (`phases`).
 - Data/content model impact, when applicable (`architecture`).
 - Environment/config/deployment impact, when applicable (`rollout`).
-- QA/validation matrix (`qa`).
-- Acceptance criteria and definition of done (`acceptance`).
-- Risks and mitigations (`risks`).
-- Implementation handoff summary (`handoff`).
+- Acceptance criteria, definition of done, and how to verify them; combine QA and acceptance when a single checklist or matrix suffices (`qa`, `acceptance`).
+- Material risks and mitigations (`risks`, or beside the step they affect).
+- Implementation handoff details the implementer needs, without repeating the plan (`handoff`, or within the execution steps).
 
 ## Question Section Requirements
 
-Place open questions near the top of the document, directly after the scope section and before deep source/current-state detail. Each question should be understandable without reading the full plan first.
+Use a question section only when the reviewer must make a choice. Place it where there is enough context to answer; a blocking choice that is understandable on its own can go near the top. Keep it brief and link to supporting detail.
 
 Use the builder's question card (`<article class="question" id="q1">`), numbered `q1`, `q2`, ... in document order so the reader can answer in a batch. For each question or decision card, include:
 
@@ -81,7 +80,7 @@ Use the builder's question card (`<article class="question" id="q1">`), numbered
 - A clear owner or decision maker when known.
 - An empty `.answer` slot for the reader's answer.
 
-The table of contents follows section order, so keeping `questions` right after `scope` also places it right after Scope in the navigation.
+The table of contents follows the section order you choose.
 
 ## Type-Specific Additions
 

@@ -23,7 +23,7 @@ test("every section template builds and checks cleanly", () => {
   const { sections } = writeTemplates(mkdtempSync(path.join(os.tmpdir(), "hr-templates-test-")));
   const result = checkSource(readFileSync(sections, "utf8"), { file: sections });
   assert.deepEqual(result.errors, []);
-  assert.deepEqual(result.warnings.filter((w) => !MEDIA.test(w) && !/template sections missing/.test(w)), []);
+  assert.deepEqual(result.warnings.filter((w) => !MEDIA.test(w)), []);
   const outline = outlineData(readFileSync(sections, "utf8"));
   assert.equal(outline.sections.length, 20);
   assert.equal(outline.questions.length, 2);

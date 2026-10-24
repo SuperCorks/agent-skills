@@ -37,7 +37,7 @@ With a Kernel brand kit (`report.mjs build --brand`), the build inlines the kit'
 
 ## Tiles (at a glance, KPIs)
 
-`span` is the label, `b` the value, `small` an optional note. Keep values to a number or about three words and use three to five tiles; put context (such as "down from 26.0%") in `small`.
+`span` is the label, `b` the value, `small` an optional note. Keep values to a number or about three words; put context (such as "down from 26.0%") in `small`. Use only the tiles that add useful information; there is no minimum count.
 
 ```html
 <div class="tiles">
@@ -49,7 +49,7 @@ With a Kernel brand kit (`report.mjs build --brand`), the build inlines the kit'
 
 ## Key points
 
-The numbered short version under a verdict: three to five points, each a bold sentence and one line of support. A tone marks good (`ok`) or bad (`risk`) news.
+An optional numbered short version: each point has a bold sentence and one line of support. Include only distinct points the reader needs. A tone marks good (`ok`) or bad (`risk`) news.
 
 ```html
 <ol class="keypoints">
@@ -61,7 +61,7 @@ The numbered short version under a verdict: three to five points, each a bold se
 
 ## Question card
 
-Number ids `q1`, `q2`, ... in document order; the page shows "Q1" from the order. Once the report is shared, keep the ids (answers follow them) and give a new question the next unused number. The title is a full question. `.rec`, `.owner`, `.links`, and `.answer` add their own labels; keep `.answer` empty for the reader to fill in the editor. Once an answer is filled in, the card turns green and shows "Answered", so the section doubles as the decision record.
+Use cards for unresolved choices requiring reader input. Number new ids `q1`, `q2`, ... in document order; the page shows "Q1" from the order. Once the report is shared, keep the ids (answers follow them) and give a new question the next unused number. The title is a full question. `.rec`, `.owner`, `.links`, and `.answer` add their own labels; leave unanswered slots empty and preserve actual recorded answers on revision. Once an answer is filled in, the card turns green and shows "Answered", so it can remain a decision record after leaving the open questions.
 
 ```html
 <article class="question" id="q1">
