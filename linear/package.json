@@ -1,0 +1,13 @@
+{
+  "name": "linear-skill",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test",
+    "check": "node --check scripts/linear.mjs && node --check lib/client.mjs && node --check lib/operations.mjs"
+  }
+}
