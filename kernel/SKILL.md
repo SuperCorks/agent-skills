@@ -202,6 +202,12 @@ downloads only. A workspace member who opens one of the workspace's report links
 Kernel manages its feedback in the page as its author. See the guide's "Feedback on report links"
 section.
 
+Some clients get a report as a Google Doc instead (`html-report-builder`'s `gdoc.mjs`, see its
+"Google Docs delivery"). That Doc is the report's source from then on, and its comments and
+suggestions stay in Google Docs rather than Kernel feedback. Attach the Doc's URL to the task as a
+link attachment so it can be found, and read its feedback with `gdoc.mjs outline`. When the task
+keeps a file of the deliverable, upload a `gdoc.mjs snapshot` PDF as a new version after each round.
+
 ### Organization and project pages
 
 Each organization and project page has a fixed **Overview** (the record's `notes`), a fixed

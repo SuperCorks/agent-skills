@@ -352,7 +352,8 @@ node /Users/simon/.agents/skills/google-workspace/scripts/gws-account.mjs run --
   gws drive files list --params "$(cat /tmp/p.json)"
   ```
 
-- **`--upload` path sandbox**: paths outside cwd are rejected with `outside the current directory`. Fix: `cd` to the parent dir, pass a relative or basename path.
+- **`--upload` and `--output` path sandbox**: paths outside cwd are rejected with `outside the current directory`. Fix: `cd` to the parent dir, pass a relative or basename path.
+- **Editing Google Docs**: the Docs API's `documents.batchUpdate` makes targeted edits, can write them as tracked suggestions (`writeControl.writeMode: "SUGGEST"`), merges with collaborators' changes since a read (`writeControl.targetRevisionId`), accepts or rejects suggestions, and anchors comments (`insertComment`). Read with `includeTabsContent`, `commentsViewMode=COMMENTS_VIEW_MODE_INCLUDED`, and `suggestionsViewMode=SUGGESTIONS_INLINE` to see comments, their positions, and suggestions. Inserted images must come from a public URL. For anything beyond a one-off request, use `html-report-builder`'s `scripts/gdoc.mjs`, which turns semantic operations (replace text, insert components, answer, accept, comment) into these requests with the index arithmetic done for you.
 - **Argument naming**: prefer `--params '{…}'` for query/path params; named flags like `--pageSize`, `--q`, `--corpora` are not exposed.
 - **Shared drives**: always set `supportsAllDrives:true` (and `includeItemsFromAllDrives:true` on list-style methods). Without these you'll silently see only My Drive items.
 - **Token expiry**: `GOOGLE_WORKSPACE_CLI_TOKEN` is a 1-hour access token. Prefer per-account credential files through `scripts/gws-account.mjs`; use ADC tokens only for one-off fallback work.

@@ -270,6 +270,14 @@ function checkDeck(doc, main, warnings) {
 }
 
 export function checkFile(file, options = {}) {
-  return checkSource(readFileSync(file, "utf8"), { ...options, file });
+  const result = checkSource(readFileSync(file, "utf8"), { ...options, file });
+  // gdoc.mjs create writes this sidecar when the report becomes a Google Doc.
+  const sidecar = file.replace(/\.html?$/i, "") + ".gdoc.json";
+  if (existsSync(sidecar)) {
+    let url = "";
+    try { url = JSON.parse(readFileSync(sidecar, "utf8")).url || ""; } catch {}
+    result.warnings.push(`this report was handed over to Google Docs${url ? ` (${url})` : ""}: the Doc is the source now, so edit it with gdoc.mjs outline/edit rather than this file`);
+  }
+  return result;
 }
 

@@ -1,6 +1,6 @@
 ---
 name: html-report-builder
-description: Build, validate, publish, and locally edit self-contained HTML reports and slide decks from a shared component library and templates (plan, findings report, stakeholder brief, slides), including a point-and-click editor with AI rewrites. Use for investigation, analysis, QA, audit, and incident reports, stakeholder or client briefs, presentation decks, editing an existing HTML report, and as the rendering layer for html-plan; use html-plan itself for planning requests.
+description: Build, validate, publish, and locally edit self-contained HTML reports and slide decks from a shared component library and templates (plan, findings report, stakeholder brief, slides), including a point-and-click editor with AI rewrites, and deliver a report as a Google Doc that agents then edit in place. Use for investigation, analysis, QA, audit, and incident reports, stakeholder or client briefs, presentation decks, editing an existing HTML report, reports a client wants as a Google Doc, and as the rendering layer for html-plan; use html-plan itself for planning requests.
 ---
 
 # HTML Report Builder
@@ -42,6 +42,7 @@ In the commands below, `$HRB` is this skill's folder (for example `~/.agents/ski
 
 ## Revising a report
 
+- If `<report>.gdoc.json` sits beside the report, the report was handed over to a Google Doc and the Doc is the source: revise it with `gdoc.mjs outline` and `gdoc.mjs edit` (see Google Docs delivery), not by editing the HTML.
 - Run `node "$HRB/scripts/report.mjs" outline <file>` first. It lists each section's line range and size, every question with its answer, every finding, and every open review comment with the section and line it is pinned to, so you can read and edit only the sections that change.
 - Lines containing `data-hr-runtime` or `data-hr-generated` are generated (the runtime, the inlined Plotly, chart snapshots, drawn diagrams, and the brand logo), as is the brand kit's `<style data-kernel-brand>` in the head; never edit them, and skip them when reading. They and inlined images make some lines very long, so read line ranges with truncated lines, for example `sed -n '120,180p' report.html | cut -c1-400`. To change a chart or diagram, edit its JSON or Mermaid source and rebuild.
 - Keep every id as it is so answers and comments stay attached; a new block gets a new id rather than renumbering the others. Then rebuild.
@@ -79,6 +80,17 @@ node "$HRB/scripts/report.mjs" export path/to/report.html --out /tmp/<slug>-publ
 
 This writes `<slug>.html` plus `<slug>.assets/` without any review comments, and checks the copy. For a PDF, run `report.mjs pdf <file>`: it prints a copy without review comments in a headless browser, with charts as vector snapshots (reports on Letter, or `--size A4`; decks one slide per page). `check` warns when a client report still stores comments, since sharing the file itself would share them. Upload the whole folder with `publish-artifacts` (as a directory) or to Kernel (the HTML as the file, each asset as a supporting file at its relative path). Built reports follow [Kernel's document contract](https://app.krnl.work/api/document-contract.md) (kind on `<html>`, marked slides and question cards, stable ids), so Kernel keeps comments and answers on their blocks across versions. On Kernel, set the link's `feedback` to `read` (the report only, no feedback), `view` (readers also see the link's comments and answers), or `post` (readers add their own through answer and comment controls Kernel adds to the page); feedback is kept per link. Every report link also gives readers an Options menu to download the report as HTML (a zip with its assets) and as a PDF that Kernel prints from the page on its server with its print styles, so keep the print CSS right: charts as static snapshots, light diagrams, nothing a reader needs hidden in print. When the user opens their own report link in a browser where they use Kernel, the page opens as its author, so they can reply to and resolve feedback there. Keep ids stable across versions so comments and answers stay attached.
 
+## Google Docs delivery
+
+When a client wants a Google Doc to edit and comment on instead of a Kernel link, build and review the report as usual, then write it into a Doc with `scripts/gdoc.mjs`. Read `references/google-docs.md` first. In short:
+
+- Ask the user which Google account (a `gswitch` alias such as `sim` or `rk`), Drive folder, and recipients to use; never guess them for a client.
+- `gdoc.mjs create report.html --account <alias> [--folder <id>]` writes the Doc once and records it in `report.gdoc.json`. From then on the Doc is the source: agents and the client both edit it, and the HTML is only the first draft. Every section, question, finding, and figure becomes a named range `k_<id>`, CSS-only labels become text, and charts, diagrams, and mockups become images. Decks are refused.
+- `gdoc.mjs share report.html --to a@client.com` adds editors without an email unless `--notify`; attach the Doc's URL to the Kernel task under the `task_attachments` preset.
+- For each round, run `gdoc.mjs outline report.html` (sections, handles, open comments and suggestions, answers), then `gdoc.mjs edit report.html --ops ops.json`. Operations are `replace-text`, `set-paragraph`, `insert` (report components as HTML), `delete`, `replace-section`, `set-answer`, `replace-image`, `accept`/`reject`, `comment`, and `reply`. Edits go in as suggestions unless `--direct`.
+- Comments and replies reach the client, and Google emails them. Draft them in the user's voice (with the `my-voice` skill when available) with the Doc link; `edit` refuses them without `--outbound`, which is only for wording the user approved.
+- `gdoc.mjs snapshot report.html --out copy.pdf` (or `.docx`, `.md`) exports a fixed copy for Kernel or a client.
+
 ## Presenting decks
 
 A `slides` report opens as stacked 16:9 slides with speaker notes under each one. Press P (or click Present) to present: arrows move, N shows notes, F toggles fullscreen, Esc exits. On phones and tablets, swipe or tap to move and use Back to exit. `report.mjs pdf deck.html [--skip s3,s7]` writes one slide per page without notes. Details are in `references/slides.md`.
@@ -104,5 +116,10 @@ The templates and references encode reusable corrections. When the user asks to 
 | `report.mjs outline <file> [--json]` | Section map, questions with answers, findings, review comments |
 | `report.mjs export <file> --out <dir>` | Publish copy with images as files |
 | `report.mjs pdf <file> [--out file.pdf] [--skip s3,s7] [--size Letter\|A4]` | Print to PDF without review comments (decks: one slide per page, notes hidden) |
+| `gdoc.mjs create <file> [--account a] [--folder id] [--title t] [--dry-run]` | Write the report into a new Google Doc, which becomes the source (`<file>.gdoc.json`) |
+| `gdoc.mjs outline <doc> [--section id] [--json]` | Read the Doc: sections, handles, comments, suggestions, answers |
+| `gdoc.mjs edit <doc> --ops ops.json [--direct] [--outbound] [--dry-run]` | Apply operations, as suggestions unless `--direct` |
+| `gdoc.mjs share <doc> --to emails [--role writer\|commenter\|reader] [--notify]` | Add people (no email unless `--notify`) |
+| `gdoc.mjs snapshot <doc> --out file.pdf\|.docx\|.md` | Export a copy |
 
-Maintainers: run `node --test tests/*.test.mjs` and `NODE_PATH=<dir containing playwright> node tests/browser.cjs` from this folder after changing the runtime or editor (read aloud runs against `tests/fixtures/fake-speechify.mjs`, never the real API); set `HR_CORPUS_LIST` (a file of report paths) to add the real-report corpus checks. `node tests/gallery.mjs` writes a component gallery for visual review. Classes in `assets/report.css` are append-only.
+Maintainers: `tests/gdoc.test.mjs` checks the Google Docs track against an in-memory Doc that follows the API's index rules (`tests/fixtures/fake-docs.mjs`); after changing `gdoc-*.mjs`, also run one live `gdoc.mjs create` and `edit` round on a scratch Doc. Run `node --test tests/*.test.mjs` and `NODE_PATH=<dir containing playwright> node tests/browser.cjs` from this folder after changing the runtime or editor (read aloud runs against `tests/fixtures/fake-speechify.mjs`, never the real API); set `HR_CORPUS_LIST` (a file of report paths) to add the real-report corpus checks. `node tests/gallery.mjs` writes a component gallery for visual review. Classes in `assets/report.css` are append-only.
