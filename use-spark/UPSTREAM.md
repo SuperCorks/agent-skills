@@ -1,7 +1,7 @@
 # Upstream source
 
 This skill is vendored. It is the agent skill embedded in the Spark CLI for Spark Desktop by
-Readdle, version 1.3.1 (see `metadata.version` in `SKILL.md`), with one local addition between the
+Readdle, version 1.4.1 (see `metadata.version` in `SKILL.md`), with one local addition between the
 `<!-- local-addition:start -->` and `<!-- local-addition:end -->` markers.
 
 To check for a newer version:
