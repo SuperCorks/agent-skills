@@ -45,6 +45,19 @@ Fan out one sub-agent per source so a report takes minutes, not tens of minutes.
 findings, not raw dumps. Read enough to state outcomes: Kernel work notes and Slack bodies carry
 the results, while titles alone only say that something was touched.
 
+Use the harness's native sub-agents: the `Agent` tool in Claude Code, `spawn_agent` in Codex.
+Inside T3 Code these are fine as well. Launch every collector in one message so they run
+concurrently, and wait for all of them before writing.
+
+Collecting is reading and summarizing, so set the model and effort on every launch rather than
+inheriting the session's (often `xhigh`):
+
+- **Claude:** Opus (`model: "opus"`) at `effort: "medium"`.
+- **Codex on GPT-6 Astra:** `model: "gpt-6-astra"`, `reasoning_effort: "medium"`.
+- **Codex on GPT-6.1 Sol:** `model: "gpt-6.1-sol"`, `reasoning_effort: "high"`.
+
+Never run collectors at `xhigh` or above. The synthesis in step 5 stays in the main thread.
+
 **GitHub.** Per repo: `git log --all --since=<from> --until=<to> --date=short --format='%ad %an %s'`
 after `git fetch`, plus `gh pr list --state merged --json number,title,mergedAt,author` and release
 tags. Fetch PR bodies only for the few PRs that anchor a theme.
@@ -57,9 +70,14 @@ that carry results. Work notes are where investigations record their numbers.
 --order asc`. Capture client requests, decisions, and anything reported back. Resolve user IDs to
 names when it matters to the sentence.
 
-**Agent threads.** Run `scripts/local-threads.sh <since> <match>` from this skill. It reports T3
-Code threads (with `t3cork://` links), Claude Code sessions, and Codex sessions touching the
-project. Prefer it over the slower `agent-thread-reader` sweep.
+**Agent threads.** Run `scripts/local-threads.sh <since> <match> [<match>...]` from this skill. It
+reports T3 Code threads (with `t3cork://` links), Claude Code sessions, and Codex sessions touching
+the project. Prefer it over the slower `agent-thread-reader` sweep.
+
+- **Matches.** Pass the project slug plus a short name, such as `vye-health vye`. Threads started
+  from a parent workspace match only by title.
+- **T3 Code store.** T3 Code is read from `statev2.sqlite`. Native sub-agent child threads are
+  skipped, because they belong to their parent thread.
 
 ## 4. Verify cheap facts
 
