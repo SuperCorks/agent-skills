@@ -51,6 +51,8 @@ A collection of AI agent skills for GitHub Copilot and other AI assistants.
 | [html-report-builder](html-report-builder) | Build, validate, and publish self-contained HTML plans, findings reports, stakeholder briefs, and slide decks from a shared component library, with a local point-and-click AI editor |
 | [implementation-executor](implementation-executor) | Execute an approved implementation plan with focused changes and validation |
 | [iterable](iterable) | Read Iterable profiles, profile fields, list users, and user events with multi-account support |
+| [kernel](kernel) | Read and manage Kernel tasks, time tracking, calendar events, Inbox review, and work summaries through the Kernel Agent API |
+| [kernel-time-drafts](kernel-time-drafts) | Reconstruct past work into Kernel bulk time drafts, or consolidate fragmented draft entries into reviewable blocks while preserving reviewed dates |
 | [linear](linear) | Read and manage Linear issues and projects, discover workflow metadata, and draft or explicitly post comments with multi-account support |
 | [lovable-workflow](lovable-workflow) | Safely modify, validate, synchronize, and release Lovable-managed projects |
 | [merge-conflict-resolution](merge-conflict-resolution) | Resolve active Git merge, rebase, or cherry-pick conflicts by preserving both sides' intended behavior |

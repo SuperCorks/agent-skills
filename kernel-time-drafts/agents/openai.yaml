@@ -1,0 +1,4 @@
+interface:
+  display_name: "Kernel Time Drafts"
+  short_description: "Reconstruct and cluster reviewable time drafts"
+  default_prompt: "Use $kernel-time-drafts to prepare or adjust a Kernel time draft with blocks of at least 15 minutes, preserving dates I have already reviewed."
