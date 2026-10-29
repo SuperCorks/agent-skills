@@ -41,6 +41,7 @@ A collection of AI agent skills for GitHub Copilot and other AI assistants.
 | [fireflies](fireflies) | Search Fireflies meetings and read or export transcripts, summaries, and action items using an API key |
 | [frontend-design](frontend-design) | Build and review accessible web interfaces that inherit existing design systems and page patterns, with exploration for new products or requested redesigns |
 | [full-send](full-send) | Take a change to a merged PR unattended: prove it, review it, file it, babysit it, and merge it from the latest base (adapted from tstack; see its UPSTREAM.md) |
+| [full-stop](full-stop) | Same as full-send, but stop with the PR ready for the user to merge (adapted from tstack; see its UPSTREAM.md) |
 | [generate-audio](generate-audio) | Turn text into spoken MP3 or WAV audio with local Voxtral TTS, falling back to Speechify |
 | [git-workflow-gates](git-workflow-gates) | Branch-state checks and post-documentation PR gate workflow for multi-repo workspaces |
 | [github-pr-formatting](github-pr-formatting) | Open clean PRs with short reviewer briefings and post correctly formatted comments/bodies |

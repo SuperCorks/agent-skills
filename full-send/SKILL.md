@@ -1,6 +1,6 @@
 ---
 name: full-send
-description: Take a change from its current state to a merged pull request while the user is away. Finish it, prove it, review it, file it, babysit it through CI and review bots, and merge it once the merge gate passes. Use only when the user says "full send" or clearly asks for unattended delivery through merge. Not for opening a PR (github-pr-formatting), getting one green without merging (pr-babysit), or a review loop alone (pre-pr-review).
+description: Take a change from its current state to a merged pull request while the user is away. Finish it, prove it, review it, file it, babysit it through CI and review bots, and merge it once the merge gate passes. Use only when the user says "full send" or clearly asks for unattended delivery through merge. Not for stopping at a merge-ready PR (full-stop), opening a PR (github-pr-formatting), getting one green without merging (pr-babysit), or a review loop alone (pre-pr-review).
 ---
 
 # Full Send

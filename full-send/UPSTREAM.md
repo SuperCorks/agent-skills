@@ -32,7 +32,9 @@ Local additions:
 - Kernel presets: `yolo` actions run as they come up, and `ask` actions go into the report as proposals.
 - Merge-triggered deploys get a status check, and a failed deploy is a question for the user.
 
-Left out on purpose: the `full-stop` variant, upstream's `pr-wait` script (its Greptile and Macroscope gating does not match these repos), the "smallest change that works" wording (the Ponytail ladder was declined on 2026-10-10), and the PR-body model attribution line (the harness adds its own).
+The `full-stop` variant, which stops before the merge, is its own skill in `full-stop/`.
+
+Left out on purpose: upstream's `pr-wait` script (its Greptile and Macroscope gating does not match these repos), the "smallest change that works" wording (the Ponytail ladder was declined on 2026-10-10), and the PR-body model attribution line (the harness adds its own).
 
 ## License
 
