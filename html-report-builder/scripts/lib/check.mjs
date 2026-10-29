@@ -225,6 +225,8 @@ export function checkSource(source, { file, mode = "local" } = {}) {
     if (chart.error) errors.push(`${label} has invalid JSON: ${chart.error}`);
     if (!chart.figure) errors.push(`${label} must sit directly inside a <figure class="chart">`);
     else if (!chart.caption) warnings.push(`${label} has no <figcaption>; the caption is the chart's title`);
+    const legend = chart.spec && chart.spec.layout && chart.spec.layout.legend;
+    if (legend && legend.orientation !== "v" && typeof legend.y === "number" && legend.y < 0) warnings.push(`${label} places its legend below the plot, where it collides with the x-axis labels; the chart draws it above the plot instead, so remove the legend's x and y`);
     if (chart.spec && chart.figure && (!chart.snapshot || attr(chart.snapshot, "data-hr-hash") !== chart.hash)) warnings.push(`${label} has a missing or stale snapshot for print and PDF: run \`report.mjs build\` with Chrome available`);
   });
   if (charts.length && !named("script").some((s) => attr(s, "data-hr-runtime") === "plotly")) warnings.push("charts are not interactive: run `report.mjs build` once with internet to download Plotly");

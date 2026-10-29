@@ -84,9 +84,18 @@
     return lines ? "x unified" : horizontal ? "y unified" : "closest";
   }
 
+  /* A horizontal legend below the plot lands on the x-axis labels, whose height Plotly does not
+     allow for, so it goes back above the plot where the template puts it. */
+  function legendAbove(layout) {
+    var legend = layout.legend;
+    if (!legend || legend.orientation === "v" || !(typeof legend.y === "number" && legend.y < 0)) return;
+    ["x", "xanchor", "y", "yanchor"].forEach(function (key) { delete legend[key]; });
+  }
+
   function figureFor(spec, t, deck) {
     var data = resolve(spec.data || [], t);
     var layout = resolve(spec.layout || {}, t);
+    legendAbove(layout);
     if (!layout.hovermode) layout.hovermode = hoverFor(data);
     layout.template = template(t, deck, layout.hovermode === "x unified");
     if (!layout.height) layout.height = deck ? 280 : 320;

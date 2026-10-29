@@ -125,3 +125,10 @@ test("a Kernel brand kit's style may style the whole page, but every URL and imp
   assert.match(errorsOf(page("", { head: brand('@font-face { font-family: X; src: url(//fonts.test/x.woff2); }') })), /CSS references external URLs/);
   assert.match(errorsOf(page("", { head: brand('@import url("data:text/css,a{}");') })), /CSS contains @import/);
 });
+
+test("a legend placed below the plot warns; the default above it does not", () => {
+  const chart = (layout) => `<figure class="chart"><script type="application/json" data-hr-chart>{"data":[{"type":"bar","name":"A","x":[1],"y":[1]},{"type":"bar","name":"B","x":[1],"y":[2]}],"layout":${layout}}</script><figcaption>Orders</figcaption></figure>`;
+  assert.match(warningsOf(page(chart('{"legend":{"orientation":"h","y":-0.15}}'))), /chart "Orders" places its legend below the plot/);
+  assert.doesNotMatch(warningsOf(page(chart("{}"))), /legend/);
+  assert.doesNotMatch(warningsOf(page(chart('{"legend":{"orientation":"v","y":-0.2}}'))), /legend/, "a vertical legend is the author's call");
+});

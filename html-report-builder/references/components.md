@@ -212,7 +212,7 @@ An `ol.checklist` numbers its steps (use it for next steps, with the owner in `s
 
 ## Charts (Plotly)
 
-Data charts are interactive Plotly charts. Write the Plotly spec as JSON inside the figure and the chart's title as its `figcaption`; colours and fonts come from the report, so leave them out. Use `"token:accent"`, `"token:risk"`, `"token:ok"`, `"token:warn"`, `"token:muted"`, or `"token:series-1"` to `"token:series-4"` for colours that follow light and dark mode (and a Kernel brand kit when the report has one). Plotly's cartesian bundle draws `bar` (also funnels, as centred bars with a `base`), `scatter` (lines and markers), `pie`, `heatmap`, `histogram`, `box`, and `violin`. Keep one y-axis, at most four series, and a legend only for two or more.
+Data charts are interactive Plotly charts. Write the Plotly spec as JSON inside the figure and the chart's title as its `figcaption`; colours and fonts come from the report, so leave them out. Use `"token:accent"`, `"token:risk"`, `"token:ok"`, `"token:warn"`, `"token:muted"`, or `"token:series-1"` to `"token:series-4"` for colours that follow light and dark mode (and a Kernel brand kit when the report has one). Plotly's cartesian bundle draws `bar` (also funnels, as centred bars with a `base`), `scatter` (lines and markers), `pie`, `heatmap`, `histogram`, `box`, and `violin`. Keep one y-axis, at most four series, and a legend only for two or more. The legend sits above the plot, left-aligned; leave its `x` and `y` out of the spec, because a legend below the plot lands on the x-axis labels (`check` warns, and the chart moves it back up).
 
 ```html
 <figure class="chart">
