@@ -1,7 +1,7 @@
 # Upstream source
 
 This skill is vendored. It is the agent skill bundled with the BrowserSkill CLI (`bsk`), copied
-from bsk 0.3.3. Do not edit it here; refresh it from upstream instead.
+from bsk 0.4.0. Do not edit it here; refresh it from upstream instead.
 
 To check for a newer version:
 
