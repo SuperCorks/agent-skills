@@ -71,7 +71,8 @@ Per machine, before any mapping write:
   - The optional `downloads.open` permission granted (check the extension's granted permissions in `Secure Preferences`; it's granted when the extension asks or from its site/permission settings).
   These are browser UI toggles: **User step**, or Computer Use with the user's go-ahead.
 - BrowserSkill instance ids: `scripts/bsk_profiles.py resolve "<name>"` in the web-computer-use skill refreshes `~/.local/state/web-computer-use/bsk-profiles.json`.
-- Launcher: `~/.raycast-scripts/chrome-<client>.sh` opening `--profile-directory="Profile N"`, copied from an existing one.
+- Bookmarks bar: in the intended profile, open `chrome://settings/appearance` and set **Bookmarks bar → Always show** (older Chrome versions expose a **Show bookmarks bar** toggle). Verify the selected setting and the bar on a normal page; its presence on New Tab alone does not prove this preference. Use the browser UI rather than editing live profile files.
+- Launcher: create executable `~/.raycast-scripts/chrome-<client>.sh` opening `--profile-directory="Profile N"`, using the verified directory and metadata from an existing launcher. In Raycast Settings → Extensions → Script Commands, verify that `~/.raycast-scripts` is registered; add it if missing and reload script directories when necessary. Search Raycast for the exact command title, run it, and verify the resulting Chrome profile. A file on disk alone is not a completed launcher setup.
 
 ## ProfileRouter
 

@@ -26,6 +26,8 @@ To audit everything, enumerate clients from Kernel organizations and their mappi
 
 **Chrome**
 - Profile exists with BrowserSkill, Web Computer Use, ChatGPT, Keeper; ChatGPT file URL access on and `downloads.open` granted.
+- Bookmarks bar is set to **Always show**, verified on a normal page (not only New Tab).
+- When a Raycast launcher was requested: the script is executable, its directory is registered in Raycast, the command appears in Raycast search, and running it opens the intended profile.
 - `AGENTS.md` Browser Profile section names it.
 - ProfileRouter rules for the client's own hosts, if any, with no replay conflicts.
 
