@@ -33,7 +33,7 @@ description: Executes an approved implementation plan with focused changes and e
    - Repeated deviations of one shape also mean the design assumptions are wrong: the same workaround across unrelated code, unrelated edge cases each needing a special branch, types that need casts or always-set optional fields, a lock on state the design said was unshared, or callers that must know internal rules. Replan with the new constraints as day-one assumptions; the revised design should shrink before it grows.
 4. Validate the integrated result:
    - Run the repository's relevant format, lint, build, and test commands.
-   - Exercise the built artifact or representative user path when practical; record why if runtime verification is unavailable.
+   - For user-facing behavior, use [test-engineer's journey method](../test-engineer/references/user-story-testing.md) to execute each affected story from its actual entry through completion, carrying the same state across material boundaries. Verify durable outcomes and relevant interruption/recovery variants; report unavailable paths and mocked boundaries explicitly.
    - For UI changes, compare the rendered result with its design references and check component/style usage against the captured criteria. Apply the frontend design review when available; report material departures and unavailable visual evidence explicitly.
 5. Prepare handoff:
    - Summarize modified files, completed units, rationale, commands, real-path evidence, and any blockers or follow-ups.

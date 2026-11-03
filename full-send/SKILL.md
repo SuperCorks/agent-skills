@@ -60,6 +60,7 @@ Proof is evidence you observed yourself in this session: command output, a repro
 - Run the checks that the repo's CI runs (typecheck, lint, tests).
 - When the behavior has no test and the repo has a test setup, add one focused test that fails without the fix. Use `test-engineer` in regression mode.
 - For UI and runtime behavior, run the app and look at the change. Green mocked tests do not prove that the user experience works. If the repo has a project-local `verify-<app>` skill, drive the app with it. Otherwise follow `web-computer-use` for browser work.
+- For user-facing behavior changes, apply [test-engineer's focused journey method](../test-engineer/references/user-story-testing.md): complete the affected story from its real entry point, preserve the same data through material handoffs, and verify the durable outcome and relevant recovery variants. Inspect existing assertions for missing connections; page checks and seeded downstream tests alone are insufficient. Scope this proof to the change and name any simulated or untested boundary.
 - Attach screenshots to the PR when they help. Upload them to the PR directly, or host them with `publish-artifacts` and embed the links. `gh` cannot upload images, so a direct upload goes through the browser.
 
 If you cannot find a way to prove a change, you do not have full confidence. Ask the user.

@@ -1,6 +1,6 @@
 ---
 name: test-engineer
-description: Baseline-first testing workflow for correctness, regression safety, before/after claim verification, and evidence-backed test reporting.
+description: Baseline-first testing and focused user-story journeys for correctness, regression safety, before/after claim verification, and evidence-backed coverage reporting.
 ---
 
 # Test Engineer
@@ -10,6 +10,7 @@ description: Baseline-first testing workflow for correctness, regression safety,
 - Validating implementation against acceptance criteria.
 - Driving a behavior change or protecting a reproduced defect with tests.
 - Proving or disproving a specific claim, such as "this fixes the bug" or "this is faster".
+- Exercising complete user stories and finding gaps between individually tested features.
 
 ## Inputs expected
 
@@ -27,12 +28,19 @@ description: Baseline-first testing workflow for correctness, regression safety,
 Use only the mode the request needs. A validation task does not automatically authorize implementation changes.
 Writing or running a test never expands the user's requested scope: in any mode, change product code only when the user also asked to build or fix it. Otherwise stop after producing the requested test evidence or verdict.
 
+## Focused user-story testing
+
+For user-facing behavior changes or a journey audit, read [references/user-story-testing.md](references/user-story-testing.md) before selecting coverage. Use it alongside the selected mode. Define the actor, actual entry point, state carried through the flow, and observable completion; execute the affected story continuously through its material boundaries. Include relevant interruption/recovery variants and verify the durable result when state changes. Separate page checks, seeded downstream tests, and mocked provider handoffs do not by themselves prove a complete journey.
+
+Scale coverage to the changed behavior and known failure patterns. A narrow change needs its affected story and material variants; an extensive audit needs a coverage matrix across the requested surfaces. Documentation-only work does not need a browser journey.
+
 ## Workflow
 
 1. Establish the baseline:
    - Run the narrowest relevant existing checks before changing tests or code.
    - Record observed starting failures. Call a failure pre-existing only when a base revision, prior run, or other direct evidence proves that classification; a failure seen only in the current working tree has unknown provenance.
 2. Design behavior evidence:
+   - For user-facing work, map acceptance criteria to the focused stories above. Inspect existing assertions to identify which transitions are actually covered before adding tests.
    - Prefer observable behavior through a public API, command, UI boundary, or other stable seam over private implementation details.
    - Cover the acceptance path plus material edge, error, and state-transition cases.
    - Derive expected values independently from the implementation under test; do not reproduce the same algorithm in the assertion.
@@ -52,6 +60,7 @@ Writing or running a test never expands the user's requested scope: in any mode,
 
 - Mode used and baseline result.
 - Test strategy summary.
+- For user-story work: completed paths, boundary/recovery variants, evidence, and failed, blocked, skipped, or untested paths; distinguish real and simulated integrations.
 - Tests added/updated (files).
 - In TDD/regression mode, red-before-green evidence or the reason it was not practical.
 - In claim mode, the falsifiable claim; baseline, treatment, delta, and threshold for each metric or artifact; one paragraph naming the evidence and any confounds; and the verdict.

@@ -32,6 +32,7 @@ For a diagnosis-only request, use `bug-diagnosis` and stop after evidence-backed
    - For UI work, use `frontend-design` to establish the governing design sources, comparable surfaces, reuse mapping, and observable design criteria before implementation. If unavailable, capture those facts directly from project docs, components, and relevant pages; preserve the existing system unless redesign is requested.
 3. Plan and approval gate:
    - Produce a concrete plan split into vertical units that each deliver and verify a coherent behavior, rather than separate layer-by-layer batches.
+   - For user-facing behavior, define the affected complete stories using [test-engineer's journey method](../test-engineer/references/user-story-testing.md): actor, actual entry, carried state, completion, and material recovery variants. Carry these into the validation plan.
    - Halt before coding if scope or requirements are ambiguous.
 4. Implement and verify by unit:
    - Apply the smallest complete vertical unit that matches the approved plan, then run its focused checks before continuing.
@@ -39,7 +40,7 @@ For a diagnosis-only request, use `bug-diagnosis` and stop after evidence-backed
    - A material plan deviation, or repeated deviations of one shape, is a replan signal: the same workaround across unrelated code, unrelated edge cases each needing a special branch, types that need casts or always-set optional fields, a lock on state the design said was unshared, or callers that must know internal rules. Stop and redesign with the new constraints as day-one assumptions rather than accumulating patches; the new design should shrink before it grows.
 5. Validate the product:
    - Run project-appropriate lint, build, and test checks.
-   - Exercise the real artifact or representative user path when practical; compilation and unit tests alone do not prove runtime behavior.
+   - Execute the planned stories continuously on the real artifact through their material boundaries and durable outcomes. Use `test-engineer` for evidence and triage; report unavailable paths and simulated boundaries explicitly. Compilation, isolated page checks, and unit tests alone do not prove the connected behavior.
    - For UI changes, apply the frontend design review against the captured criteria and reference surfaces. Record source and rendered evidence separately, including any visual checks that remain unavailable.
    - Perform targeted security and maintainability review. For a substantial or risky diff, offer `pre-pr-review` for an independent multi-reviewer pass.
 6. Documentation and handoff:

@@ -1,6 +1,6 @@
 ---
 name: project-verification-bootstrap
-description: Generate and prove a project-local, app-specific verification skill when the user asks to bootstrap, create, or establish a reusable way to drive a repository's real UI, CLI, API, or other user-facing runtime, or to audit or refresh an existing verify-<app> skill and its feature map. Do not use for a one-off verification run or merely executing an existing test suite.
+description: Generate and prove a project-local, app-specific verification skill when the user asks to bootstrap, create, or establish a reusable way to drive a repository's real UI, CLI, API, or other user-facing runtime, or to audit or refresh an existing verification skill and its feature map. Do not use for a one-off verification run or merely executing an existing test suite.
 ---
 
 # Project Verification Bootstrap
@@ -57,6 +57,8 @@ Add a feature index linked from `SKILL.md`, plus a small set of files for the mo
 
 State in the index that a skipped entry point is never reported as verified through a different path, and that an unreachable path is reported with the attempted command and the unmet precondition. Keep this map about verification entry points and outcomes, not an exhaustive product specification.
 
+Use [test-engineer's journey method](../test-engineer/references/user-story-testing.md) to include the important complete stories in that index or linked recipes, especially those crossing feature or role boundaries. Map each story to its actual entry, continuous actions, carried record/state, durable completion, and relevant recovery variants. Record simulated boundaries. Feature-by-feature checks alone must not be described as proof of the connected story; keep the initial map small and grounded in the discovered product.
+
 ## Prove the generated instructions
 
 Run one safe end-to-end proof using only the generated guidance:
@@ -64,7 +66,7 @@ Run one safe end-to-end proof using only the generated guidance:
 1. launch an isolated instance or invocation;
 2. confirm the skill metadata and internal links pass, plus the target-agent discovery check when tooling exposes one; otherwise record the manual location check and discovery limitation;
 3. run the doctor check;
-4. drive one mapped feature through its real user-facing path;
+4. drive one mapped complete story through its real user-facing path to its declared outcome, including a handoff when that story requires one;
 5. capture the declared evidence;
 6. clean up what the run created; and
 7. confirm the evidence remains and owned processes or scratch state do not.

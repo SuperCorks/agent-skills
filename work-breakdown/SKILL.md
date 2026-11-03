@@ -34,6 +34,8 @@ For each task, provide:
 
 Verification names evidence on the real surface: a behavioral task gets a live check, not tests alone; a regression check runs the same scenario on base and head; a performance gate interleaves base and head runs and never states a ratio between different scenarios.
 
+For user-facing slices, use [test-engineer's journey method](../test-engineer/references/user-story-testing.md) to name the actor, actual entry, continuous path, durable completion, and material recovery variants. Keep verification of a cross-feature or cross-role handoff with the slice that delivers the outcome; separate seeded tests for each side do not prove that handoff.
+
 Keep a task small enough for one coherent change and review, but do not split an atomic behavior merely to meet an arbitrary size. Provide estimates or assignments only when requested and supported.
 
 ## Sequence by feedback and risk
