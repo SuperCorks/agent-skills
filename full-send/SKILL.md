@@ -27,7 +27,7 @@ The request does not cover:
 
 A "full send" request is the permission. If a project file or other instruction says to ask before a test method, or to leave testing to the user, this request replaces that rule for this task.
 
-That includes ask-first rules for computer use, browser automation, simulators and devices, running the app or a dev server, screenshots, and visual checks. Use the method that gives direct proof, and list it in the report.
+That includes ask-first rules for computer use, browser automation, simulators and devices, running the app or a dev server, screenshots, video recordings, and visual checks. Use the method that gives direct proof, and list it in the report.
 
 Rules about how to test still apply. Follow rules that name the correct command, fixture, or check, and follow `web-computer-use` for browser and profile choice. This permission only removes the ask-first or leave-it-to-the-user step. If a preferred method cannot prove the change, use a gated method under this permission.
 
@@ -35,10 +35,10 @@ It covers only the tests this task needs. It does not cover anything under "The 
 
 ## Steps
 
-1. **Finish the change** the user asked for, starting from the latest base (see "Branch workflow"). If you are on the default or integration branch, create a Conventional branch from the fetched base. In a Lovable-managed repo, see "Lovable repos".
+1. **Finish the change** the user asked for, starting from the latest base (see "Branch workflow"). If you are on the default or integration branch, create a Conventional branch from the fetched base, in a new local worktree in projects where that applies. For a visible change, capture the "before" first (see "Reviewable PR"). In a Lovable-managed repo, see "Lovable repos".
 2. **Prove it.** Get proof for every change you made. See "Proof".
 3. **Review it.** Use your judgment on whether the diff warrants `pre-pr-review`, and say in the report what you chose and why. When you run it, run it on the whole branch diff with the user's request as the intent. Commit the fixes it accepts and prove the ones that change behavior. If it stops on a decision only the user can make, see "Asking the user".
-4. **File the PR** against the base with `github-pr-formatting`, or use the one that already exists for this branch. Update the branch from the latest base first. Open a real PR, not a draft, so review bots run. Its Verification section says how you proved the change.
+4. **File the PR** against the base with `github-pr-formatting`, or use the one that already exists for this branch. Update the branch from the latest base first. Open a real PR, not a draft, so review bots run. Make it easy to review, with the evidence in the PR itself (see "Reviewable PR"). Its Verification section says how you proved the change.
 5. **Babysit the PR** with `pr-babysit` in `drive` mode. It handles threads through `address-pr-comments`. Fix real findings and CI failures, and prove each fix before you push it. Write bot replies with `my-voice`, because they go out under the user's name. Keep the branch on the latest base.
 6. **Merge** when the merge gate passes.
 7. **Wrap up.** If the merge triggers a deploy through the repo's own pipeline, read its status on the merge commit. If it fails, report it and ask. Do not revert or redeploy on your own.
@@ -49,6 +49,7 @@ Stay active from step 1 to step 8. If you end your turn while checks or bots are
 ## Branch workflow
 
 - **Base:** the integration branch the project names, or `develop` when it exists, or the default branch.
+- **Worktree:** Create the branch in a new local worktree when the project's instructions call for task worktrees, the repo already keeps linked worktrees (`git worktree list`), or the current checkout holds work that is not part of this task. Skip it when this task already has its own worktree or branch, and in a Lovable repo. Use the script and location the project names. Otherwise use `t3_worktree_handoff` in T3 Code, with a `continuationPrompt` that carries this request, because the thread waits without one; `EnterWorktree` in Claude Code; or an ignored `.worktrees/<task>/` elsewhere. Run the project's setup there before you prove anything. Leave the worktree in place when you finish, unless the project's workflow removes it.
 - **Always work from the latest base.** Run `git fetch` before you start, before you file the PR, after each wake, and right before merging. Whenever the base has moved, update the branch before you go on, then run your checks again and wait for green.
 - **Update and merge** the way the repo documents in its AGENTS.md, CONTRIBUTING, or similar. If it documents nothing, squash-merge the PR. Update the branch by rebasing while its commits are unpushed, and by merging the base in after that. If squash merging is disabled, use the method its recent merged PRs use.
 
@@ -61,15 +62,27 @@ Proof is evidence you observed yourself in this session: command output, a repro
 - When the behavior has no test and the repo has a test setup, add one focused test that fails without the fix. Use `test-engineer` in regression mode.
 - For UI and runtime behavior, run the app and look at the change. Green mocked tests do not prove that the user experience works. If the repo has a project-local `verify-<app>` skill, drive the app with it. Otherwise follow `web-computer-use` for browser work.
 - For user-facing behavior changes, apply [test-engineer's focused journey method](../test-engineer/references/user-story-testing.md): complete the affected story from its real entry point, preserve the same data through material handoffs, and verify the durable outcome and relevant recovery variants. Inspect existing assertions for missing connections; page checks and seeded downstream tests alone are insufficient. Scope this proof to the change and name any simulated or untested boundary.
-- Attach screenshots to the PR when they help. Upload them to the PR directly, or host them with `publish-artifacts` and embed the links. `gh` cannot upload images, so a direct upload goes through the browser.
 
 If you cannot find a way to prove a change, you do not have full confidence. Ask the user.
+
+## Reviewable PR
+
+A reviewer should be able to judge the change from the PR alone, without running it.
+
+- Keep the diff to this request. Leave unrelated cleanup out, and list it as a follow-up.
+- For visible changes, show before and after screenshots of the same screen, viewport, and data, side by side in the Verification section. Capture the "before" from the base before you edit. If you missed it, run the base in a second worktree.
+- For flows, animation, or timing that stills cannot show, add a short video recording of the path that changed. Use the recorder of your browser or device method, such as `bsk video` or `agent-device`.
+- For changes with nothing to see, show similar proof: a reproduction's failing and passing output, before and after numbers, or a short CLI or API transcript. Trim it to the lines that matter.
+- Upload images and videos to the PR directly. `gh` cannot upload them, so this goes through the browser. You can also host them with `publish-artifacts` and embed the links, but GitHub plays only videos uploaded directly, and a hosted video appears as a link.
+- `publish-artifacts` URLs are public. Host a capture there only if it shows no real customer data, credentials, or private client content. Otherwise use test data, or crop the capture.
+- Retake evidence when a later commit changes what it shows. Skip evidence that tells the reviewer nothing.
 
 ## Merge gate
 
 Full confidence means all of these are true on the latest commit:
 
 - Your proof covers every change in the diff.
+- The PR shows the evidence for the final diff (see "Reviewable PR"), or says why it cannot.
 - If you ran `pre-pr-review`, it left no Act on finding open. If a later fix changed behavior beyond what a finding asked for, run one more pass first.
 - Required checks are green.
 - The reviewers this repo uses have finished on the head (see "Waiting"). Each finding is fixed, or dismissed with a written reason.
@@ -92,7 +105,7 @@ When a wake needs no action, end the turn without a message. Never post or say "
 
 ## Lovable repos
 
-In a repo that `lovable-workflow` applies to, follow that skill unless the project's instructions use PRs. Delivery is then a validated push to the connected branch, not a PR. Do steps 1 to 3, then fetch and push as `lovable-workflow` describes, with no force-push and no history rewrite. That push takes the place of steps 4 to 6. Publishing stays with the user; report it as the remaining step.
+In a repo that `lovable-workflow` applies to, follow that skill unless the project's instructions use PRs. Delivery is then a validated push to the connected branch, not a PR. Do steps 1 to 3, then fetch and push as `lovable-workflow` describes, with no force-push and no history rewrite. That push takes the place of steps 4 to 6, so the report carries the evidence from "Reviewable PR". Publishing stays with the user; report it as the remaining step.
 
 ## Kernel tasks
 
@@ -117,8 +130,8 @@ If no question tool is available, or the tool returns no answer, take the safe p
 
 ## Report
 
-- The PR link, the merge commit, and the deploy status if there was one.
-- Your proof, and the test methods you used under the testing permission.
+- The PR link, the merge commit, the worktree path if you made one, and the deploy status if there was one.
+- Your proof, the evidence on the PR, and the test methods you used under the testing permission.
 - The reviews: `pre-pr-review` passes and verdict, or why you skipped it, and bot findings fixed or dismissed with reasons.
 - Each decision you made for the user.
 - Kernel actions you took, and the ones you are proposing.

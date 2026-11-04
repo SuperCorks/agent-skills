@@ -31,6 +31,8 @@ Local additions:
 - Lovable-managed repos deliver by pushing to the connected branch, and publishing stays with the user.
 - Kernel presets: `yolo` actions run as they come up, and `ask` actions go into the report as proposals.
 - Merge-triggered deploys get a status check, and a failed deploy is a question for the user.
+- A new local worktree for the branch in projects where task worktrees apply.
+- A "Reviewable PR" section: before and after screenshots, video recordings, and similar proof go in the PR, and the merge gate checks for them.
 
 The `full-stop` variant, which stops before the merge, is its own skill in `full-stop/`.
 

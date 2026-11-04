@@ -7,7 +7,7 @@ description: Take a change from its current state to a pull request that is read
 
 Do the same work as `full-send`, but stop with the PR ready for the user to merge. Never merge it.
 
-Read [full-send](../full-send/SKILL.md) and follow it: its workflow, branch workflow, proof, review, babysitting, waiting, Kernel, and asking rules. A "full stop" request authorizes that work without a separate "full send" request. That includes full-send's testing permission: a "full stop" is the permission for the test methods Proof needs, even when a project file says to ask first. Its merge permission does not apply. The overrides below take precedence.
+Read [full-send](../full-send/SKILL.md) and follow it: its workflow, branch workflow and worktree rule, proof, reviewable PR, review, babysitting, waiting, Kernel, and asking rules. A "full stop" request authorizes that work without a separate "full send" request. That includes full-send's testing permission: a "full stop" is the permission for the test methods Proof needs, even when a project file says to ask first. Its merge permission does not apply. The overrides below take precedence.
 
 ## No merging
 
@@ -15,11 +15,11 @@ You may commit, push, rebase, resolve conflicts, merge the base into the branch,
 
 Turn off any auto-merge on the PR and take it out of any merge queue before work begins, and check again before each push. Report these changes. If you cannot prevent an automatic merge, report the blocker before going on.
 
-In a Lovable-managed repo, pushing to the connected branch is the merge. Follow `lovable-workflow` up to that push, then stop with the validated change committed locally and report the commit as ready to push.
+In a Lovable-managed repo, pushing to the connected branch is the merge. Follow `lovable-workflow` up to that push, then stop with the validated change committed locally and report the commit as ready to push. With no PR to carry it, the handoff report holds the evidence from full-send's "Reviewable PR".
 
 ## Stop at the gate
 
-Use full-send's merge gate as the readiness check. Replace its merge, wrap-up, and report steps with a handoff. Proof and review must cover the final diff: recheck behavior changes and meaningful conflict fixes before the handoff.
+Use full-send's merge gate as the readiness check. Replace its merge, wrap-up, and report steps with a handoff. Proof and review must cover the final diff: recheck behavior changes and meaningful conflict fixes before the handoff. The user decides from this PR, so its before and after screenshots, video recordings, and similar proof must match the final head.
 
 Fetch the base and read the live PR: head, base, checks, reviews, and mergeability. Confirm it is open, not a draft, and not set to merge without the user. If someone else merged it, report that instead.
 
@@ -31,9 +31,9 @@ In T3 Code, call `unwatch_pull_request` before the handoff or a question if you 
 
 ## Handoff report
 
-- The PR link, the final head, and the verdict: ready to merge, waiting for approval, or blocked.
+- The PR link, the final head, the worktree path if you made one, and the verdict: ready to merge, waiting for approval, or blocked.
 - Whether the PR is still open and unmerged, and any auto-merge or merge-queue change you made.
-- Your proof, and the test methods you used under the testing permission.
+- Your proof, the evidence on the PR, and the test methods you used under the testing permission.
 - The reviews: `pre-pr-review` passes and verdict, or why you skipped it, and bot findings fixed or dismissed with reasons.
 - Each decision you made for the user, and the risks that remain.
 - Kernel actions you took, and the ones you are proposing.
