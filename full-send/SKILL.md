@@ -14,6 +14,7 @@ If the user did not clearly ask for a full send, do not assume this autonomy.
 - Merge the PR once the merge gate passes.
 - Resolve conflicts on this task's branch with `merge-conflict-resolution`, update it from the base, and push. Force-push with `--force-with-lease` to this task's own branch, and no other, when the update is a rebase.
 - Use the test methods that Proof needs without asking first. See "Testing permission".
+- Move the work's Kernel task to In review. See "Kernel tasks".
 
 Where `pre-pr-review` or `pr-babysit` stop to ask before committing, pushing, resolving conflicts, rebasing, marking a draft ready, or merging, this request is the answer. Every other guardrail in those skills still applies: no `--no-verify`, no weakened tests, no edited workflows to go green, and pushes go only to the PR's head branch.
 
@@ -109,7 +110,7 @@ In a repo that `lovable-workflow` applies to, follow that skill unless the proje
 
 ## Kernel tasks
 
-If the work belongs to a Kernel task, follow the `kernel` skill with the presets in AGENTS.md. Do the `yolo` actions as they come up: link the PR once it is open, and save the work summary after the merge. Do not stop to ask about `ask` actions. List them in the report as proposals, such as attaching this thread or moving the task to In review or Done. A merged PR is not by itself proof that the task is done.
+If the work belongs to a Kernel task, follow the `kernel` skill with the presets in AGENTS.md. Do the `yolo` actions as they come up: link the PR once it is open, and save the work summary after the merge. Once the PR is linked, move the task to In review, or after the validated push in a Lovable repo, where there is no PR. This request is the approval for that move when `task_lifecycle` is `ask`. Follow the `kernel` skill's rules for it, such as leaving a task that is already Blocked or Done unchanged. Do not stop to ask about other `ask` actions. List them in the report as proposals, such as attaching this thread or moving the task to Done. A merged PR is not by itself proof that the task is done.
 
 ## Asking the user
 

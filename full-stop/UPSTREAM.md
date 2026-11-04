@@ -18,7 +18,7 @@ Local changes:
 - The description says what the skill does, and keeps upstream's trigger on a closing "Full stop." only for a change request.
 - Merging the base into the branch is allowed, in line with full-send's branch workflow.
 - Lovable-managed repos stop with the validated change committed locally, because pushing to the connected branch is the merge there.
-- Kernel tasks get their work summary at the handoff, since there is no merge.
+- Kernel tasks get their work summary at the handoff, since there is no merge. They also move to In review once the PR is linked, or at the handoff in a Lovable repo.
 - The handoff report also lists auto-merge and merge-queue changes, Kernel actions, and declined follow-ups.
 - It follows full-send's worktree and "Reviewable PR" rules. The PR's evidence must match the final head, and the handoff report lists the worktree path and that evidence.
 

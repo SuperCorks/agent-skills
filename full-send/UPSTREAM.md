@@ -29,7 +29,7 @@ Local additions:
 - A branch workflow section: always work from the latest base, follow the update and merge workflow the repo documents, and squash-merge by default.
 - When `pre-pr-review` runs, the merge gate requires it to leave no open findings.
 - Lovable-managed repos deliver by pushing to the connected branch, and publishing stays with the user.
-- Kernel presets: `yolo` actions run as they come up, and `ask` actions go into the report as proposals.
+- Kernel presets: `yolo` actions run as they come up, and `ask` actions go into the report as proposals, except the In review move, which the request approves.
 - Merge-triggered deploys get a status check, and a failed deploy is a question for the user.
 - A new local worktree for the branch in projects where task worktrees apply.
 - A "Reviewable PR" section: before and after screenshots, video recordings, and similar proof go in the PR, and the merge gate checks for them.

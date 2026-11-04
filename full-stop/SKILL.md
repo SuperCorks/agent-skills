@@ -27,7 +27,7 @@ Fetch the base and read the live PR: head, base, checks, reviews, and mergeabili
 - **Waiting for required approval:** only a required human approval remains. Confirm that this is the actual blocker.
 - **Blocked:** explain what prevents readiness, what you tried, and what is needed. Follow full-send's rules for asking the user.
 
-In T3 Code, call `unwatch_pull_request` before the handoff or a question if you watched the PR. For a Kernel task, save the work summary at the handoff, since there is no merge to wait for.
+In T3 Code, call `unwatch_pull_request` before the handoff or a question if you watched the PR. For a Kernel task, save the work summary at the handoff, since there is no merge to wait for. A "full stop" request is also the approval for full-send's In review move once the PR is linked. In a Lovable repo, where there is no PR, make that move at the handoff if the commit is ready to push.
 
 ## Handoff report
 
