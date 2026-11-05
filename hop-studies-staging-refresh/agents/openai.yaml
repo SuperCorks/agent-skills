@@ -1,0 +1,4 @@
+interface:
+  display_name: "HOP Studies Staging Refresh"
+  short_description: "Replace staging from production backups and files"
+  default_prompt: "Use $hop-studies-staging-refresh to refresh HOP Studies staging from the latest production backups."
