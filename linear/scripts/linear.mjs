@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { parseArgs } from "node:util";
-import { pathToFileURL } from "node:url";
+import { realpathSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import {
   accountsFromEnv,
   selectAccount,
@@ -78,10 +79,18 @@ export async function run(
   };
 }
 
-if (
-  process.argv[1] &&
-  import.meta.url === pathToFileURL(process.argv[1]).href
-) {
+// import.meta.url is always a real path, while argv[1] keeps any symlink used to reach the
+// script (a symlinked skills folder). Comparing them unresolved would exit silently.
+export function isEntrypoint(moduleUrl) {
+  if (!process.argv[1]) return false;
+  try {
+    return fileURLToPath(moduleUrl) === realpathSync(process.argv[1]);
+  } catch {
+    return false;
+  }
+}
+
+if (isEntrypoint(import.meta.url)) {
   try {
     console.log(
       JSON.stringify(

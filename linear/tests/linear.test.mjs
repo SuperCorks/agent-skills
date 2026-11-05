@@ -1,8 +1,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
+import { mkdtempSync, writeFileSync, rmSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 import {
   accountsFromEnv,
@@ -465,4 +466,18 @@ test("false mutation success is never reported as a completed write", async () =
     "WRITE_NOT_CONFIRMED",
   );
   assert.equal(api.writes().length, 1);
+});
+
+test("runs when reached through a symlinked skills folder", () => {
+  const dir = mkdtempSync(join(tmpdir(), "linear-link-"));
+  const linked = join(dir, "linear");
+  symlinkSync(fileURLToPath(new URL("..", import.meta.url)), linked, "dir");
+  const result = spawnSync(
+    process.execPath,
+    [join(linked, "scripts", "linear.mjs"), "--help"],
+    { encoding: "utf8" },
+  );
+  rmSync(dir, { recursive: true, force: true });
+  assert.equal(result.status, 0);
+  assert.match(result.stdout, /"usage"/);
 });

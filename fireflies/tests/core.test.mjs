@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtemp, readFile, stat, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, stat, rm, symlink } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -198,4 +198,14 @@ test('real CLI verifies identity, reads URLs, and exports evidence privately', a
   } finally {
     await rm(directory, { recursive: true, force: true });
   }
+});
+
+test('runs when reached through a symlinked skills folder', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'fireflies-link-'));
+  const linked = join(dir, 'fireflies');
+  await symlink(fileURLToPath(new URL('..', import.meta.url)), linked, 'dir');
+  const result = spawnSync(process.execPath, [join(linked, 'scripts', 'fireflies.mjs'), '--help'], { encoding: 'utf8' });
+  await rm(dir, { recursive: true, force: true });
+  assert.equal(result.status, 0);
+  assert.match(result.stdout, /verify/);
 });

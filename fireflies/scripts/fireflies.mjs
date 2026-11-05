@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 import { parseArgs } from 'node:util';
 import { writeFile } from 'node:fs/promises';
-import { pathToFileURL } from 'node:url';
+import { realpathSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { resolveCredential, storeCredential, validateAlias, validateKey, KEYCHAIN_SERVICE } from './auth.mjs';
 import { createClient } from './client.mjs';
 import { USER_QUERY, isoDate, listMeetings, readMeeting, selectSentences, renderMeeting } from './meetings.mjs';
@@ -211,7 +212,18 @@ export async function main(args = process.argv.slice(2)) {
   }
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+// import.meta.url is always a real path, while argv[1] keeps any symlink used to reach the
+// script (a symlinked skills folder). Comparing them unresolved would exit silently.
+export function isEntrypoint(moduleUrl) {
+  if (!process.argv[1]) return false;
+  try {
+    return fileURLToPath(moduleUrl) === realpathSync(process.argv[1]);
+  } catch {
+    return false;
+  }
+}
+
+if (isEntrypoint(import.meta.url)) {
   main().catch(error => {
     process.stderr.write(JSON.stringify({ error: {
       message: error.message,
