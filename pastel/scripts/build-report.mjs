@@ -15,7 +15,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
 
 const HELP = `
 Build the before/after report for a Pastel feedback round.
@@ -418,6 +418,17 @@ function main() {
   }
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
+// import.meta.url is always a real path, while argv[1] keeps any symlink used to reach the
+// script (a symlinked skills folder). Comparing them unresolved would exit silently.
+export function isEntrypoint(moduleUrl) {
+  if (!process.argv[1]) return false;
+  try {
+    return fileURLToPath(moduleUrl) === fs.realpathSync(process.argv[1]);
+  } catch {
+    return false;
+  }
+}
+
+if (isEntrypoint(import.meta.url)) {
   main();
 }

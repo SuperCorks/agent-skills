@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import { assembleRound, escapeHtml, inline, renderReport } from '../scripts/build-report.mjs';
 
 const KNOWN_CLASSES = new Set([
@@ -94,4 +96,15 @@ test('assembles a round from a review folder', () => {
   assert.equal(entry.media[0].src, 'round.assets/5-pastel.jpg');
   assert.deepEqual(assembled.warnings, ['#5 after: Selector did not match']);
   assert.ok(fs.existsSync(path.join(dir, 'out', 'round.assets', '5-before.jpg')));
+});
+
+test('runs when reached through a symlinked skills folder', () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pastel-link-'));
+  const skill = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
+  const linked = path.join(tmp, 'pastel');
+  fs.symlinkSync(skill, linked, 'dir');
+  const result = spawnSync(process.execPath, [path.join(linked, 'scripts', 'build-report.mjs'), '--help'], { encoding: 'utf8' });
+  fs.rmSync(tmp, { recursive: true, force: true });
+  assert.equal(result.status, 0);
+  assert.match(result.stdout, /--dir/);
 });
