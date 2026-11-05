@@ -49,6 +49,7 @@ A collection of AI agent skills for GitHub Copilot and other AI assistants.
 | [google-workspace](google-workspace) | Operate Drive, Gmail, Calendar, Sheets, Docs, etc. via the `@googleworkspace/cli` (`gws`) npm package |
 | [graphify-context](graphify-context) | Use Graphify safely for architecture, dependency, call-flow, SQL, and other multi-hop codebase questions |
 | [gtm-manager](gtm-manager) | Manage Google Tag Manager containers, tags, triggers, and variables |
+| [hop-studies-staging-refresh](hop-studies-staging-refresh) | Refresh HOP Studies staging from existing production dumps and files with guarded automation and recovery |
 | [html-plan](html-plan) | Create reviewable HTML planning artifacts for implementation, QA, rollout, design, data, compliance, architecture, and handoff work (rendered with html-report-builder) |
 | [html-report-builder](html-report-builder) | Build, validate, and publish self-contained HTML plans, findings reports, stakeholder briefs, and slide decks from a shared component library, with a local point-and-click AI editor |
 | [implementation-executor](implementation-executor) | Execute an approved implementation plan with focused changes and validation |
