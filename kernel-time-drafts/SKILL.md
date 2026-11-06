@@ -21,7 +21,7 @@ Start with Kernel's portfolio, tasks, recorded time, and open drafts. Reuse exis
 
 Use relevant available evidence: dated agent conversations, task work notes, authored Slack or email, meetings, and version history. Follow the relevant reader skills. Reading history does not authorize messages or changes in those sources.
 
-- Exclude work already recorded against the same task or covered by another open draft. Report a material collision instead of silently altering recorded time.
+- Exclude work already covered on the same task: add no block when a recorded entry, another open draft, or another block in this draft already spans that task's work around the same time. Never alter recorded time.
 - Agent execution is not a human timesheet. Do not charge an entire background run, overnight wait, deployment queue, or thread lifespan. Deduplicate inherited messages and child-agent work against the parent assignment.
 - Messages and commits establish work, rarely its precise duration. Label reconstructed durations and placement as estimates in the entry's **draft note**, never its work note (see [Work note and draft note](#work-note-and-draft-note)). Retain useful source links, and leave uncertain client attribution unresolved.
 - Do not manufacture work for a client merely because it exists in the portfolio. Mention meaningful coverage gaps.
@@ -91,9 +91,9 @@ Group by **local date, task, and billable setting**. Start with one block per ta
 
 1. Sum fragments first, then apply the minimum once. Twelve one-minute fragments become one 15-minute block, not twelve 15-minute blocks. A 34-minute total can remain 34 minutes: a minimum does not mean rounding every duration to quarter hours.
 2. Keep tasks and clients separate. Do not redistribute minutes between unrelated tasks to make blocks fit. Bring consolidated totals below the minimum up to that minimum and disclose the added time.
-3. Place blocks near the observed work. Explain in the draft note that scattered activity is represented as an estimated block, rather than implying its interval was measured. Keep the entire interval within its local date.
+3. Place each block at its observed work, starting at the densest cluster of activity. Explain in the draft note that scattered activity is represented as an estimated block, rather than implying its interval was measured. Keep the entire interval within its local date.
 4. Preserve user notes and useful source links in both fields. Grouping disclosure goes in the draft note, kept apart from the fragments' own descriptions, which stay in the work note.
-5. Check collisions against recorded time and other draft blocks. Improve placement within the evidence window where feasible. Disclose unresolved overlaps; do not claim the timeline is exact or inflate duration to fill the whole evidence window.
+5. Parallel work is normal. Blocks for different tasks may overlap each other and recorded time: never move a block away from its evidence to avoid overlap, and don't flag, report, or note such overlaps. Do not claim the timeline is exact or inflate duration to fill the whole evidence window.
 
 Compute counts and totals from the actual plan. Report the before/after total and added minutes when the minimum changes the total; do not hand-calculate or hard-code them.
 
@@ -106,7 +106,7 @@ python3 scripts/regroup.py /private/path/before.json \
   --date 2026-10-24 --out /private/path/plan.json
 ```
 
-It groups active entries on the selected local date, retains one entry per group, plans soft removal of the redundant fragments, and computes totals and approximate placement. The retained entry's work note joins the fragments' own notes; the grouping disclosure (fragment count, minimum applied, approximate placement) and the fragments' previous draft notes go in its draft note. An operation with `needsWorkNote: true` has no work note to keep: write a client-facing one before applying. Review its intervals and collisions before applying. It does not estimate missing work.
+It groups active entries on the selected local date, retains one entry per group, plans soft removal of the redundant fragments, and computes totals and approximate placement. The retained entry's work note joins the fragments' own notes; the grouping disclosure (fragment count, minimum applied, approximate placement) and the fragments' previous draft notes go in its draft note. An operation with `needsWorkNote: true` has no work note to keep: write a client-facing one before applying. Review its intervals before applying. It does not estimate missing work.
 
 Apply through Kernel's live public API:
 
@@ -122,6 +122,6 @@ python3 scripts/regroup.py /private/path/before.json \
   --date 2026-10-24 --verify /private/path/after.json --plan /private/path/plan.json
 ```
 
-The check covers untouched dates, task definitions (including their staged link snapshots), retained entry identity and billing, planned removals, minimum duration, and computed totals. Return the API's actual `reviewUrl`, with a short account of the affected dates, block count, minimum, total changes, staged sources, and unresolved overlaps or association gaps. Acceptance stays with the user.
+The check covers untouched dates, task definitions (including their staged link snapshots), retained entry identity and billing, planned removals, minimum duration, and computed totals. Return the API's actual `reviewUrl`, with a short account of the affected dates, block count, minimum, total changes, staged sources, and association gaps. Acceptance stays with the user.
 
 Keep private snapshots, source history, credentials, and client-specific examples outside this skill folder.
