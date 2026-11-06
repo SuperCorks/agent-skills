@@ -26,6 +26,41 @@ Use relevant available evidence: dated agent conversations, task work notes, aut
 - Messages and commits establish work, rarely its precise duration. Label reconstructed durations and placement as estimates in the entry's **draft note**, never its work note (see [Work note and draft note](#work-note-and-draft-note)). Retain useful source links, and leave uncertain client attribution unresolved.
 - Do not manufacture work for a client merely because it exists in the portfolio. Mention meaningful coverage gaps.
 
+### Attention evidence from T3
+
+For work done in T3 Code, read the user's attention evidence with
+[scripts/t3_attention.py](scripts/t3_attention.py) before estimating durations. It opens an
+environment's `userdata/statev2.sqlite` read-only and prints, per thread, the user's views, read
+aloud listens, messages, approvals and other touches in the window:
+
+```bash
+python3 scripts/t3_attention.py --db ~/.t3-fork/userdata/statev2.sqlite \
+  --start 2026-11-05T00:00:00-05:00 --end 2026-11-06T00:00:00-05:00 \
+  --read-aloud-dir ~/.t3-fork/userdata/read-aloud > /private/path/attention.json
+```
+
+Run it for every environment with threads in the window: a remote environment keeps its own
+database, so run it there read-only. Keep the output private, like other source history.
+
+- `attended` is the strongest evidence of the user's own time on a thread. It merges two kinds of
+  entry from the environment's attention log:
+  - Views: the thread on screen in the app in front while the user used it.
+  - Listens: read aloud that the user started, or that autoplay started with other signs of the
+    user nearby.
+- A desktop or web view that ends `idle` stops at the last input. Allow a few minutes of reading
+  after it, never the whole gap.
+- Base each task on its threads' attended time plus composing time around the user's messages,
+  then apply the grouping minimum. Agent run time between touches is not the user's time.
+- Listening to one thread while another is on screen is parallel work: count both.
+- Messages, approvals, and listens show when the work happened. Place blocks at those times.
+- `fallbackUntil` marks the part of the window before the environment kept an attention log.
+  There, estimate from messages and touches as before, helped by:
+  - `switches`: navigating to the thread.
+  - `firstPlays`: the first play of a cached read aloud recording of one of its answers, matched
+    by transcript. Replays and listening time are not recorded.
+- `unmatchedFirstPlays` counts recordings tied to no thread, such as pronunciation previews.
+- Put the basis, attended minutes and their sources, in the draft note.
+
 ## Work note and draft note
 
 Every draft entry has two text fields, and acceptance treats them differently:
