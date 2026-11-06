@@ -54,5 +54,5 @@ module.exports = async function templateTests({ browser, root, pass, watch }) {
       await context.close();
     }
   }
-  pass("templates: all 20 section and 20 slide templates render in light and dark at 1280 and 390 px, charts go live, every slide fits");
+  pass("templates: every section and slide template renders in light and dark at 1280 and 390 px, charts go live, every slide fits");
 };

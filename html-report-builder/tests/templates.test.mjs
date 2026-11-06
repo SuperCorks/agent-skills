@@ -25,7 +25,7 @@ test("every section template builds and checks cleanly", () => {
   assert.deepEqual(result.errors, []);
   assert.deepEqual(result.warnings.filter((w) => !MEDIA.test(w)), []);
   const outline = outlineData(readFileSync(sections, "utf8"));
-  assert.equal(outline.sections.length, 20);
+  assert.equal(outline.sections.length, 26);
   assert.equal(outline.questions.length, 2);
 });
 

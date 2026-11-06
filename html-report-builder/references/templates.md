@@ -23,13 +23,30 @@ Begin with the answer or the purpose, then follow the reader's next necessary qu
 
 Give each section a meaningful id and an `<h2>`; topic-specific ids such as `email`, `checkout`, or `recovery` work as well as `findings`. No template-specific section ids or section order are required by `check`. Keep material limitations near the claims they qualify, and optional supporting detail where it is easiest to consult. Use the slide guidance for decks.
 
+## Choose the opening
+
+When the lede alone doesn't give the reader the answer, follow the hero with one opening section shaped by the reader's first question. Its heading states the takeaway ("Three decisions are settled; one is still open"), never a generic label such as "At a glance", "Summary", or "Key findings"; put a short label in `data-toc`. The markup for each opening is in template 1 of `section-templates.md`.
+
+| The report is mostly | The reader first asks | Opening | Built from |
+| --- | --- | --- | --- |
+| A short report, or one with a single message | What's the point? | The hero lede alone, no opening section | `.lede` |
+| A dated plan, rollout, or migration | When does what happen? | 1b. Schedule | `.roadmap` |
+| A brief awaiting answers, or a revision that folds answers in | What do I decide, and what's settled? | 1c. Decision tracker | table with status tones |
+| An audit across many areas | How bad is it, and where? | 1d. Scorecard | table with status tones |
+| An analysis with one central number or shape | What's the answer? | 1e. Answer chart | one Plotly chart |
+| A fix or a proposed change | What's different? | 1f. Before and after | `.compare` |
+| A feedback or QA round | What's left for me? | 1g. Round tally | `.bars`, `ol.checklist` |
+| A few independent headline numbers | How big is it? | 1a. Key numbers | `.tiles`, `.keypoints` |
+
+Key numbers are the right opening only when each number answers a question on its own. Keep revision notes out of the opening.
+
 ## Section templates
 
 `section-templates.md` has copyable markup for common sections; read only the ones you use. Adapt sample headings, ids, component counts, and order to the report. Preserve existing ids on revisions.
 
 | # | Section | Use for | Built from |
 | --- | --- | --- | --- |
-| 1 | Key findings | The verdict, key numbers, and numbered key points at the top | `.callout`, `.tiles`, `.keypoints` |
+| 1 | Opening | The section after the hero, chosen from the reader's first question: key numbers, schedule, decision tracker, scorecard, answer chart, before and after, or round tally | `.tiles`, `.roadmap`, tables, Plotly, `.compare`, `.bars` |
 | 2 | Decisions needed | Questions with a recommended default; answered cards turn green | `.question` |
 | 3 | Scope | In and out side by side, assumptions across the row | `.grid`, `.card.wide`, `.pros`, `.cons` |
 | 4 | Findings | Findings by severity with what each affects | `.finding`, `.chips` |

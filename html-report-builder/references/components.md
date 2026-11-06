@@ -35,9 +35,9 @@ With a Kernel brand kit (`report.mjs build --brand`), the build inlines the kit'
 </main>
 ```
 
-## Tiles (at a glance, KPIs)
+## Tiles (key numbers, KPIs)
 
-`span` is the label, `b` the value, `small` an optional note. Keep values to a number or about three words; put context (such as "down from 26.0%") in `small`. Use only the tiles that add useful information; there is no minimum count.
+`span` is the label, `b` the value, `small` an optional note. Keep values to a number or about three words; put context (such as "down from 26.0%") in `small`. Use only the tiles that add useful information; there is no minimum count. Use tiles only when each number stands alone; for the other ways to open a report, see "Choose the opening" in `templates.md`.
 
 ```html
 <div class="tiles">
@@ -256,7 +256,7 @@ Architecture, data-flow, sequence, and state diagrams are Mermaid. Mark added pa
 
 ## Roadmap
 
-Overlapping workstreams on one timeline: `--from` and `--to` are fractions of the whole span. An optional `.scale` row labels the span.
+Overlapping workstreams on one timeline: `--from` and `--to` are fractions of the whole span. An optional `.scale` row labels the span; its labels are spaced evenly, so use evenly spaced points such as phases, weeks, or months. For dated bars, put the dates under the label in a `small` and leave out the `b`, which keeps the track wide on phones (template 1b in `section-templates.md`).
 
 ```html
 <div class="roadmap">

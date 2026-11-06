@@ -53,7 +53,7 @@ Create a durable planning artifact that turns messy source context into a decisi
 
 Cover the material needed to execute and assess this plan. These are content concerns, not mandatory separate sections or a fixed sequence; use the suggested ids when they fit and preserve existing ones on revisions.
 
-- Title and one-paragraph north star (hero), with an optional at-a-glance summary (`summary`).
+- Title and one-paragraph north star (hero), with an optional opening section (`summary`) chosen from "Choose the opening" in `<html-report-builder>/references/templates.md`. A plan with dates usually opens with a schedule (`.roadmap`) rather than tiles, and its heading states the takeaway.
 - Scope, non-goals, assumptions, and authority boundaries (`scope`).
 - Open questions and recommended decisions, only when unresolved choices need reviewer input (`questions`).
 - Sources reviewed with links or local paths (`sources`).

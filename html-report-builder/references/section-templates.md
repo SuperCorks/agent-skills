@@ -4,14 +4,17 @@ Copyable sections for reports, built from the components in `components.md`. Rea
 
 Charts and diagrams are drawn by `report.mjs build` (see "Charts" and "Diagrams" in `components.md`); copy only the `figure` with its JSON or Mermaid source.
 
-## 1. Key findings
+## 1. Opening
 
-An optional opening for a findings report or brief. Choose a verdict callout, key numbers, or numbered key points according to the material; combine them only when each adds information. The sample shows all three for layout reference. A tone on a key point (`ok`, `risk`) marks good or bad news. A reader who stops here should know the answer.
+The section after the hero, for a report whose lede alone doesn't give the reader the answer. Choose its form from the reader's first question ("Choose the opening" in `templates.md`) and copy one variant below. The heading states the takeaway, so a reader who stops there has the answer; put a short label in `data-toc`. In a report, give the opening the id `summary`, or keep the existing id when revising; the samples use their own ids so they can share one page.
+
+### 1a. Key numbers
+
+A few numbers that each answer a question on their own, with numbered key points underneath when there are two to four separate findings. A tone on a tile or point (`ok`, `risk`) marks good or bad news. Never tile counts of the document's own contents, such as comments, findings, or properties. Add a `.callout` only for what the heading can't carry, such as the confidence.
 
 ```html
-<section id="summary" data-toc="Key findings">
-  <h2>Key findings</h2>
-  <div class="callout risk"><p><b>Verdict:</b> the September theme release broke the card form on Safari for shoppers with a saved address. <b>Confidence: high.</b></p></div>
+<section id="summary" data-toc="Summary">
+  <h2>Theme 4.2 broke card payments on Safari; the hotfix has stopped the losses</h2>
   <div class="tiles">
     <div class="tile risk"><span>Paid orders lost</span><b>~40 a day</b><small>Sep 12 to Sep 19</small></div>
     <div class="tile"><span>Shoppers affected</span><b>1 in 5</b><small>Safari with a saved address</small></div>
@@ -21,6 +24,113 @@ An optional opening for a findings report or brief. Choose a verdict callout, ke
     <li class="risk"><b>Theme 4.2 broke Safari autofill on the card form.</b> Errors rose from about 40 to 180 a day on September 12.</li>
     <li><b>Shipping cost appears only at payment,</b> so 45% of shoppers who reach shipping leave before paying.</li>
     <li class="ok"><b>The hotfix holds.</b> Errors are back to about 40 a day, but the express wallets are still missing.</li>
+  </ol>
+</section>
+```
+
+### 1b. Schedule
+
+A dated plan, rollout, or migration on one timeline, so the reader sees the order, the overlaps, and the gaps at once. The `.scale` spaces its labels evenly, so use evenly spaced dates (weeks or months) and set `--from` and `--to` to the days from the start divided by the days in the span. Put each bar's dates under its label in a `small` rather than in a `b`, which keeps the track wide on phones. Tone a wait on someone else `warn` and the milestone the reader cares about `ok`.
+
+```html
+<section id="schedule" data-toc="Schedule">
+  <h2>The pilot runs November 2 to 20, so the full roll-out lands before the December 1 code freeze</h2>
+  <div class="roadmap">
+    <div class="scale"><span></span><small><span>Oct&nbsp;26</span><span>Nov&nbsp;2</span><span>9</span><span>16</span><span>23</span><span>30</span></small></div>
+    <div style="--from:0;--to:.143"><span>Wallets and tracking<br><small>Oct 26–30</small></span></div>
+    <div class="warn" style="--from:.057;--to:.286"><span>Apple Pay domain approval<br><small>Oct 28–Nov 4</small></span></div>
+    <div style="--from:.2;--to:.743"><span>Pilot on 20% of mobile<br><small>Nov 2–20</small></span></div>
+    <div class="ok" style="--from:.714;--to:.743"><span>Roll-out decision<br><small>Fri, Nov 20</small></span></div>
+    <div style="--from:.8;--to:.943"><span>Roll out to all traffic<br><small>Nov 23–27</small></span></div>
+  </div>
+</section>
+```
+
+### 1c. Decision tracker
+
+For a brief that needs answers, or a revision that folds answers in: every decision in one table, the open ones first with their recommendation, then the settled ones with who decided. Link each number to its question card. Three columns fit a phone; put the question number in the first cell rather than in a column of its own.
+
+```html
+<section id="tracker" data-toc="Decision status">
+  <h2>Three decisions are settled; the pilot's share of traffic is still open</h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Decision</th><th>Status</th><th>Outcome or recommendation</th></tr></thead>
+    <tbody>
+      <tr><td><a href="#q1"><b>Q1</b></a> Run the pilot on 20% of mobile traffic?</td><td class="warn">Open</td><td>Recommended: yes, so a bad pilot costs at most a fifth of mobile orders for a day</td></tr>
+      <tr><td><a href="#q2"><b>Q2</b></a> Keep Shopify Payments during the pilot?</td><td class="ok">Decided</td><td>Finance: yes, as recommended</td></tr>
+      <tr><td>Length of the pilot</td><td class="ok">Decided</td><td>Dana Whitfield: three weeks, ending November 20</td></tr>
+      <tr><td>Theme releases during the pilot</td><td class="ok">Decided</td><td>Priya Shah: only fixes ship until the pilot ends</td></tr>
+    </tbody>
+  </table></div>
+</section>
+```
+
+### 1d. Scorecard
+
+For an audit across many areas: each area's status and its finding in one line, worst first, with links to the finding cards in a `small`. The reader sees which areas are healthy before reading any finding. Keep it to three columns so it fits a phone.
+
+```html
+<section id="scorecard" data-toc="Scorecard">
+  <h2>Safari card payments and the shipping cost need work first</h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Area</th><th>Status</th><th>In one line</th></tr></thead>
+    <tbody>
+      <tr><td>Card payments on Safari</td><td class="risk">Needs work</td><td>The card form fails when Safari fills a saved address; about 40 paid orders lost a day <small>(<a href="#f1">F1</a>)</small></td></tr>
+      <tr><td>Shipping cost</td><td class="risk">Needs work</td><td>Shown only at payment, so 45% of shoppers leave between shipping and payment <small>(<a href="#f2">F2</a>)</small></td></tr>
+      <tr><td>Page speed</td><td class="warn">Watch</td><td>Home and product pages miss the 2.5-second target on mobile</td></tr>
+      <tr><td>Tracking</td><td class="warn">Watch</td><td>GA4 misses about 9% of paid orders, so the numbers here come from Shopify</td></tr>
+      <tr><td>Bank declines</td><td class="ok">Working</td><td>Steady at about 1,700 a month since July</td></tr>
+    </tbody>
+  </table></div>
+</section>
+```
+
+### 1e. Answer chart
+
+When one chart answers the report's question, the chart is the opening: the heading states the answer and the caption names the measure, unit, and period. Any chart from templates 6 to 9 works. Add a sentence underneath only for what the chart can't show, and no tiles beside it.
+
+```html
+<section id="answer" data-toc="Answer">
+  <h2>Safari shoppers with a saved address pay a third as often as everyone else</h2>
+  <figure class="chart">
+    <script type="application/json" data-hr-chart>{"data":[{"type":"bar","orientation":"h","y":["Chrome","Safari, no saved address","Safari, saved address"],"x":[13.1,12.4,4.2],"marker":{"color":["token:muted","token:muted","token:risk"]},"text":["13.1%","12.4%","4.2%"],"textposition":"outside","cliponaxis":false,"width":0.55,"hovertemplate":"%{y}: %{x}%<extra></extra>"}],"layout":{"showlegend":false,"height":200,"xaxis":{"range":[0,16],"ticksuffix":"%","showspikes":false},"yaxis":{"autorange":"reversed","showgrid":false,"showspikes":false}}}</script>
+    <figcaption>Paid orders per checkout session by browser, September 12 to 19, 2026</figcaption>
+  </figure>
+  <p>The gap opened with theme 4.2 on September 12. Before it, all three converted at 12 to 13%.</p>
+</section>
+```
+
+### 1f. Before and after
+
+For a fix or a proposed change: what was true before and what is true now, side by side, with the numbers that changed in bold. Use template 11 instead when the change is a sequence of steps.
+
+```html
+<section id="change" data-toc="Before and after">
+  <h2>Since the September 19 hotfix, Safari shoppers with a saved address can pay again</h2>
+  <div class="compare">
+    <figure class="before"><h3>Until September 19</h3><ul><li>Safari's autofill filled the hidden card-name field</li><li>The payment frame rejected the form: <strong>about 180</strong> card errors a day</li><li><strong>About 40</strong> paid orders lost a day</li></ul></figure>
+    <figure class="after"><h3>Since September 19</h3><ul><li>Autofill is off on the hidden field</li><li>Card errors are back to <strong>about 40</strong> a day, the level before theme 4.2</li><li>Express wallets are still missing; they come with the pilot</li></ul></figure>
+  </div>
+</section>
+```
+
+### 1g. Round tally
+
+For a feedback or QA round: one line of counts, then only what is left for the reader, each item with its owner. When nothing is left, the heading says so and the tally is enough.
+
+```html
+<section id="round" data-toc="Review round">
+  <h2>Three of the 18 review comments need a decision from Priya or Dana; the rest are handled</h2>
+  <div class="bars">
+    <div class="ok" style="--v:.61"><span>Changed</span><b>11</b></div>
+    <div class="ok" style="--v:.11"><span>Already done</span><b>2</b></div>
+    <div style="--v:.11"><span>No change needed</span><b>2</b></div>
+    <div class="warn" style="--v:.17"><span>Needs a decision</span><b>3</b></div>
+  </div>
+  <ol class="checklist">
+    <li>Keep the gift-note field on the payment step? (comment 7) <small>Priya Shah</small></li>
+    <li>Show Apple Pay above Shop Pay on iPhone? (comment 12) <small>Dana Whitfield</small></li>
+    <li>Show "Arrives by" dates in the cart? (comment 15) <small>Priya Shah</small></li>
   </ol>
 </section>
 ```
