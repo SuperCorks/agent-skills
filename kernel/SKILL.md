@@ -247,15 +247,19 @@ lasting document such as a contract, specification, or brand guide. Put each fac
   phone, Slack member, timezone, or where they work: find them first (`GET /people?query=` by
   name or email) and update that record or membership instead of creating a duplicate; add a new
   person only when nobody matches. Never set or change familiarity unless the user says how well
-  they know someone;
+  they know someone. When someone leaves an organization or project, mark that role former
+  (`PATCH /person-memberships/{id}` with `endedOn`) instead of removing it, so history keeps it;
+  archive the person only when they are out of the user's work entirely. Page people lists show
+  current roles; add `include=all` to see former ones;
 - the existing Dates or Resources tab for targets and links;
 - Files for lasting documents. Upload a revised document as a new version of the existing file.
   Task-specific work output belongs on the task (see `task_attachments`), not here.
 
-When you draft a message to someone in the directory, match the familiarity the task handoff lists
-for them: friendly is first-name, warm and casual (French *tu*), neutral is plain and polite
-(French *vous*), professional uses a formal greeting and sign-off (French *vous*); unset follows the
-conversation's tone.
+When you draft a message to someone in the directory, match their familiarity (read their person
+record; task handoffs link each person rather than repeating their details): friendly is
+first-name, warm and casual (French *tu*), neutral is plain and polite (French *vous*), professional
+uses a formal greeting and sign-off (French *vous*); unset follows the conversation's tone. With
+several recipients, the most formal wins.
 
 Read the current Overview, tab, or LLM.txt and change only the lines the fact affects, keeping what
 others wrote and the page's structure; send the current `version`. Update the project page when the
