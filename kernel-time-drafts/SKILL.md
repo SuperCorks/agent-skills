@@ -23,8 +23,30 @@ Use relevant available evidence: dated agent conversations, task work notes, aut
 
 - Exclude work already recorded against the same task or covered by another open draft. Report a material collision instead of silently altering recorded time.
 - Agent execution is not a human timesheet. Do not charge an entire background run, overnight wait, deployment queue, or thread lifespan. Deduplicate inherited messages and child-agent work against the parent assignment.
-- Messages and commits establish work, rarely its precise duration. Label reconstructed durations and placement as estimates, retain useful source links, and leave uncertain client attribution unresolved.
+- Messages and commits establish work, rarely its precise duration. Label reconstructed durations and placement as estimates in the entry's **draft note**, never its work note (see [Work note and draft note](#work-note-and-draft-note)). Retain useful source links, and leave uncertain client attribution unresolved.
 - Do not manufacture work for a client merely because it exists in the portfolio. Mention meaningful coverage gaps.
+
+## Work note and draft note
+
+Every draft entry has two text fields, and acceptance treats them differently:
+
+- **`note` (work note)** becomes the time entry's note, so it may reach a client. Write only what
+  changed, what was decided, and what remains. Keep out how long the block really took, that it
+  was estimated or raised to a minimum, which evidence it came from, agent or tool names used as
+  evidence, run time or waiting, and overlaps with other time. References a client would
+  recognize, such as a pull request or a shared document, can stay.
+- **`draftNote`** stays in the draft and its history; acceptance never copies it. Put the estimate
+  basis here: the original minutes and the minimum applied, the evidence window and sources
+  (agent threads, Slack, commits, with their links), what was excluded (agent run time, waiting),
+  placement caveats, and collisions with recorded time or other blocks.
+
+Send `draftNote` on entry creation (`entry.draftNote`, including the atomic `assignment` form) and
+on `PATCH`. Reads return it for every entry. Before reporting the review link, read the final
+aggregate and check that no entry's `note` carries estimate rationale, and that each estimated or
+minimum-raised block has its basis in `draftNote`.
+
+Existing drafts keep any estimate text already in a work note: do not move or rewrite it unless
+the user asks, and preserve both fields exactly on dates you are not asked to change.
 
 ## Stage the supporting entities
 
@@ -69,8 +91,8 @@ Group by **local date, task, and billable setting**. Start with one block per ta
 
 1. Sum fragments first, then apply the minimum once. Twelve one-minute fragments become one 15-minute block, not twelve 15-minute blocks. A 34-minute total can remain 34 minutes: a minimum does not mean rounding every duration to quarter hours.
 2. Keep tasks and clients separate. Do not redistribute minutes between unrelated tasks to make blocks fit. Bring consolidated totals below the minimum up to that minimum and disclose the added time.
-3. Place blocks near the observed work. Explain that scattered activity is represented as an estimated block, rather than implying its interval was measured. Keep the entire interval within its local date.
-4. Preserve user notes and useful source links. Distinguish new grouping notes from historical descriptions of the original fragments.
+3. Place blocks near the observed work. Explain in the draft note that scattered activity is represented as an estimated block, rather than implying its interval was measured. Keep the entire interval within its local date.
+4. Preserve user notes and useful source links in both fields. Grouping disclosure goes in the draft note, kept apart from the fragments' own descriptions, which stay in the work note.
 5. Check collisions against recorded time and other draft blocks. Improve placement within the evidence window where feasible. Disclose unresolved overlaps; do not claim the timeline is exact or inflate duration to fill the whole evidence window.
 
 Compute counts and totals from the actual plan. Report the before/after total and added minutes when the minimum changes the total; do not hand-calculate or hard-code them.
@@ -84,7 +106,7 @@ python3 scripts/regroup.py /private/path/before.json \
   --date 2026-10-24 --out /private/path/plan.json
 ```
 
-It groups active entries on the selected local date, retains one entry per group, plans soft removal of the redundant fragments, preserves notes, and computes totals and approximate placement. Review its intervals and collisions before applying. It does not estimate missing work.
+It groups active entries on the selected local date, retains one entry per group, plans soft removal of the redundant fragments, and computes totals and approximate placement. The retained entry's work note joins the fragments' own notes; the grouping disclosure (fragment count, minimum applied, approximate placement) and the fragments' previous draft notes go in its draft note. An operation with `needsWorkNote: true` has no work note to keep: write a client-facing one before applying. Review its intervals and collisions before applying. It does not estimate missing work.
 
 Apply through Kernel's live public API:
 

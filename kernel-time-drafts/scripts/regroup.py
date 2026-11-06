@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Plan or verify one local day's Kernel draft grouping; never calls the API."""
+"""Plan or verify one local day's Kernel draft grouping; never calls the API.
+
+The retained entry keeps the fragments' work notes in `note` (client-facing, copied to the time
+entry on acceptance) and puts the grouping disclosure in `draftNote` (kept in the draft only).
+"""
 
 import argparse
 from collections import defaultdict
@@ -45,19 +49,26 @@ def make_plan(draft, selected, minimum):
         centre = sum((instant(e['startedAt']).timestamp() + e['durationMinutes'] * 30)
                      * e['durationMinutes'] for e in entries) / minutes
         start = max(first, min(round((centre - duration * 30) / 900) * 900, last - duration * 60))
+        # The work note becomes the time entry's note, so it keeps only what the fragments already
+        # said about the work. The grouping disclosure belongs in the draft note, which acceptance
+        # never copies to the time entry.
         notes = list(dict.fromkeys(e['note'] for e in entries if e.get('note')))
-        note = f'{selected}: consolidated {len(entries)} fragments into one estimated {duration}-minute block.'
+        note = '\n\n'.join(notes)
+        previous = list(dict.fromkeys(e['draftNote'] for e in entries if e.get('draftNote')))
+        draft_note = f'{selected}: consolidated {len(entries)} fragments into one estimated {duration}-minute block.'
         if duration > minutes:
-            note += f' Applied the {minimum}-minute minimum to the original {minutes} minutes.'
-        note += (' Placement is approximate; work was spread across the day and may overlap other tasks.'
-                 '\n\nOriginal notes and sources (previous interval descriptions are historical):\n')
-        note += '\n\n'.join(notes)
-        if len(note) > 50000:
+            draft_note += f' Applied the {minimum}-minute minimum to the original {minutes} minutes.'
+        draft_note += ' Placement is approximate; work was spread across the day and may overlap other tasks.'
+        if previous:
+            draft_note += '\n\nPrevious draft notes:\n' + '\n\n'.join(previous)
+        if len(note) > 50000 or len(draft_note) > 50000:
             raise ValueError(f'{task_ref}: notes exceed 50,000 characters; consolidate manually')
         operations.append({'taskRef': task_ref, 'billable': billable, 'keep': entries[0]['ref'],
                            'remove': [e['ref'] for e in entries[1:]], 'originalMinutes': minutes,
                            'patch': {'startedAt': datetime.fromtimestamp(start, zone).isoformat(),
-                                     'durationMinutes': duration, 'note': note}})
+                                     'durationMinutes': duration, 'note': note,
+                                     'draftNote': draft_note},
+                           'needsWorkNote': not note})
     before = sum(o['originalMinutes'] for o in operations)
     after = sum(o['patch']['durationMinutes'] for o in operations)
     return {'draftId': draft['id'], 'sourceVersion': draft['version'], 'date': str(selected),
@@ -98,6 +109,7 @@ def verify(before, after, plan, selected, minimum):
         patch = op['patch']
         if (instant(entry['startedAt']) != instant(patch['startedAt'])
                 or entry['durationMinutes'] != patch['durationMinutes'] or entry['note'] != patch['note']
+                or entry.get('draftNote', '') != patch['draftNote']
                 or entry['durationMinutes'] < minimum):
             raise ValueError('Retained block differs from the plan or minimum')
         end = instant(entry['startedAt']) + timedelta(minutes=entry['durationMinutes'])
