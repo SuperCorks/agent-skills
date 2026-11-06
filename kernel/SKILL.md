@@ -117,6 +117,7 @@ Kernel has two fixed access presets. A Read only key can read workspace data, or
 - **Standing tasks and Habits:** list and inspect both. Full work keys can create, update, archive, restore, or conditionally delete Standing tasks; create, update, pause, resume, or archive Habits; inspect occurrences; and skip occurrences.
 - **Time:** list work sessions and time entries; stop or undo-stop sessions; create, update, approve, split, merge, export, and delete time entries. List, inspect, create, edit, and discard bulk time drafts; stage verified thread, tracker, pull request, and URL associations for existing or proposed tasks. Draft acceptance requires the signed-in user and is unavailable to API keys. See [Bulk time drafts and staged links](#bulk-time-drafts-and-staged-links).
 - **Portfolio:** list organizations, projects, and tags; create, update, archive, and restore them and manage organization images where supported. Organization and project files, and their supporting files and public links, work like task attachments.
+- **People:** a workspace-wide directory (`/people`). Each person has emails (one primary), phone numbers, a timezone, Slack member IDs (one per Slack workspace), where they work, notes, the user's familiarity with them (`friendly`, `neutral`, `professional`, or unset), and a role on each organization and project they are on (`/people/{personId}/memberships`, `/organizations/{id}/people`, `/projects/{id}/people`). Tasks carry `personIds`. The user's own record has `isYou` and never a familiarity. Read `people:read`; write `people:write`. See the guide's "People directory" section.
 - **Pricing:** read an organization's billing tracking, effective-dated currency and default hourly-rate terms, and a project's billing model, fixed fee, rate overrides, and current effective rate. Full work keys turn tracking on or off, add or change terms and overrides, change a project's model or fixed fee, and send initial `billing` when creating a project. Amounts are integer cents. Read pricing first and pass its `version`; see the guide's "Organization and project pricing" section.
 - **Public file links:** list every link in the workspace, read one link's view history, and manage the feedback left through it. See [Publishing a file](#publishing-a-file).
 - **Scheduling:** inspect scheduling settings and scheduled blocks; create planned tasks, relocate planner items, edit, snooze, or intentionally remove blocks, preview schedules, update settings, and request rebuilds. Add a ready or active task to today's priorities, or remove it, so the scheduler places it before every other task until workspace-local midnight; task reads report the position as `todayPriorityRank`.
@@ -212,9 +213,11 @@ keeps a file of the deliverable, upload a `gdoc.mjs snapshot` PDF as a new versi
 ### Organization and project pages
 
 Each organization and project page has a fixed **Overview** (the record's `notes`), a fixed
-**Files** tab, and Markdown tabs added as documents. The convention is three added tabs: **People**
-(roles and contact routes), **Dates** (current targets and dependencies, labeled as targets rather
-than completion), and **Resources** (useful links). Keep each concise; detailed investigations
+**People** tab drawn from the people directory, a fixed **Files** tab, and Markdown tabs added as
+documents. The convention is the added tabs **Dates** (current targets and dependencies, labeled
+as targets rather than completion) and **Resources** (useful links). Pages that had a Markdown
+People table keep it as **People notes** for prose about how to work with them; every person, role,
+and way to reach them lives in the directory, not in a tab. Keep each concise; detailed investigations
 belong in tasks, work notes, and files. Do not add or rename tabs unless the user asks.
 
 LLM.txt is the briefing an agent receives in every task handoff for that organization or project,
@@ -240,9 +243,19 @@ lasting document such as a contract, specification, or brand guide. Put each fac
 
 - Overview (the record's `notes`) for the human README: what it is and its current shape;
 - LLM.txt for agent briefing content, under the rules above;
-- the existing People, Dates, or Resources tab for roles, targets, and links;
+- the people directory for a person, their role on the organization or project, their emails,
+  phone, Slack member, timezone, or where they work: find them first (`GET /people?query=` by
+  name or email) and update that record or membership instead of creating a duplicate; add a new
+  person only when nobody matches. Never set or change familiarity unless the user says how well
+  they know someone;
+- the existing Dates or Resources tab for targets and links;
 - Files for lasting documents. Upload a revised document as a new version of the existing file.
   Task-specific work output belongs on the task (see `task_attachments`), not here.
+
+When you draft a message to someone in the directory, match the familiarity the task handoff lists
+for them: friendly is first-name, warm and casual (French *tu*), neutral is plain and polite
+(French *vous*), professional uses a formal greeting and sign-off (French *vous*); unset follows the
+conversation's tone.
 
 Read the current Overview, tab, or LLM.txt and change only the lines the fact affects, keeping what
 others wrote and the page's structure; send the current `version`. Update the project page when the
