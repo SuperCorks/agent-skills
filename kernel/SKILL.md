@@ -1,6 +1,6 @@
 ---
 name: kernel
-description: Read or manage work data through the Kernel Agent API, including current-thread attachment, task lifecycle, work summaries, attachments, task details, follow-up tasks, and organization and project page upkeep under AGENTS.md presets. Use for Kernel tasks, Standing tasks, Habits, organizations, projects, tags, schedules, time tracking, visible calendar events, Inbox routing rules and suggestion review, sanitized suggestion or analysis history, and reading, linking or creating a task's Linear issue. Not for implementing Kernel source code, API-key administration, OAuth, or provider synchronization.
+description: Read or manage work data through the Kernel Agent API, including current-thread attachment, task lifecycle, work summaries, attachments, task details, follow-up tasks, and organization and project page upkeep under AGENTS.md presets. Use for Kernel tasks, Standing tasks, Habits, organizations, projects, tags, schedules, time tracking and bulk time drafts with staged thread and tracker links, visible calendar events, Inbox routing rules and suggestion review, sanitized suggestion or analysis history, and reading, linking or creating a task's Linear issue. Not for implementing Kernel source code, API-key administration, OAuth, or provider synchronization.
 ---
 
 # Kernel
@@ -115,7 +115,7 @@ Kernel has two fixed access presets. A Read only key can read workspace data, or
 
 - **Tasks:** list, create, inspect, update, complete, bulk-update, start work on, and conditionally delete ordinary tasks; search task options; inspect activity and comments; create comments; create, read, edit, and delete work notes; list, upload, download, and remove attachments and their supporting files; upload new versions of an attachment, download, restore, or delete a version; create, disable, enable, delete, and restore public links to attachments, read their views, and read, reply to, resolve, and delete the feedback readers leave on report links; list, link, and unlink GitHub pull requests; undo supported task deletions. Task states are `backlog`, `ready`, `active` (Doing), `in_review`, `blocked`, `done`, and `dropped`. `in_review` is finished work waiting on someone else's review, such as an open pull request; the planner never schedules it, and starting work moves it back to `active`. `done` and `dropped` close a task: `dropped` records a decision not to do it instead of deleting it, takes an optional `droppedReason`, stops running sessions, and removes future blocks; any other lifecycle restores it. A task cannot be created `dropped`, and a habit occurrence's task cannot be dropped (skip the occurrence). Creating or updating a task with a `blocked` lifecycle takes an optional `blockedReason`; blocked work may also have no reason. Full work keys can also merge tasks that are the same work and undo a merge within 24 hours. See [Merging tasks](#merging-tasks-that-are-the-same-work).
 - **Standing tasks and Habits:** list and inspect both. Full work keys can create, update, archive, restore, or conditionally delete Standing tasks; create, update, pause, resume, or archive Habits; inspect occurrences; and skip occurrences.
-- **Time:** list work sessions and time entries; stop or undo-stop sessions; create, update, approve, split, merge, export, and delete time entries.
+- **Time:** list work sessions and time entries; stop or undo-stop sessions; create, update, approve, split, merge, export, and delete time entries. List, inspect, create, edit, and discard bulk time drafts; stage verified thread, tracker, pull request, and URL associations for existing or proposed tasks. Draft acceptance requires the signed-in user and is unavailable to API keys. See [Bulk time drafts and staged links](#bulk-time-drafts-and-staged-links).
 - **Portfolio:** list organizations, projects, and tags; create, update, archive, and restore them and manage organization images where supported. Organization and project files, and their supporting files and public links, work like task attachments.
 - **Pricing:** read an organization's billing tracking, effective-dated currency and default hourly-rate terms, and a project's billing model, fixed fee, rate overrides, and current effective rate. Full work keys turn tracking on or off, add or change terms and overrides, change a project's model or fixed fee, and send initial `billing` when creating a project. Amounts are integer cents. Read pricing first and pass its `version`; see the guide's "Organization and project pricing" section.
 - **Public file links:** list every link in the workspace, read one link's view history, and manage the feedback left through it. See [Publishing a file](#publishing-a-file).
@@ -254,6 +254,63 @@ direct request under every preset.
 This list is not exhaustive. If what you need is missing, check the guide and OpenAPI contract in [Documentation and contract](#documentation-and-contract) before telling the user it is unsupported.
 
 The Agent API deliberately cannot administer API keys, OAuth grants, provider connections or synchronization, provider-owned calendar events, billing beyond pricing and master payers (valuations, invoices, payments, write-offs, fixed-fee conversion reviews), Inbox message content beyond what a suggestion review shows, or unrestricted analysis internals. Do not use signed-in/internal routes, direct database access, or provider gateways to bypass those boundaries.
+
+## Bulk time drafts and staged links
+
+Use a bulk time draft when the user wants reconstructed time and task changes to review before
+they affect live work. For reconstruction and grouping, use the sibling
+[Kernel Time Drafts skill](../kernel-time-drafts/SKILL.md) when installed. Read the guide's
+"Bulk time drafts" and "Stage integration links with reconstructed work" sections for current
+payloads and limits.
+
+Create the draft with its task definitions and entries through `POST /bulk-time-drafts`. Reuse
+existing tasks by explicit `existingTaskId`; proposed tasks remain inside the draft. Unused task
+definitions are not retained, so save an entry using a task before preparing its associations.
+Staging supporting associations is part of preparing the requested draft; it does not authorize
+live-task attachment, task creation outside the draft, or execution in an external service.
+
+For each supporting association:
+
+1. Find the saved task row in the latest draft response. Its `ref` belongs in draft endpoint paths;
+   its `id` is the draft row UUID. Neither is the existing or eventually created live task's UUID.
+2. For Codex or T3 Code, resolve the exact thread and machine/environment as described under
+   [Attach the current thread](#attach-the-current-thread), using the relevant history reader for
+   a past thread. Use the T3 integration for a T3 thread, including one powered by Codex. Submit
+   the normal `/integrations/{provider}/thread-lookups` request with `kind: "link"` and **the saved
+   draft task row's `id` as `taskId`**, even when that row reuses an existing live task. Bound the
+   lookup to 30 seconds, select the verified result, and stage it before its two-minute expiry:
+   `{provider: "t3code" | "codex", machineId, lookupId, threadId}`. Each draft row needs its own
+   lookup. Do not consume it through the ordinary live-task `/integrations/{provider}/links` route.
+   Once staged, the receipt survives lookup expiry, an offline companion, and normal reconnects.
+3. For other providers, prepare identities, letting Kernel verify access and resolve display facts:
+
+   ```json
+   {"provider":"asana","sourceId":"<connection UUID>","asanaTaskGid":"123456789"}
+   {"provider":"linear","sourceId":"<connection UUID>","issueReference":"ENG-42"}
+   {"provider":"github_issue","url":"https://github.com/owner/repo/issues/42"}
+   {"provider":"github_pull_request","url":"https://github.com/owner/repo/pull/43"}
+   {"provider":"url","url":"https://example.com/notes","label":"Work notes"}
+   ```
+
+   Resolve connection IDs through the documented integration/source reads. Asana defaults to
+   tracking enabled; use `trackingEnabled:false` for provenance without column updates. Read the
+   contract for `syncProjectGid` and other optional fields. Use native associations for supported
+   entities; ordinary URL attachments accept safe HTTP(S) URLs, not native thread deep links.
+4. Call `POST /bulk-time-drafts/{draftId}/tasks/{taskRef}/links` with `{version, link}` and a stable
+   `Idempotency-Key`. This requires `time:write` and `tasks:write`. Stage links incrementally here,
+   rather than putting a `links` array in a task creation or patch body. Each response returns the
+   complete draft; use its aggregate `version` for the next mutation.
+
+Read the final draft to confirm each intended task has its active `links` (`removedAt: null`).
+Remove a staged link through `DELETE .../tasks/{taskRef}/links/{linkId}` with `{version}` and an
+`Idempotency-Key`; removal retains its history. Keep existing staged links when editing time.
+If identity or access cannot be verified, leave that association unstaged, retain useful source
+references in notes, and report the gap instead of substituting a guessed entity.
+
+Return the API's private `reviewUrl`. Signed-in acceptance attaches all active associations with
+the task changes and time entries in one transaction; a conflict rolls back the entire acceptance.
+`links[].resultId` identifies the created or reused live association afterward. API keys cannot
+accept a draft, and discarding it attaches nothing.
 
 ## Attach the current thread
 

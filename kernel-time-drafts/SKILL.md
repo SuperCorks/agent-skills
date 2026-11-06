@@ -1,18 +1,18 @@
 ---
 name: kernel-time-drafts
-description: Reconstruct past work into Kernel bulk time drafts, or consolidate fragmented draft entries into reviewable blocks while preserving reviewed dates. Use for catch-up time-entry links and regrouping drafts, not invoices, task effort estimates, or accepting drafts.
+description: Reconstruct past work into Kernel bulk time drafts with verified thread and tracker associations, or consolidate fragmented draft entries into reviewable blocks while preserving reviewed dates and staged links. Use for catch-up time-entry links and regrouping drafts, not invoices, task effort estimates, or accepting drafts.
 ---
 
 # Kernel Time Drafts
 
-Produce a private Kernel review link with useful work blocks. Default to a **15-minute minimum per consolidated block**, unless the user specifies otherwise. Minute-by-minute activity is evidence for grouping, not a useful final draft.
+Produce a private Kernel review link with useful work blocks and the supporting entities staged on the right tasks. Default to a **15-minute minimum per consolidated block**, unless the user specifies otherwise. Minute-by-minute activity is evidence for grouping, not a useful final draft.
 
 Use the sibling [Kernel skill](../kernel/SKILL.md) for authentication, current API documentation, versions, and idempotency. This skill adds reconstruction and grouping decisions, without replacing the live API contract.
 
 ## Scope and current state
 
 - Resolve dates in the user's timezone, including different ranges per client. Determine each entry's date after timezone conversion; UTC date prefixes are insufficient.
-- Read the current draft, including removed entries, and save a private before snapshot. The user may have edited it since creation. If asked to adjust one date, preserve all other dates exactly, including removed entries. Preserve task definitions, staged changes, task assignments, and billing flags unless explicitly asked to change them.
+- Read the current draft, including removed entries and task links, and save a private before snapshot. The user may have edited it since creation. If asked to adjust one date, preserve all other dates exactly, including removed entries. Preserve task definitions, staged changes, task assignments, integration links (including removed history), and billing flags unless explicitly asked to change them.
 - A request to prepare or adjust a draft authorizes that draft work. It does not authorize acceptance, changes to recorded time, task completion, or changing task Duration estimates. Do not add an approval step to work already authorized.
 
 ## Reconstruct work when needed
@@ -25,6 +25,43 @@ Use relevant available evidence: dated agent conversations, task work notes, aut
 - Agent execution is not a human timesheet. Do not charge an entire background run, overnight wait, deployment queue, or thread lifespan. Deduplicate inherited messages and child-agent work against the parent assignment.
 - Messages and commits establish work, rarely its precise duration. Label reconstructed durations and placement as estimates, retain useful source links, and leave uncertain client attribution unresolved.
 - Do not manufacture work for a client merely because it exists in the portfolio. Mention meaningful coverage gaps.
+
+## Stage the supporting entities
+
+When reconstructing work, stage the actual supporting Codex/T3 Code threads, Asana tasks, Linear
+issues, GitHub issues and pull requests, and relevant HTTP(S) resources on each draft task. A
+source merely mentioned in a conversation is not necessarily work for that task. Confirm the
+relationship from the evidence and preserve unresolved attribution as a gap.
+
+Use the Kernel skill's [Bulk time drafts and staged links](../kernel/SKILL.md#bulk-time-drafts-and-staged-links)
+workflow and the current API guide:
+
+- Save the draft's task and entry rows first. Stage links through
+  `POST /bulk-time-drafts/{draftId}/tasks/{taskRef}/links` with `{version, link}` and
+  `Idempotency-Key`; do not create placeholder live tasks or attach directly to an existing task
+  while the work is awaiting review. Link staging requires `time:write` and `tasks:write`.
+- For thread lookups, use **`draft.tasks[].id` as `taskId`**, including for an existing-task row.
+  The row's `ref`, the parent draft ID, and the live task ID are different identities. Resolve the
+  exact source thread and machine/environment through trusted thread metadata or the relevant
+  reader, then stage the verified `{provider, machineId, lookupId, threadId}` result within its
+  two-minute expiry. T3 threads use `provider:"t3code"` even when their model is Codex; native
+  Codex sessions use `provider:"codex"`. Never select a thread or host by recency alone.
+- Use the native Asana, Linear, GitHub issue, or pull request provider when available; a URL in an
+  entry note does not create that association. Send provider identities and let Kernel resolve
+  metadata. If a source is inaccessible or unverified, retain useful references in notes and
+  report the missing association. Staging starts no agent turn or external task creation.
+- Serialize link writes with other draft edits using each response's aggregate version. After an
+  uncertain response, reuse the same request body and idempotency key, then inspect the draft.
+- Verify the final aggregate has the intended active `tasks[].links` on the correct task rows.
+  Report the staged sources and any gaps alongside the review link. Signed-in acceptance applies
+  the associations with the task changes and time entries atomically; API keys cannot accept.
+
+For regrouping alone, preserve existing links. If task reassignment is requested, moving all its
+entries so the source row becomes orphaned carries its active links to the replacement; moving
+only some entries leaves the links on the retained source. Re-read the resulting rows and stage
+additional associations only when the evidence supports them. Removing a task or its last entry
+excludes its links from acceptance. A plain link removal uses the draft link DELETE endpoint and
+retains the removed row in history.
 
 ## Group into useful blocks
 
@@ -63,6 +100,6 @@ python3 scripts/regroup.py /private/path/before.json \
   --date 2026-10-24 --verify /private/path/after.json --plan /private/path/plan.json
 ```
 
-The check covers untouched dates, task definitions, retained entry identity and billing, planned removals, minimum duration, and computed totals. Return the API's actual `reviewUrl`, with a short account of the affected dates, block count, minimum, total changes, and unresolved overlaps. Acceptance stays with the user.
+The check covers untouched dates, task definitions (including their staged link snapshots), retained entry identity and billing, planned removals, minimum duration, and computed totals. Return the API's actual `reviewUrl`, with a short account of the affected dates, block count, minimum, total changes, staged sources, and unresolved overlaps or association gaps. Acceptance stays with the user.
 
 Keep private snapshots, source history, credentials, and client-specific examples outside this skill folder.

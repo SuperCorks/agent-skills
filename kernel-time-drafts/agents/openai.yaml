@@ -1,4 +1,4 @@
 interface:
   display_name: "Kernel Time Drafts"
-  short_description: "Reconstruct and cluster reviewable time drafts"
-  default_prompt: "Use $kernel-time-drafts to prepare or adjust a Kernel time draft with blocks of at least 15 minutes, preserving dates I have already reviewed."
+  short_description: "Reconstruct time drafts with thread and tracker links"
+  default_prompt: "Use $kernel-time-drafts to prepare or adjust a Kernel time draft with verified thread and tracker links and blocks of at least 15 minutes, preserving dates I have already reviewed."
