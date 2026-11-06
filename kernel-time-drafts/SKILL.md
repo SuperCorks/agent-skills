@@ -38,7 +38,7 @@ Every draft entry has two text fields, and acceptance treats them differently:
 - **`draftNote`** stays in the draft and its history; acceptance never copies it. Put the estimate
   basis here: the original minutes and the minimum applied, the evidence window and sources
   (agent threads, Slack, commits, with their links), what was excluded (agent run time, waiting),
-  placement caveats, and collisions with recorded time or other blocks.
+  and placement caveats.
 
 Send `draftNote` on entry creation (`entry.draftNote`, including the atomic `assignment` form) and
 on `PATCH`. Reads return it for every entry. Before reporting the review link, read the final

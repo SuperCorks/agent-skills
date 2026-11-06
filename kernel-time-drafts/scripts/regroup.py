@@ -58,7 +58,7 @@ def make_plan(draft, selected, minimum):
         draft_note = f'{selected}: consolidated {len(entries)} fragments into one estimated {duration}-minute block.'
         if duration > minutes:
             draft_note += f' Applied the {minimum}-minute minimum to the original {minutes} minutes.'
-        draft_note += ' Placement is approximate; work was spread across the day and may overlap other tasks.'
+        draft_note += ' Placement is approximate; work was spread across the day.'
         if previous:
             draft_note += '\n\nPrevious draft notes:\n' + '\n\n'.join(previous)
         if len(note) > 50000 or len(draft_note) > 50000:
