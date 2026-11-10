@@ -75,17 +75,14 @@ When you run `pre-pr-review`, its reviewers are this pair, not two reviewers on 
 
 Each reviewer reads both lens files (correctness and quality) and tags each finding with its lens. Findings raised by both reviewers rank highest. Launch both in each pass, in parallel, with fresh reviewers every pass. Their prompts follow `pre-pr-review`, including "read-only, do not edit files".
 
-**Never fast mode.** Neither reviewer may run in fast mode. Native sub-agents inherit the session's fast mode and Codex service tier, and the user's Codex config defaults to the Fast tier (`service_tier = "priority"`). So every Astra run must set the standard tier explicitly.
+**Never fast mode.** Neither reviewer may run in fast mode. Native sub-agents can inherit the session's fast mode or Codex service tier, the user's Codex config defaults to the Fast tier (`service_tier = "priority"`), and the `fable` alias does not pin a version. So launch both reviewers with explicit settings, never as plain native sub-agents:
 
-Launch each reviewer by the first route that fits:
-
-| Reviewer | Route |
+| Where | Route |
 | --- | --- |
-| Either, in T3 Code | `delegate_task` with `role: "review"`, the model ID above, and `options`: Fable `{effort: "xhigh"}`, Astra `{reasoningEffort: "xhigh", serviceTier: "default"}`. Set `fastMode: false` where `orchestrator_capabilities` lists it. Use the provider instance for the same account as this thread. |
-| Fable, from a Claude session outside T3 Code and not in fast mode | Native sub-agent: Agent tool with `model: "fable"` and `effort: "xhigh"` |
-| Either, otherwise | `agent-orchestrator` run, awaited (in Claude Code, as a background command). Fable: `--engine claude --model claude-fable-5-2 --reasoning xhigh`. Astra: `--engine codex --model gpt-6-astra --reasoning xhigh --extra-arg=-c --extra-arg='service_tier="default"'`. |
+| T3 Code | `delegate_task` with `role: "review"` and a `target` naming `model`, `providerInstanceId`, and `options`. Fable: `claude-fable-5-2` with `{effort: "xhigh"}`. Astra: `gpt-6-astra` with `{reasoningEffort: "xhigh", serviceTier: "default"}`. Add `fastMode: false` wherever `orchestrator_capabilities` lists that option. The reviewer on this thread's provider uses this thread's instance. For the other, use the instance for the same client account; if none clearly matches, use the provider's default instance (the one named after the driver, such as `codex`). Name both instances in the report. |
+| Elsewhere | An awaited `agent-orchestrator` run with `--out-dir` inside `pre-pr-review`'s temp directory, so nothing lands in the repo. In Claude Code, run it as a background command with a timeout above the helper's 45-minute ceiling. Fable: prefix the command with `CLAUDE_CODE_DISABLE_FAST_MODE=1` and pass `--engine claude --model claude-fable-5-2 --reasoning xhigh`. Astra: `--engine codex --model gpt-6-astra --reasoning xhigh --extra-arg=-c --extra-arg='service_tier="default"'`. |
 
-If one reviewer cannot run, for example when its provider is unavailable or not signed in, do not pick a substitute model. Run the other one, and fill the missing seat with `pre-pr-review`'s session-model reviewer, which must also not run in fast mode. Say in the report which seat changed and why. If neither can run, use `pre-pr-review`'s default reviewers and say so.
+If a reviewer cannot run, for example because its provider is unavailable or not signed in, do not substitute another model. Run the pass with the reviewer that can, and say in the report which one was missing and why. If neither can run, review the diff yourself through both lenses, as `pre-pr-review` does without sub-agents, and report that the pair did not run.
 
 ## Reviewable PR
 
