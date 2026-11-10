@@ -75,7 +75,7 @@ When you run `pre-pr-review`, its reviewers are this pair, not two reviewers on 
 
 Each reviewer reads both lens files (correctness and quality) and tags each finding with its lens. Findings raised by both reviewers rank highest. Launch both in each pass, in parallel, with fresh reviewers every pass. Their prompts follow `pre-pr-review`, including "read-only, do not edit files".
 
-**Never fast mode, never a substitute.** Neither reviewer may run in fast mode or on another model. Native sub-agents can inherit the session's fast mode or Codex service tier, the user's Codex config defaults to the Fast tier (`service_tier = "priority"`), and the `fable` alias does not pin a version. So launch both reviewers with explicit settings, never as plain native sub-agents, and confirm what answered. For Fable, read `executedModel` on the T3 task or `modelUsage` in the CLI run's `stdout.txt`. For Astra, T3 may report `executedModel` as null, so read the reviewer's Codex session log under `~/.codex/sessions/` for its `model`, `reasoning_effort`, and `service_tier`. A wrong model or a Fast tier means that reviewer is missing.
+**Never fast mode, never a substitute.** Neither reviewer may run in fast mode or on another model. Native sub-agents can inherit the session's fast mode or Codex service tier, the user's Codex config defaults to the Fast tier (`service_tier = "priority"`), and the `fable` alias does not pin a version. So launch both reviewers with explicit settings, never as plain native sub-agents, and confirm what answered after each run. A wrong model or a Fast tier means that reviewer is missing.
 
 ### In T3 Code
 
@@ -83,14 +83,14 @@ Each reviewer reads both lens files (correctness and quality) and tags each find
 - Fable: `claude-fable-5-2` with `{effort: "xhigh", ultracode: false}`.
 - Astra: `gpt-6-astra` with `{reasoningEffort: "xhigh", serviceTier: "default"}`.
 - Add `fastMode: false` wherever `orchestrator_capabilities` lists that option.
-- Choose only among instances that list the model. If the short list omits it, call `orchestrator_capabilities` again with `search` set to the model ID before treating the reviewer as unavailable.
-- Use this thread's instance if it lists the model. Otherwise, and for the other reviewer, use the same client account's instance; if none clearly matches, the provider's default instance (the one named after the driver, such as `codex`). Name both instances in the report.
+- Instances: the reviewer on this thread's provider uses this thread's instance. The other uses the same client account's instance; if none clearly matches, the provider's default instance (the one named after the driver, such as `codex`). Launch with these pinned IDs even if the capabilities list omits the model. Only if a launch fails, call `orchestrator_capabilities` with `search` set to that model ID and retry on an instance that lists it. Name both instances in the report.
+- Confirm Fable through `executedModel` on its task. T3 may report `executedModel` as null for Astra, so read its Codex session log instead: find it by searching that day's folder under `~/.codex/sessions/` for the pass's patch path, and check its `model`, `reasoning_effort`, and `service_tier`.
 
 ### Elsewhere
 
 - Use an awaited `agent-orchestrator` run with `--out-dir` inside `pre-pr-review`'s temp directory, so nothing lands in the repo.
-- Fable: prefix the command with `CLAUDE_CODE_DISABLE_FAST_MODE=1 CLAUDE_CODE_NO_MODEL_FALLBACK=1` and pass `--engine claude --model claude-fable-5-2 --reasoning xhigh`.
-- Astra: `--engine codex --model gpt-6-astra --reasoning xhigh --extra-arg=-c --extra-arg='service_tier="default"'`.
+- Fable: prefix the command with `CLAUDE_CODE_DISABLE_FAST_MODE=1 CLAUDE_CODE_NO_MODEL_FALLBACK=1` and pass `--engine claude --model claude-fable-5-2 --reasoning xhigh`. Confirm through `modelUsage` in the run's `stdout.txt`.
+- Astra: `--engine codex --model gpt-6-astra --reasoning xhigh --extra-arg=-c --extra-arg='service_tier="default"'`. Confirm through its Codex session log, found as above.
 - In Claude Code, run each as a background command with a timeout above the helper's 45-minute ceiling. In Codex, start both in one foreground shell call with `&`, then `wait`, under a timeout above that ceiling, and read each run's manifest for its exit code.
 - This review is the explicit request that lets these runs go past `agent-orchestrator`'s two-pass limit, run in the background, and pass the tier override through `--extra-arg`, despite its note to leave `service_tier` at its default.
 
