@@ -48,6 +48,7 @@ Secondary sources:
 |------|-------|-------|
 | `AgentWorkforce/relay` | medium | agent orchestration and relay workflow skills |
 | `dbmcco/claude-agent-toolkit` | medium | integration-heavy Claude skills, especially Google Workspace |
+| `per-simmons/*` (9 repos) | medium | one skill per repo from Pat Simmons (AI for Mortals): web-app cloning, Fable orchestration, Premiere Pro editing, launch videos, Seedance prompts, Blender, a game-studio plugin, iOS demo videos. Several have no license file, so check before copying |
 | `sickn33/antigravity-awesome-skills` | low-filtered | huge aggregator; useful for broad discovery and mobile/iOS searches, but validate carefully |
 | `alirezarezvani/claude-skills` | low-filtered | broad social-discovered collection; validate carefully |
 

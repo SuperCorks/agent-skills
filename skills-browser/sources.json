@@ -64,6 +64,78 @@
     "maxContentScan": 100
   },
   {
+    "repo": "per-simmons/clone-app-pat-pro-public",
+    "trust": "medium",
+    "sourceType": "creator",
+    "notes": "Rebuild a web app from a URL and verify the clone against the original with extracted style tokens. No license file. Pat Simmons (AI for Mortals, YouTube @per_simmons); one skill per repo, listed at aiformortals.co/skills.",
+    "bestFor": ["web clone", "frontend", "design tokens", "visual qa", "claude code"],
+    "maxContentScan": 20
+  },
+  {
+    "repo": "per-simmons/fable-orchestration",
+    "trust": "medium",
+    "sourceType": "creator",
+    "notes": "Fable plans and Opus executes, to keep orchestrated builds cheap. No license file. Pat Simmons (AI for Mortals, YouTube @per_simmons); one skill per repo, listed at aiformortals.co/skills.",
+    "bestFor": ["orchestration", "multi-agent", "fable", "opus", "cost"],
+    "maxContentScan": 20
+  },
+  {
+    "repo": "per-simmons/launch-video-clone",
+    "trust": "medium",
+    "sourceType": "creator",
+    "notes": "Product launch videos in HyperFrames, original or cloned from a reference, with sub-skills for transitions and VO timing. MIT. Pat Simmons (AI for Mortals, YouTube @per_simmons); one skill per repo, listed at aiformortals.co/skills.",
+    "bestFor": ["video", "launch video", "hyperframes", "motion", "marketing"],
+    "maxContentScan": 20
+  },
+  {
+    "repo": "per-simmons/astra-premiere-editing",
+    "trust": "medium",
+    "sourceType": "creator",
+    "notes": "Codex skill that edits in Adobe Premiere Pro through computer use. No license file. Pat Simmons (AI for Mortals, YouTube @per_simmons); one skill per repo, listed at aiformortals.co/skills.",
+    "bestFor": ["video editing", "premiere pro", "computer use", "codex"],
+    "maxContentScan": 20
+  },
+  {
+    "repo": "per-simmons/opus-premiere-editing",
+    "trust": "medium",
+    "sourceType": "creator",
+    "notes": "Claude Code rough cuts in Premiere Pro through a skill and a Premiere MCP bridge. No license file. Pat Simmons (AI for Mortals, YouTube @per_simmons); one skill per repo, listed at aiformortals.co/skills.",
+    "bestFor": ["video editing", "premiere pro", "mcp", "claude code"],
+    "maxContentScan": 20
+  },
+  {
+    "repo": "per-simmons/seedance-prompt-builder",
+    "trust": "medium",
+    "sourceType": "creator",
+    "notes": "Turns plain-English briefs into Seedance 2.0 video prompts. No license file. Pat Simmons (AI for Mortals, YouTube @per_simmons); one skill per repo, listed at aiformortals.co/skills.",
+    "bestFor": ["video generation", "seedance", "prompting", "ai video"],
+    "maxContentScan": 20
+  },
+  {
+    "repo": "per-simmons/claude-game-studio",
+    "trust": "medium",
+    "sourceType": "creator",
+    "notes": "Claude Code plugin with game-studio sub-agent skills (producer, design, art, engineering, QA). License not declared on GitHub. Pat Simmons (AI for Mortals, YouTube @per_simmons); one skill per repo, listed at aiformortals.co/skills.",
+    "bestFor": ["game development", "plugin", "multi-agent", "sub-agents"],
+    "maxContentScan": 20
+  },
+  {
+    "repo": "per-simmons/blender-production",
+    "trust": "medium",
+    "sourceType": "creator",
+    "notes": "Build, render, and visually verify Blender projects through Python and MCP. MIT. Pat Simmons (AI for Mortals, YouTube @per_simmons); one skill per repo, listed at aiformortals.co/skills.",
+    "bestFor": ["blender", "3d", "rendering", "mcp"],
+    "maxContentScan": 20
+  },
+  {
+    "repo": "per-simmons/ios-simulator-demo-video",
+    "trust": "medium",
+    "sourceType": "creator",
+    "notes": "Records an iOS Simulator demo video with scripted taps, touch circles, and an automatic edit. MIT. Pat Simmons (AI for Mortals, YouTube @per_simmons); one skill per repo, listed at aiformortals.co/skills.",
+    "bestFor": ["ios", "simulator", "demo video", "app marketing"],
+    "maxContentScan": 20
+  },
+  {
     "repo": "sickn33/antigravity-awesome-skills",
     "trust": "low-filtered",
     "sourceType": "large-aggregator",
