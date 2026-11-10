@@ -14,8 +14,8 @@ User policy for this skill:
 - Codex Astra reasoning: `medium` unless overridden with `--reasoning`
 - Claude default model: `claude-opus-5`; user shorthand and Claude Code alias: `opus`
 - Claude Opus 5 effort: `xhigh`
-- Claude Fable 5 model: `claude-fable-5` or Claude Code alias `fable`
-- Claude Fable 5 effort: `high` unless overridden with `--reasoning`
+- Claude Fable 5.2 model: `claude-fable-5-2`; user shorthand and helper alias: `fable`
+- Claude Fable 5.2 effort: `high` unless overridden with `--reasoning`
 - OpenCode model: `openrouter/x-ai/grok-4.5`
 - OpenCode variant: `high`
 - OpenCode Kimi K3 model: `openrouter/moonshotai/kimi-k3`
@@ -32,7 +32,7 @@ python3 agent-orchestrator/scripts/agent_orchestrator.py run --engine codex --mo
 python3 agent-orchestrator/scripts/agent_orchestrator.py run --engine codex --model astra --prompt "..."
 python3 agent-orchestrator/scripts/agent_orchestrator.py run --engine codex --model gpt-6-astra --reasoning medium --prompt "..."
 python3 agent-orchestrator/scripts/agent_orchestrator.py run --engine claude --model claude-opus-5 --reasoning xhigh --prompt "..."
-python3 agent-orchestrator/scripts/agent_orchestrator.py run --engine claude --model claude-fable-5 --prompt "..."
+python3 agent-orchestrator/scripts/agent_orchestrator.py run --engine claude --model claude-fable-5-2 --prompt "..."
 python3 agent-orchestrator/scripts/agent_orchestrator.py run --engine opencode --model openrouter/x-ai/grok-4.5 --reasoning high --prompt "..."
 python3 agent-orchestrator/scripts/agent_orchestrator.py run --engine opencode --model openrouter/moonshotai/kimi-k3 --prompt "..."
 ```
@@ -58,11 +58,11 @@ export AGENT_ORCHESTRATOR_RUN_TIMEOUT=2700
 
 GPT-5.6 Sol is the default Codex model and uses `xhigh` reasoning. Select GPT-5.6 Terra with `--model gpt-5.6-terra`; when `--reasoning` is omitted, the helper uses `high`. Both defaults also apply to resumed Codex sessions.
 
-GPT-6 Astra is available as `gpt-6-astra` and helper alias `astra`. It is not the default Codex model. When selected and `--reasoning` is omitted, the helper uses `medium`, which matches the model's own catalog default. Override precedence is `--reasoning`, `AGENT_ORCHESTRATOR_CODEX_ASTRA_REASONING`, the global `AGENT_ORCHESTRATOR_CODEX_REASONING`, then the built-in `medium` default. GPT-6 Astra is the model for computer-use / browser-driving work; keep its reasoning at medium unless told otherwise. Never run it in fast mode (leave Codex `service_tier` at its default).
+GPT-6 Astra is available as `gpt-6-astra` and helper alias `astra`. It is not the default Codex model. When selected and `--reasoning` is omitted, the helper uses `medium`, which matches the model's own catalog default. Override precedence is `--reasoning`, `AGENT_ORCHESTRATOR_CODEX_ASTRA_REASONING`, the global `AGENT_ORCHESTRATOR_CODEX_REASONING`, then the built-in `medium` default. GPT-6 Astra is the model for computer-use / browser-driving work; keep its reasoning at medium unless told otherwise. Never run it in fast mode. The Fast tier is Codex's `priority` service tier, and a user's `~/.codex/config.toml` can make it the default, so the helper pins `service_tier="default"` for Astra runs. `--service-tier` overrides that for one run (an empty value inherits the config), and `AGENT_ORCHESTRATOR_CODEX_ASTRA_SERVICE_TIER` changes the default. Verified 2026-11-10: a run without the pin logged `"service_tier":"priority"` in its Codex session log, and a run with it logged `"default"`.
 
 Claude Code accepts aliases such as `opus`, `fable`, and full model names. The skill default pins Opus 5 with the full model name `claude-opus-5`. Interpret the user's case-insensitive `opus` shorthand as Opus 5 and translate it to `--engine claude --model claude-opus-5`; the helper also normalizes `--model opus` to that exact model ID. Opus 5 uses `xhigh` effort by default for coding and agentic work unless `--reasoning` overrides it.
 
-Claude Fable 5 is available as `claude-fable-5` and Claude Code alias `fable`. It is not the default model. When selected and `--reasoning` is omitted, the helper uses `high` effort by default. Set `--reasoning xhigh` or `--reasoning max` only when the task warrants higher token spend, or change `AGENT_ORCHESTRATOR_CLAUDE_FABLE_REASONING` for a different local default.
+Claude Fable 5.2 is available as `claude-fable-5-2`, and the helper maps `fable` to it. Claude Code's own `fable` alias means the latest Fable, so the helper always passes the full ID. It is not the default model. When selected and `--reasoning` is omitted, the helper uses `high` effort by default. Set `--reasoning xhigh` or `--reasoning max` only when the task warrants higher token spend, or change `AGENT_ORCHESTRATOR_CLAUDE_FABLE_REASONING` for a different local default.
 
 OpenCode expects model IDs in provider/model form. The default OpenRouter route is `openrouter/x-ai/grok-4.5`; the helper sends `--variant high` by default and stores OpenCode's JSON event stream in the run artifacts. Newer OpenCode builds document `opencode run --auto` for unattended operation; the helper adds `--auto` when the installed CLI exposes it and otherwise relies on OpenCode config `permission: "allow"`.
 
@@ -181,16 +181,16 @@ The helper builds:
 claude -p --output-format json --model claude-opus-5 --effort xhigh --permission-mode bypassPermissions --dangerously-skip-permissions "Prompt..."
 ```
 
-Claude Fable 5 awaited worker:
+Claude Fable 5.2 awaited worker:
 
 ```bash
-python3 agent-orchestrator/scripts/agent_orchestrator.py run --engine claude --model claude-fable-5 --timeout 2700 --prompt "Prompt..."
+python3 agent-orchestrator/scripts/agent_orchestrator.py run --engine claude --model claude-fable-5-2 --timeout 2700 --prompt "Prompt..."
 ```
 
 The helper builds:
 
 ```bash
-claude -p --output-format json --model claude-fable-5 --effort high --permission-mode bypassPermissions --dangerously-skip-permissions "Prompt..."
+claude -p --output-format json --model claude-fable-5-2 --effort high --permission-mode bypassPermissions --dangerously-skip-permissions "Prompt..."
 ```
 
 OpenCode awaited worker using Grok 4.5 through OpenRouter:

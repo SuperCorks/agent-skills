@@ -24,7 +24,7 @@ Agent(
 - Reviewer: `subagent_type: "conductor-reviewer"`, prompt `Review task 03 of run <run-id>: read <packet path> and <report path>, then follow the reviewer role.`
 - Explorer: `subagent_type: "conductor-explorer"`, prompt a question plus the brief path to write.
 - Monitor: `subagent_type: "conductor-monitor"` (its definition pins Sonnet).
-- Computer use: not a Claude worker. Use the `agent-orchestrator` skill: `python3 <agent-orchestrator>/scripts/agent_orchestrator.py run --engine codex --model astra --cwd <dir> --timeout 2700 --prompt "Read <packet path> and follow it exactly."` That call is awaited; run it from a background Bash command so it does not block you, and keep the Codex-side `service_tier` default.
+- Computer use: not a Claude worker. Use the `agent-orchestrator` skill: `python3 <agent-orchestrator>/scripts/agent_orchestrator.py run --engine codex --model astra --cwd <dir> --timeout 2700 --prompt "Read <packet path> and follow it exactly."` That call is awaited; run it from a background Bash command so it does not block you, The helper pins Astra to the standard `service_tier="default"`, so it never runs on the Fast tier; do not pass `--service-tier`.
 - Do not pass `isolation: "worktree"`; the conductor script creates worktrees deterministically and records them on the task, so the packet's working directory is authoritative.
 - Do not launch teammates or agent teams; plain background subagents are enough and cost less.
 

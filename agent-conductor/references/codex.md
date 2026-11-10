@@ -6,7 +6,7 @@ Use native inter-agent communication to advance the run in the current turn. Fil
 
 - **Agent tools**: identify the exposed spawn, message, follow-up, wait, and status tools. The Desktop examples below use `collaboration.*`. Call those tools directly, not inside `functions.exec`. If the harness exposes another API, use its documented equivalents. If no native agent wait is available, report that limitation; do not silently replace it with a scheduled automation.
 - **Worker definitions**: inspect `~/.codex/agents/` and `.codex/agents/` for `conductor_implementer`, `conductor_reviewer`, `conductor_explorer`, `conductor_monitor`, and `conductor_computer_use`. Installed definitions may carry no `model` or `model_reasoning_effort` keys; that is expected, because every spawn below passes both explicitly. Reinstall only when a definition is missing or pins a model or reasoning level that conflicts with the roles below.
-- **Fast mode**: check the current session's fast-mode state and applicable `service_tier` setting. If fast mode is explicitly enabled, ask the user to turn it off before dispatch. Do not edit their runtime config yourself or assume an unfamiliar tier name means fast mode.
+- **Fast mode**: check the current session's fast-mode state and applicable `service_tier` setting. If fast mode is explicitly enabled, ask the user to turn it off before dispatch. `service_tier = "priority"` is the Fast tier (the Codex model catalog names it "Fast"). Do not edit their runtime config yourself or assume another unfamiliar tier name means fast mode.
 
 ## Launch a worker
 

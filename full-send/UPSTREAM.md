@@ -33,7 +33,7 @@ Local additions:
 - Merge-triggered deploys get a status check, and a failed deploy is a question for the user.
 - A new local worktree for the branch in projects where task worktrees apply.
 - A "Reviewable PR" section: before and after screenshots, video recordings, and similar proof go in the PR, and the merge gate checks for them.
-- A "Review pair" section (2026-11-10): `pre-pr-review` runs with Claude Fable 5.2 and GPT-6 Astra, both at `xhigh` and never in fast mode. Both launch with pinned settings rather than as plain native sub-agents: Astra runs set the standard Codex tier, because the user's Codex config defaults to the Fast tier, and CLI Fable runs set `CLAUDE_CODE_DISABLE_FAST_MODE=1` and `CLAUDE_CODE_NO_MODEL_FALLBACK=1`. The lead confirms the model that answered.
+- A "Review pair" section (2026-11-10): `pre-pr-review` runs with Claude Fable 5.2 and GPT-6 Astra, both at `xhigh` and never in fast mode. Both launch with pinned settings rather than as plain native sub-agents: Astra runs use the standard Codex tier, which `agent-orchestrator` pins because the user's Codex config defaults to the Fast tier, and CLI Fable runs set `CLAUDE_CODE_DISABLE_FAST_MODE=1` and `CLAUDE_CODE_NO_MODEL_FALLBACK=1`. The lead confirms the model that answered.
 
 The `full-stop` variant, which stops before the merge, is its own skill in `full-stop/`.
 

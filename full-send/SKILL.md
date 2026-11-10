@@ -90,9 +90,9 @@ Each reviewer reads both lens files (correctness and quality) and tags each find
 
 - Use an awaited `agent-orchestrator` run with `--out-dir` inside `pre-pr-review`'s temp directory, so nothing lands in the repo.
 - Fable: prefix the command with `CLAUDE_CODE_DISABLE_FAST_MODE=1 CLAUDE_CODE_NO_MODEL_FALLBACK=1` and pass `--engine claude --model claude-fable-5-2 --reasoning xhigh`. Confirm through `modelUsage` in the run's `stdout.txt`.
-- Astra: `--engine codex --model gpt-6-astra --reasoning xhigh --extra-arg=-c --extra-arg='service_tier="default"'`. Confirm through its Codex session log, found as above.
+- Astra: `--engine codex --model gpt-6-astra --reasoning xhigh`. The helper pins Astra to the standard tier (`service_tier="default"`); never pass `--service-tier priority`. Confirm through its Codex session log, found as above.
 - In Claude Code, run each as a background command with a timeout above the helper's 45-minute ceiling. In Codex, start both in one foreground shell call with `&`, then `wait`, under a timeout above that ceiling, and read each run's manifest for its exit code.
-- This review is the explicit request that lets these runs go past `agent-orchestrator`'s two-pass limit, run in the background, and pass the tier override through `--extra-arg`, despite its note to leave `service_tier` at its default.
+- This review is the explicit request that lets these runs go past `agent-orchestrator`'s two-pass limit and run in the background.
 
 If a reviewer cannot run, for example because its provider is unavailable or not signed in, do not substitute another model. Run the pass with the reviewer that can, and say in the report which one was missing and why. If neither can run, review the diff yourself through both lenses, as `pre-pr-review` does without sub-agents, and report that the pair did not run.
 

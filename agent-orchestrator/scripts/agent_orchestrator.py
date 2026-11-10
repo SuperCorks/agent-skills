@@ -33,6 +33,12 @@ DEFAULT_CODEX_ASTRA_REASONING = os.environ.get(
     "AGENT_ORCHESTRATOR_CODEX_ASTRA_REASONING",
     CODEX_REASONING_OVERRIDE or "medium",
 )
+# GPT-6 Astra must never run on the Fast ("priority") tier, which a user's
+# ~/.codex/config.toml can make the default. An empty value inherits the config.
+DEFAULT_CODEX_ASTRA_SERVICE_TIER = os.environ.get(
+    "AGENT_ORCHESTRATOR_CODEX_ASTRA_SERVICE_TIER",
+    "default",
+)
 DEFAULT_CLAUDE_MODEL = os.environ.get("AGENT_ORCHESTRATOR_CLAUDE_MODEL", "claude-opus-5")
 DEFAULT_CLAUDE_REASONING = os.environ.get("AGENT_ORCHESTRATOR_CLAUDE_REASONING", "xhigh")
 DEFAULT_CLAUDE_FABLE_REASONING = os.environ.get("AGENT_ORCHESTRATOR_CLAUDE_FABLE_REASONING", "high")
@@ -43,7 +49,7 @@ DEFAULT_KIMI_K3_REASONING = os.environ.get(
     "max",
 )
 OPENCODE_AUTH_PROVIDER = os.environ.get("AGENT_ORCHESTRATOR_OPENCODE_AUTH_PROVIDER", "OpenRouter")
-CLAUDE_FABLE_MODELS = {"fable", "claude-fable-5"}
+CLAUDE_FABLE_MODELS = {"fable", "claude-fable-5", "claude-fable-5-1", "claude-fable-5-2"}
 CODEX_SOL_MODELS = {"gpt-5.6-sol"}
 CODEX_TERRA_MODELS = {"gpt-5.6-terra"}
 CODEX_ASTRA_MODELS = {"gpt-6-astra"}
@@ -56,7 +62,7 @@ MODEL_ALIASES = {
     },
     "claude": {
         "opus": "claude-opus-5",
-        "fable": "claude-fable-5",
+        "fable": "claude-fable-5-2",
     },
     "opencode": {
         "grok": "openrouter/x-ai/grok-4.5",
@@ -175,6 +181,15 @@ def default_reasoning(engine: str, model: str | None = None) -> str:
     if selected_model.lower() in CODEX_ASTRA_MODELS:
         return DEFAULT_CODEX_ASTRA_REASONING
     return DEFAULT_CODEX_REASONING
+
+
+def codex_service_tier(model: str, requested: str | None = None) -> str | None:
+    """Return the Codex service tier to pin, or None to inherit the user's config."""
+    if requested is not None:
+        return requested or None
+    if model.lower() in CODEX_ASTRA_MODELS:
+        return DEFAULT_CODEX_ASTRA_SERVICE_TIER or None
+    return None
 
 
 def authenticated(engine: str, auth: dict[str, Any] | None) -> bool:
@@ -454,10 +469,12 @@ def build_command(
                 model,
                 "-c",
                 f'model_reasoning_effort="{reasoning or default_reasoning("codex", model)}"',
-                "--cd",
-                str(cwd),
             ]
         )
+        service_tier = codex_service_tier(model, args.service_tier)
+        if service_tier:
+            command.extend(["-c", f'service_tier="{service_tier}"'])
+        command.extend(["--cd", str(cwd)])
         if not args.no_yolo:
             command.append("--yolo")
         command.extend(extra)
@@ -743,6 +760,11 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--out-dir")
     run.add_argument("--model")
     run.add_argument("--reasoning")
+    run.add_argument(
+        "--service-tier",
+        help='Codex service tier, such as "default" or "priority" (Fast). Astra defaults to "default"; '
+        "other Codex models inherit the user's config. Pass an empty string to inherit.",
+    )
     run.add_argument("--resume")
     run.add_argument(
         "--timeout",
