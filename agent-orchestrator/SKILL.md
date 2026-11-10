@@ -30,9 +30,9 @@ Default worker settings are:
 
 - Codex defaults to GPT-5.6 Sol: `codex exec --model gpt-5.6-sol -c model_reasoning_effort="xhigh" --yolo`.
 - Codex with GPT-5.6 Terra: pass `--model gpt-5.6-terra`; default reasoning becomes `high` unless `--reasoning` is supplied.
-- Codex with GPT-6 Astra: pass `--model gpt-6-astra` or `--model astra`; default reasoning becomes `medium` unless `--reasoning` is supplied.
+- Codex with GPT-6 Astra: pass `--model gpt-6-astra` or `--model astra`; default reasoning becomes `medium` unless `--reasoning` is supplied, and the helper pins the standard `service_tier="default"`.
 - Claude Code defaults to Opus 5: `claude -p --model claude-opus-5 --effort xhigh --permission-mode bypassPermissions --dangerously-skip-permissions`.
-- Claude Code with Fable 5: pass `--model claude-fable-5` or `--model fable`; default effort becomes `high` unless `--reasoning` is supplied.
+- Claude Code with Fable 5.2: pass `--model claude-fable-5-2` or `--model fable`; default effort becomes `high` unless `--reasoning` is supplied.
 - OpenCode: `opencode run --auto --model openrouter/x-ai/grok-4.5 --variant high --format json` when the installed CLI supports `--auto`; otherwise use OpenCode config `permission: "allow"`.
 - OpenCode with Kimi K3: pass `--model openrouter/moonshotai/kimi-k3`; the model-specific variant defaults to `max` unless `--reasoning` is supplied.
 - Runs are awaited and captured under `.agent-orchestrator/runs/` unless `--out-dir` is provided.
@@ -62,11 +62,11 @@ Interpret these case-insensitive model names from the user as the following exac
 | `terra` | OpenAI GPT-5.6 Terra | `--engine codex --model gpt-5.6-terra` | `high` |
 | `astra` | OpenAI GPT-6 Astra | `--engine codex --model gpt-6-astra` | `medium` |
 | `opus` | Anthropic Claude Opus 5 | `--engine claude --model claude-opus-5` | `xhigh` |
-| `fable` | Anthropic Claude Fable 5 | `--engine claude --model claude-fable-5` | `high` |
+| `fable` | Anthropic Claude Fable 5.2 | `--engine claude --model claude-fable-5-2` | `high` |
 
 These aliases are accepted by the helper and are normalized to the exact engine-specific model IDs above. They are also conversational aliases for orchestration decisions: translate them to the exact engine and model arguments when describing or building a worker command.
 
-GPT-6 Astra is the model for computer-use / browser-driving work; keep its reasoning at medium unless told otherwise. Never run it in fast mode (leave Codex `service_tier` at its default).
+GPT-6 Astra is the model for computer-use / browser-driving work; keep its reasoning at medium unless told otherwise. Never run it in fast mode. The Fast tier is Codex's `priority` service tier, and a user's `~/.codex/config.toml` can make it the default, so the helper pins `service_tier="default"` for Astra runs. `--service-tier` overrides that for one run (an empty value inherits the config), and `AGENT_ORCHESTRATOR_CODEX_ASTRA_SERVICE_TIER` changes the default.
 
 ## Required Workflow
 
@@ -180,7 +180,8 @@ Useful options:
 - `--dry-run`: print the command that would run.
 - `--no-yolo`: disable Codex `--yolo`, Claude permission bypass, or OpenCode `--auto` when the user asks for safer permissions. If OpenCode is globally configured with `permission: "allow"`, change that config for stricter local runs.
 - `--model`: override the default model.
-- `--reasoning`: override Codex `model_reasoning_effort`, Claude `--effort`, or OpenCode `--variant`. Codex Sol and Claude Opus 5 default to `xhigh`; Codex Terra, Claude Fable 5, and Grok 4.5 default to `high`; Codex GPT-6 Astra defaults to `medium`; Kimi K3 defaults to `max`; other Claude runs default to `xhigh`.
+- `--reasoning`: override Codex `model_reasoning_effort`, Claude `--effort`, or OpenCode `--variant`. Codex Sol and Claude Opus 5 default to `xhigh`; Codex Terra, Claude Fable 5.2, and Grok 4.5 default to `high`; Codex GPT-6 Astra defaults to `medium`; Kimi K3 defaults to `max`; other Claude runs default to `xhigh`.
+- `--service-tier TIER`: set Codex `service_tier` for this run, such as `default` or `priority` (Fast). Astra defaults to `default`; other Codex models inherit the user's config; an empty value inherits it for Astra too.
 - `--resume SESSION_ID`: resume an existing CLI session instead of starting a fresh one.
 - `--timeout SECONDS`: kill the worker after a ceiling; defaults to 2700 (45 minutes), and `0` waits indefinitely.
 - `--raw-prompt`: skip the skill's appended handoff instructions.

@@ -60,7 +60,7 @@ class ModelAliasTests(unittest.TestCase):
             ("codex", "terra", "gpt-5.6-terra"),
             ("codex", "astra", "gpt-6-astra"),
             ("claude", "opus", "claude-opus-5"),
-            ("claude", "fable", "claude-fable-5"),
+            ("claude", "fable", "claude-fable-5-2"),
             ("opencode", "grok", "openrouter/x-ai/grok-4.5"),
             ("opencode", "kimi", "openrouter/moonshotai/kimi-k3"),
         ]
@@ -175,6 +175,46 @@ class CodexAstraDefaultsTests(unittest.TestCase):
         )
 
 
+class CodexServiceTierTests(unittest.TestCase):
+    def build_codex_command(self, *extra_args: str) -> list[str]:
+        parser = agent_orchestrator.build_parser()
+        args = parser.parse_args(["run", "--engine", "codex", "--prompt", "Test prompt", *extra_args])
+        return agent_orchestrator.build_command(args, Path("/tmp/project"), "Test prompt", None)
+
+    def config_values(self, command: list[str]) -> list[str]:
+        return [command[i + 1] for i, arg in enumerate(command) if arg == "-c"]
+
+    def test_astra_pins_standard_tier_by_default(self) -> None:
+        command = self.build_codex_command("--model", "astra")
+        self.assertIn('service_tier="default"', self.config_values(command))
+
+    def test_explicit_service_tier_overrides_astra_default(self) -> None:
+        command = self.build_codex_command("--model", "astra", "--service-tier", "priority")
+        values = self.config_values(command)
+        self.assertIn('service_tier="priority"', values)
+        self.assertNotIn('service_tier="default"', values)
+
+    def test_empty_service_tier_inherits_config_for_astra(self) -> None:
+        command = self.build_codex_command("--model", "astra", "--service-tier", "")
+        self.assertFalse(any(v.startswith("service_tier=") for v in self.config_values(command)))
+
+    def test_env_can_change_astra_tier(self) -> None:
+        module = load_module_with_env(AGENT_ORCHESTRATOR_CODEX_ASTRA_SERVICE_TIER="flex")
+        self.assertEqual(module.codex_service_tier("gpt-6-astra"), "flex")
+
+    def test_sol_inherits_config_tier(self) -> None:
+        command = self.build_codex_command("--model", "sol")
+        self.assertFalse(any(v.startswith("service_tier=") for v in self.config_values(command)))
+
+    def test_service_tier_applies_to_other_codex_models_when_given(self) -> None:
+        command = self.build_codex_command("--model", "sol", "--service-tier", "default")
+        self.assertIn('service_tier="default"', self.config_values(command))
+
+    def test_tier_comes_before_prompt(self) -> None:
+        command = self.build_codex_command("--model", "astra")
+        self.assertLess(command.index('service_tier="default"'), command.index("Test prompt"))
+
+
 class ClaudeModelDefaultsTests(unittest.TestCase):
     def build_claude_command(self, *extra_args: str) -> list[str]:
         parser = agent_orchestrator.build_parser()
@@ -211,6 +251,13 @@ class ClaudeModelDefaultsTests(unittest.TestCase):
 
         self.assertEqual(command[command.index("--model") + 1], "claude-opus-5")
         self.assertEqual(command[command.index("--effort") + 1], "xhigh")
+
+    def test_fable_alias_uses_fable_5_2_with_fable_effort_default(self) -> None:
+        with mock.patch.object(agent_orchestrator, "DEFAULT_CLAUDE_FABLE_REASONING", "high"):
+            command = self.build_claude_command("--model", "fable")
+
+        self.assertEqual(command[command.index("--model") + 1], "claude-fable-5-2")
+        self.assertEqual(command[command.index("--effort") + 1], "high")
 
     def test_opus_alias_is_case_insensitive(self) -> None:
         self.assertEqual(
