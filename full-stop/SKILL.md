@@ -7,7 +7,7 @@ description: Take a change from its current state to a pull request that is read
 
 Do the same work as `full-send`, but stop with the PR ready for the user to merge. Never merge it.
 
-Read [full-send](../full-send/SKILL.md) and follow it: its workflow, branch workflow and worktree rule, proof, reviewable PR, review, babysitting, waiting, Kernel, and asking rules. A "full stop" request authorizes that work without a separate "full send" request. That includes full-send's testing permission: a "full stop" is the permission for the test methods Proof needs, even when a project file says to ask first. Its merge permission does not apply. The overrides below take precedence.
+Read [full-send](../full-send/SKILL.md) and follow it: its workflow, branch workflow and worktree rule, proof, reviewable PR, review with its Fable and Astra review pair, babysitting, waiting, Kernel, and asking rules. A "full stop" request authorizes that work without a separate "full send" request. That includes full-send's testing permission: a "full stop" is the permission for the test methods Proof needs, even when a project file says to ask first. Its merge permission does not apply. The overrides below take precedence.
 
 ## No merging
 
@@ -34,7 +34,7 @@ In T3 Code, call `unwatch_pull_request` before the handoff or a question if you 
 - The PR link, the final head, the worktree path if you made one, and the verdict: ready to merge, waiting for approval, or blocked.
 - Whether the PR is still open and unmerged, and any auto-merge or merge-queue change you made.
 - Your proof, the evidence on the PR, and the test methods you used under the testing permission.
-- The reviews: `pre-pr-review` passes and verdict, or why you skipped it, and bot findings fixed or dismissed with reasons.
+- The reviews: `pre-pr-review` passes and verdict, or why you skipped it, the route each reviewer of the pair ran on, and bot findings fixed or dismissed with reasons.
 - Each decision you made for the user, and the risks that remain.
 - Kernel actions you took, and the ones you are proposing.
 - Follow-ups you declined to fold into this PR.

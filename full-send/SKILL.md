@@ -38,7 +38,7 @@ It covers only the tests this task needs. It does not cover anything under "The 
 
 1. **Finish the change** the user asked for, starting from the latest base (see "Branch workflow"). If you are on the default or integration branch, create a Conventional branch from the fetched base, in a new local worktree in projects where that applies. For a visible change, capture the "before" first (see "Reviewable PR"). In a Lovable-managed repo, see "Lovable repos".
 2. **Prove it.** Get proof for every change you made. See "Proof".
-3. **Review it.** Use your judgment on whether the diff warrants `pre-pr-review`, and say in the report what you chose and why. When you run it, run it on the whole branch diff with the user's request as the intent. Commit the fixes it accepts and prove the ones that change behavior. If it stops on a decision only the user can make, see "Asking the user".
+3. **Review it.** Use your judgment on whether the diff warrants `pre-pr-review`, and say in the report what you chose and why. When you run it, run it on the whole branch diff with the user's request as the intent, with the "Review pair" as its reviewers. Commit the fixes it accepts and prove the ones that change behavior. If it stops on a decision only the user can make, see "Asking the user".
 4. **File the PR** against the base with `github-pr-formatting`, or use the one that already exists for this branch. Update the branch from the latest base first. Open a real PR, not a draft, so review bots run. Make it easy to review, with the evidence in the PR itself (see "Reviewable PR"). Its Verification section says how you proved the change.
 5. **Babysit the PR** with `pr-babysit` in `drive` mode. It handles threads through `address-pr-comments`. Fix real findings and CI failures, and prove each fix before you push it. Write bot replies with `my-voice`, because they go out under the user's name. Keep the branch on the latest base.
 6. **Merge** when the merge gate passes.
@@ -65,6 +65,27 @@ Proof is evidence you observed yourself in this session: command output, a repro
 - For user-facing behavior changes, apply [test-engineer's focused journey method](../test-engineer/references/user-story-testing.md): complete the affected story from its real entry point, preserve the same data through material handoffs, and verify the durable outcome and relevant recovery variants. Inspect existing assertions for missing connections; page checks and seeded downstream tests alone are insufficient. Scope this proof to the change and name any simulated or untested boundary.
 
 If you cannot find a way to prove a change, you do not have full confidence. Ask the user.
+
+## Review pair
+
+When you run `pre-pr-review`, its reviewers are this pair, not two reviewers on the session's model. This replaces its model rule and its optional third reviewer. Its lenses, passes, lead judgment, and stop rules stay.
+
+- **Fable:** Claude Fable 5.2 (`claude-fable-5-2`) at `xhigh` effort.
+- **Astra:** GPT-6 Astra (`gpt-6-astra`) at `xhigh` reasoning.
+
+Each reviewer reads both lens files (correctness and quality) and tags each finding with its lens. Findings raised by both reviewers rank highest. Launch both in each pass, in parallel, with fresh reviewers every pass. Their prompts follow `pre-pr-review`, including "read-only, do not edit files".
+
+**Never fast mode.** Neither reviewer may run in fast mode. Native sub-agents inherit the session's fast mode and Codex service tier, and the user's Codex config defaults to the Fast tier (`service_tier = "priority"`). So every Astra run must set the standard tier explicitly.
+
+Launch each reviewer by the first route that fits:
+
+| Reviewer | Route |
+| --- | --- |
+| Either, in T3 Code | `delegate_task` with `role: "review"`, the model ID above, and `options`: Fable `{effort: "xhigh"}`, Astra `{reasoningEffort: "xhigh", serviceTier: "default"}`. Set `fastMode: false` where `orchestrator_capabilities` lists it. Use the provider instance for the same account as this thread. |
+| Fable, from a Claude session outside T3 Code and not in fast mode | Native sub-agent: Agent tool with `model: "fable"` and `effort: "xhigh"` |
+| Either, otherwise | `agent-orchestrator` run, awaited (in Claude Code, as a background command). Fable: `--engine claude --model claude-fable-5-2 --reasoning xhigh`. Astra: `--engine codex --model gpt-6-astra --reasoning xhigh --extra-arg=-c --extra-arg='service_tier="default"'`. |
+
+If one reviewer cannot run, for example when its provider is unavailable or not signed in, do not pick a substitute model. Run the other one, and fill the missing seat with `pre-pr-review`'s session-model reviewer, which must also not run in fast mode. Say in the report which seat changed and why. If neither can run, use `pre-pr-review`'s default reviewers and say so.
 
 ## Reviewable PR
 
@@ -133,7 +154,7 @@ If no question tool is available, or the tool returns no answer, take the safe p
 
 - The PR link, the merge commit, the worktree path if you made one, and the deploy status if there was one.
 - Your proof, the evidence on the PR, and the test methods you used under the testing permission.
-- The reviews: `pre-pr-review` passes and verdict, or why you skipped it, and bot findings fixed or dismissed with reasons.
+- The reviews: `pre-pr-review` passes and verdict, or why you skipped it, the route each reviewer of the pair ran on, and bot findings fixed or dismissed with reasons.
 - Each decision you made for the user.
 - Kernel actions you took, and the ones you are proposing.
 - Follow-ups you declined to fold into this PR.

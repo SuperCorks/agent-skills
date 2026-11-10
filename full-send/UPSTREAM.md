@@ -15,7 +15,7 @@ Upstream's skills were swapped for local ones:
 
 | tstack | Here |
 | --- | --- |
-| `sol-loop` (a GPT Sol reviewer in a loop) | `pre-pr-review` (two reviewers on the session's model, at most three passes), run when the agent judges the diff warrants it |
+| `sol-loop` (a GPT Sol reviewer in a loop) | `pre-pr-review` (at most three passes), run when the agent judges the diff warrants it, with a Claude Fable 5.2 and GPT-6 Astra reviewer pair at `xhigh` in place of its session-model reviewers |
 | `file-pr` | `github-pr-formatting` |
 | `babysit-pr` and its `pr-wait` script | `pr-babysit` (threads through `address-pr-comments`), with T3's `watch_pull_request` when it is available |
 | `leaving-pr-comments` | `github-pr-formatting` comment patterns and `my-voice` |
@@ -33,6 +33,7 @@ Local additions:
 - Merge-triggered deploys get a status check, and a failed deploy is a question for the user.
 - A new local worktree for the branch in projects where task worktrees apply.
 - A "Reviewable PR" section: before and after screenshots, video recordings, and similar proof go in the PR, and the merge gate checks for them.
+- A "Review pair" section (2026-11-10): `pre-pr-review` runs with Claude Fable 5.2 and GPT-6 Astra, both at `xhigh` and never in fast mode. Astra runs set the standard Codex tier explicitly, because the user's Codex config defaults to the Fast tier.
 
 The `full-stop` variant, which stops before the merge, is its own skill in `full-stop/`.
 
