@@ -7,7 +7,7 @@ description: Take a change from its current state to a pull request that is read
 
 Do the same work as `full-send`, but stop with the PR ready for the user to merge. Never merge it.
 
-Read [full-send](../full-send/SKILL.md) and follow it: its workflow, branch workflow and worktree rule, proof, reviewable PR, review with its Fable and Astra review pair, babysitting, waiting, Kernel, and asking rules. A "full stop" request authorizes that work without a separate "full send" request. That includes full-send's testing permission: a "full stop" is the permission for the test methods Proof needs, even when a project file says to ask first. Its merge permission does not apply. The overrides below take precedence.
+Read [full-send](../full-send/SKILL.md) and follow it: its workflow, branch workflow and worktree rule, proof, reviewable PR, review with its review pair, babysitting, waiting, Kernel, and asking rules. A "full stop" request authorizes that work without a separate "full send" request. That includes full-send's testing permission: a "full stop" is the permission for the test methods Proof needs, even when a project file says to ask first. Its merge permission does not apply. The overrides below take precedence.
 
 ## No merging
 

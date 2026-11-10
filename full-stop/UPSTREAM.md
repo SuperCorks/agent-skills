@@ -20,7 +20,7 @@ Local changes:
 - Lovable-managed repos stop with the validated change committed locally, because pushing to the connected branch is the merge there.
 - Kernel tasks get their work summary at the handoff, since there is no merge. They also move to In review once the PR is linked, or at the handoff in a Lovable repo.
 - The handoff report also lists auto-merge and merge-queue changes, Kernel actions, and declined follow-ups.
-- It follows full-send's review pair (Claude Fable 5.2 and GPT-6 Astra at `xhigh`, never in fast mode), and the handoff report names the route each reviewer ran on.
+- It follows full-send's review pair, and the handoff report names the route each reviewer ran on.
 - It follows full-send's worktree and "Reviewable PR" rules. The PR's evidence must match the final head, and the handoff report lists the worktree path and that evidence.
 
 ## License
