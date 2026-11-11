@@ -117,7 +117,7 @@ Kernel has two fixed access presets. A Read only key can read workspace data, or
 - **Standing tasks and Habits:** list and inspect both. Full work keys can create, update, archive, restore, or conditionally delete Standing tasks; create, update, pause, resume, or archive Habits; inspect occurrences; and skip occurrences.
 - **Time:** list work sessions and time entries; stop or undo-stop sessions; create, update, approve, split, merge, export, and delete time entries. List, inspect, create, edit, and discard bulk time drafts; stage verified thread, tracker, pull request, and URL associations for existing or proposed tasks. Draft acceptance requires the signed-in user and is unavailable to API keys. See [Bulk time drafts and staged links](#bulk-time-drafts-and-staged-links).
 - **Portfolio:** list organizations, projects, and tags; create, update, archive, and restore them and manage organization images where supported. Organization and project files, and their supporting files and public links, work like task attachments.
-- **People:** a workspace-wide directory (`/people`). Each person has emails (one primary), phone numbers, a timezone, Slack member IDs (one per Slack workspace), where they work, notes, the user's familiarity with them (`friendly`, `neutral`, `professional`, or unset), and a role on each organization and project they are on (`/people/{personId}/memberships`, `/organizations/{id}/people`, `/projects/{id}/people`). Tasks carry `personIds`. The user's own record has `isYou` and never a familiarity. Read `people:read`; write `people:write`. See the guide's "People directory" section.
+- **People:** a workspace-wide directory (`/people`). Each person has emails (one primary), phone numbers, a timezone, Slack member IDs (one per Slack workspace), where they work, notes, the user's familiarity with them (`friendly`, `neutral`, `professional`, or unset), and a role on each organization and project they are on (`/people/{personId}/memberships`, `/organizations/{id}/people`, `/projects/{id}/people`). Tasks carry `personIds`. The user's own record has `isYou` and never a familiarity. Read `people:read`; write `people:write`. Possible duplicates, reversible merges, and reviewed Inbox sender suggestions are supported; see the guide's "People directory" section and the workflows below.
 - **Pricing:** read an organization's billing tracking, effective-dated currency and default hourly-rate terms, and a project's billing model, fixed fee, rate overrides, and current effective rate. Full work keys turn tracking on or off, add or change terms and overrides, change a project's model or fixed fee, and send initial `billing` when creating a project. Amounts are integer cents. Read pricing first and pass its `version`; see the guide's "Organization and project pricing" section.
 - **Public file links:** list every link in the workspace, read one link's view history, and manage the feedback left through it. See [Publishing a file](#publishing-a-file).
 - **Scheduling:** inspect scheduling settings and scheduled blocks; create planned tasks, relocate planner items, edit, snooze, or intentionally remove blocks, preview schedules, update settings, and request rebuilds. Add a ready or active task to today's priorities, or remove it, so the scheduler places it before every other task until workspace-local midnight; task reads report the position as `todayPriorityRank`.
@@ -128,6 +128,26 @@ Kernel has two fixed access presets. A Read only key can read workspace data, or
 - **Asana suggestions:** list, inspect, edit, accept, discard, restore, and undo supported dispositions of sanitized suggestions from connected Asana projects. Accepting one as a new task chooses that task's `lifecycle`, including `blocked` with an optional `blockedReason`. Attaching the suggestion to an existing task instead leaves that task's own status unchanged and refuses a `blockedReason`.
 - **Linear:** discover connected Linear accounts through `GET /inbox-sources`, including accounts with intake off. For ordinary tasks, read linked issue facts through `GET /integrations/linear/tasks/{taskId}/link`, link an existing issue through `POST` to that path, or create and link an issue through `POST /integrations/linear/tasks/{taskId}/create`. Reads require `tasks:read` and `linear:read`; writes require `tasks:write`, `linear:write`, and an `Idempotency-Key`. Reuse that key after an uncertain response. Read the live contract for payloads and available identifiers. Habit occurrences, Standing tasks and meetings are excluded. Linear suggestions use the generic Inbox review operations. Connection setup, catalogs, search, sync, tracking mappings, and unlinking stay in signed-in Kernel; API keys do not expose a wider Linear administration suite.
 - **Realtime:** open the authenticated server-sent event stream for workspace invalidations and reload authoritative state after change events.
+
+### People directory maintenance
+
+When authorized to combine duplicate people, merge rather than delete: `POST /people/{personId}/merge`
+takes the survivor's `version`, the duplicate's `personId`, and its `personVersion`. The survivor
+keeps conflicting values, fills blanks, and combines notes, identities, roles and tasks. Keep the
+returned merge receipt for Undo; follow `person_merged` through `details.survivorId` on old links.
+`GET /people/duplicates` offers possible pairs; a matching name alone does not authorize a merge.
+
+`GET /people/suggestions` lists unknown senders whose messages produced Inbox cards. Review one
+before creating a person. Only an explicit `POST /people/suggestions/{id}/draft` with its `version`
+extracts signature fields; it never saves a person. Review the draft, then use `POST /people`.
+Reads need `people:read` and `inbox:read`; drafting needs `people:write` and `inbox:read`.
+Task acceptance's optional `addSender: true` creates an eligible unknown sender and needs
+`people:write`; omitted or false keeps existing-directory linking. Never infer familiarity.
+
+To undo removing a task person, `POST /tasks/{taskId}/people/restore` takes the current task
+`version` and the removed link's recorded `personId`, `source`, and `addedAt`. Preserve those
+original values and reread the task after restoration before another edit. Read the guide and
+live contract for merge Undo, duplicate dismissals, suggestion dismissals, and their receipts.
 
 ### Merging tasks that are the same work
 
