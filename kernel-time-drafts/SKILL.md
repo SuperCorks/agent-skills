@@ -15,6 +15,10 @@ Use the sibling [Kernel skill](../kernel/SKILL.md) for authentication, current A
 - Read the current draft, including removed entries and task links, and save a private before snapshot. The user may have edited it since creation. If asked to adjust one date, preserve all other dates exactly, including removed entries. Preserve task definitions, staged changes, task assignments, integration links (including removed history), and billing flags unless explicitly asked to change them.
 - A request to prepare or adjust a draft authorizes that draft work. It does not authorize acceptance, changes to recorded time, task completion, or changing task Duration estimates. Do not add an approval step to work already authorized.
 
+## Review link
+
+Build the link you report from the API's actual `reviewUrl`, never from a path you assemble. When the draft covers a single local date (`startsOn` equals `endsOn`), add `view=day`, `date=<that date>` and `planner=1`, for example `https://app.krnl.work/time/drafts/<draftId>?view=day&date=2026-11-09&planner=1`. If `reviewUrl` already has a query string, append them with `&`. Report a multi-day draft's `reviewUrl` unchanged.
+
 ## Reconstruct work when needed
 
 Start with Kernel's portfolio, tasks, recorded time, and open drafts. Reuse existing tasks by UUID and preserve billing settings. Search before proposing tasks; proposed tasks stay inside the draft until acceptance.
@@ -157,6 +161,6 @@ python3 scripts/regroup.py /private/path/before.json \
   --date 2026-10-24 --verify /private/path/after.json --plan /private/path/plan.json
 ```
 
-The check covers untouched dates, task definitions (including their staged link snapshots), retained entry identity and billing, planned removals, minimum duration, and computed totals. Return the API's actual `reviewUrl`, with a short account of the affected dates, block count, minimum, total changes, staged sources, and association gaps. Acceptance stays with the user.
+The check covers untouched dates, task definitions (including their staged link snapshots), retained entry identity and billing, planned removals, minimum duration, and computed totals. Return the [review link](#review-link) built from the API's actual `reviewUrl`, with a short account of the affected dates, block count, minimum, total changes, staged sources, and association gaps. Acceptance stays with the user.
 
 Keep private snapshots, source history, credentials, and client-specific examples outside this skill folder.
