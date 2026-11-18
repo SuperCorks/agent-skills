@@ -14,7 +14,7 @@ export const TRANSCRIPT_SCHEMA_FILE = path.join(HERE, "transcript.schema.json");
 export const DEFAULT_SETTINGS = Object.freeze({ provider: "codex", model: "gpt-6-luna", effort: "low" });
 export const PROVIDERS = ["codex", "openrouter"];
 export const EFFORTS = ["none", "minimal", "low", "medium", "high", "xhigh", "max"];
-export const MODEL_SUGGESTIONS = ["gpt-6-luna", "gpt-6-sol", "gpt-6.1-sol", "gpt-6-astra", "gpt-5.6-luna"];
+export const MODEL_SUGGESTIONS = ["gpt-6-luna", "gpt-6-sol", "gpt-6.1-sol", "gpt-6.2-astra", "gpt-5.6-luna"];
 
 export class ProviderUnavailable extends Error {}
 

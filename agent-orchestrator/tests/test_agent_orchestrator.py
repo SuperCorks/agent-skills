@@ -58,7 +58,7 @@ class ModelAliasTests(unittest.TestCase):
         cases = [
             ("codex", "sol", "gpt-5.6-sol"),
             ("codex", "terra", "gpt-5.6-terra"),
-            ("codex", "astra", "gpt-6-astra"),
+            ("codex", "astra", "gpt-6.2-astra"),
             ("claude", "opus", "claude-opus-5"),
             ("claude", "fable", "claude-fable-5-2"),
             ("opencode", "grok", "openrouter/x-ai/grok-4.5"),
@@ -93,22 +93,22 @@ class CodexAstraDefaultsTests(unittest.TestCase):
             None,
         )
 
-    def test_astra_alias_resolves_to_gpt_6_astra(self) -> None:
-        self.assertEqual(agent_orchestrator.resolve_model("codex", "astra"), "gpt-6-astra")
+    def test_astra_alias_resolves_to_gpt_6_2_astra(self) -> None:
+        self.assertEqual(agent_orchestrator.resolve_model("codex", "astra"), "gpt-6.2-astra")
 
     def test_astra_alias_is_case_insensitive(self) -> None:
-        self.assertEqual(agent_orchestrator.resolve_model("codex", "AsTrA"), "gpt-6-astra")
+        self.assertEqual(agent_orchestrator.resolve_model("codex", "AsTrA"), "gpt-6.2-astra")
 
     def test_astra_defaults_to_medium_reasoning(self) -> None:
         with mock.patch.object(agent_orchestrator, "DEFAULT_CODEX_ASTRA_REASONING", "medium"):
             command = self.build_codex_command("--model", "astra")
 
             self.assertEqual(
-                agent_orchestrator.default_reasoning("codex", "gpt-6-astra"),
+                agent_orchestrator.default_reasoning("codex", "gpt-6.2-astra"),
                 "medium",
             )
 
-        self.assertEqual(command[command.index("--model") + 1], "gpt-6-astra")
+        self.assertEqual(command[command.index("--model") + 1], "gpt-6.2-astra")
         self.assertEqual(
             command[command.index("-c") + 1],
             'model_reasoning_effort="medium"',
@@ -117,7 +117,7 @@ class CodexAstraDefaultsTests(unittest.TestCase):
     def test_astra_matching_is_case_insensitive_for_reasoning(self) -> None:
         with mock.patch.object(agent_orchestrator, "DEFAULT_CODEX_ASTRA_REASONING", "medium"):
             self.assertEqual(
-                agent_orchestrator.default_reasoning("codex", "GPT-6-ASTRA"),
+                agent_orchestrator.default_reasoning("codex", "GPT-6.2-ASTRA"),
                 "medium",
             )
 
@@ -154,7 +154,7 @@ class CodexAstraDefaultsTests(unittest.TestCase):
         with mock.patch.object(agent_orchestrator, "DEFAULT_CODEX_ASTRA_REASONING", "medium"):
             command = self.build_codex_command("--model", "astra", "--reasoning", "xhigh")
 
-        self.assertEqual(command[command.index("--model") + 1], "gpt-6-astra")
+        self.assertEqual(command[command.index("--model") + 1], "gpt-6.2-astra")
         self.assertEqual(
             command[command.index("-c") + 1],
             'model_reasoning_effort="xhigh"',
@@ -200,7 +200,7 @@ class CodexServiceTierTests(unittest.TestCase):
 
     def test_env_can_change_astra_tier(self) -> None:
         module = load_module_with_env(AGENT_ORCHESTRATOR_CODEX_ASTRA_SERVICE_TIER="flex")
-        self.assertEqual(module.codex_service_tier("gpt-6-astra"), "flex")
+        self.assertEqual(module.codex_service_tier("gpt-6.2-astra"), "flex")
 
     def test_sol_inherits_config_tier(self) -> None:
         command = self.build_codex_command("--model", "sol")

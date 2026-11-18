@@ -1,6 +1,6 @@
 # CLI Defaults And Commands
 
-Model IDs and reasoning levels were verified against the local Codex and Claude Code CLIs plus official OpenAI, Anthropic, and OpenRouter model records on 2026-07-26; the GPT-6 Astra entry was verified against the local Codex model catalog (`~/.codex/models_cache.json`, which lists `gpt-6-astra` with efforts `low`, `medium` (default), `high`, `xhigh`, `max`, and `ultra`) on 2026-09-19.
+Model IDs and reasoning levels were verified against the local Codex and Claude Code CLIs plus official OpenAI, Anthropic, and OpenRouter model records on 2026-07-26; the GPT-6.2 Astra entry was verified against the local Codex model catalog (`~/.codex/models_cache.json`, which lists `gpt-6.2-astra` with efforts `low` (default), `medium`, `high`, `xhigh`, `max`, and `ultra`) on 2026-11-18.
 
 ## Default Models And Reasoning
 
@@ -10,7 +10,7 @@ User policy for this skill:
 - Codex Sol reasoning: `xhigh` via `-c model_reasoning_effort="xhigh"`
 - Codex Terra model: `gpt-5.6-terra`
 - Codex Terra reasoning: `high` unless overridden with `--reasoning`
-- Codex Astra model: `gpt-6-astra`; user shorthand and helper alias: `astra`
+- Codex Astra model: `gpt-6.2-astra`; user shorthand and helper alias: `astra`
 - Codex Astra reasoning: `medium` unless overridden with `--reasoning`
 - Claude default model: `claude-opus-5`; user shorthand and Claude Code alias: `opus`
 - Claude Opus 5 effort: `xhigh`
@@ -30,7 +30,7 @@ Override for a single run:
 python3 agent-orchestrator/scripts/agent_orchestrator.py run --engine codex --model gpt-5.6-sol --reasoning xhigh --prompt "..."
 python3 agent-orchestrator/scripts/agent_orchestrator.py run --engine codex --model gpt-5.6-terra --reasoning high --prompt "..."
 python3 agent-orchestrator/scripts/agent_orchestrator.py run --engine codex --model astra --prompt "..."
-python3 agent-orchestrator/scripts/agent_orchestrator.py run --engine codex --model gpt-6-astra --reasoning medium --prompt "..."
+python3 agent-orchestrator/scripts/agent_orchestrator.py run --engine codex --model gpt-6.2-astra --reasoning medium --prompt "..."
 python3 agent-orchestrator/scripts/agent_orchestrator.py run --engine claude --model claude-opus-5 --reasoning xhigh --prompt "..."
 python3 agent-orchestrator/scripts/agent_orchestrator.py run --engine claude --model claude-fable-5-2 --prompt "..."
 python3 agent-orchestrator/scripts/agent_orchestrator.py run --engine opencode --model openrouter/x-ai/grok-4.5 --reasoning high --prompt "..."
@@ -58,7 +58,7 @@ export AGENT_ORCHESTRATOR_RUN_TIMEOUT=2700
 
 GPT-5.6 Sol is the default Codex model and uses `xhigh` reasoning. Select GPT-5.6 Terra with `--model gpt-5.6-terra`; when `--reasoning` is omitted, the helper uses `high`. Both defaults also apply to resumed Codex sessions.
 
-GPT-6 Astra is available as `gpt-6-astra` and helper alias `astra`. It is not the default Codex model. When selected and `--reasoning` is omitted, the helper uses `medium`, which matches the model's own catalog default. Override precedence is `--reasoning`, `AGENT_ORCHESTRATOR_CODEX_ASTRA_REASONING`, the global `AGENT_ORCHESTRATOR_CODEX_REASONING`, then the built-in `medium` default. GPT-6 Astra is the model for computer-use / browser-driving work; keep its reasoning at medium unless told otherwise. Never run it in fast mode. The Fast tier is Codex's `priority` service tier, and a user's `~/.codex/config.toml` can make it the default, so the helper pins `service_tier="default"` for Astra runs. `--service-tier` overrides that for one run (an empty value inherits the config), and `AGENT_ORCHESTRATOR_CODEX_ASTRA_SERVICE_TIER` changes the default. Verified 2026-11-10: a run without the pin logged `"service_tier":"priority"` in its Codex session log, and a run with it logged `"default"`.
+GPT-6.2 Astra is available as `gpt-6.2-astra` and helper alias `astra`. It is not the default Codex model. When selected and `--reasoning` is omitted, the helper uses `medium` rather than the model's own catalog default of `low`. Override precedence is `--reasoning`, `AGENT_ORCHESTRATOR_CODEX_ASTRA_REASONING`, the global `AGENT_ORCHESTRATOR_CODEX_REASONING`, then the built-in `medium` default. GPT-6.2 Astra is the model for computer-use / browser-driving work; keep its reasoning at medium unless told otherwise. Never run it in fast mode. The Fast tier is Codex's `priority` service tier, and a user's `~/.codex/config.toml` can make it the default, so the helper pins `service_tier="default"` for Astra runs. `--service-tier` overrides that for one run (an empty value inherits the config), and `AGENT_ORCHESTRATOR_CODEX_ASTRA_SERVICE_TIER` changes the default. Verified 2026-11-10: a run without the pin logged `"service_tier":"priority"` in its Codex session log, and a run with it logged `"default"`.
 
 Claude Code accepts aliases such as `opus`, `fable`, and full model names. The skill default pins Opus 5 with the full model name `claude-opus-5`. Interpret the user's case-insensitive `opus` shorthand as Opus 5 and translate it to `--engine claude --model claude-opus-5`; the helper also normalizes `--model opus` to that exact model ID. Opus 5 uses `xhigh` effort by default for coding and agentic work unless `--reasoning` overrides it.
 
@@ -157,7 +157,7 @@ The helper builds:
 codex exec --json --output-last-message /path/to/final.txt --model gpt-5.6-sol -c 'model_reasoning_effort="xhigh"' --cd /path/to/repo --yolo "Prompt..."
 ```
 
-GPT-6 Astra awaited worker:
+GPT-6.2 Astra awaited worker:
 
 ```bash
 python3 agent-orchestrator/scripts/agent_orchestrator.py run --engine codex --model astra --prompt "..."
@@ -166,7 +166,7 @@ python3 agent-orchestrator/scripts/agent_orchestrator.py run --engine codex --mo
 The helper builds:
 
 ```bash
-codex exec --json --output-last-message /path/to/final.txt --model gpt-6-astra -c 'model_reasoning_effort="medium"' --cd /path/to/repo --yolo "..."
+codex exec --json --output-last-message /path/to/final.txt --model gpt-6.2-astra -c 'model_reasoning_effort="medium"' --cd /path/to/repo --yolo "..."
 ```
 
 Claude awaited worker:

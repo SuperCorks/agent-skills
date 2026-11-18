@@ -100,7 +100,7 @@ Optional extra sections: `## Measurement and privacy`, `## QA checklists`. A pro
 | Scope | organization (project when one org has unrelated codebases) | same |
 | Machines | MacBook and Remote, one mapping each | same |
 | Checkout | `folder` (required when the workspace spans several repos) | `folder` |
-| Model | `gpt-6-astra`, reasoning `xhigh` | the default Claude instance in `../clients.local.md`, model `claude-opus-5-5`, options `[{id: effort, value: high}]` |
+| Model | `gpt-6.2-astra`, reasoning `xhigh` | the default Claude instance in `../clients.local.md`, model `claude-opus-5-5`, options `[{id: effort, value: high}]` |
 | Mode | | runtime `full-access` |
 | Prefix | client emoji | empty |
 
