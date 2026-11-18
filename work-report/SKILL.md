@@ -53,7 +53,7 @@ Collecting is reading and summarizing, so set the model and effort on every laun
 inheriting the session's (often `xhigh`):
 
 - **Claude:** Opus (`model: "opus"`) at `effort: "medium"`.
-- **Codex on GPT-6 Astra:** `model: "gpt-6-astra"`, `reasoning_effort: "medium"`.
+- **Codex on GPT-6.2 Astra:** `model: "gpt-6.2-astra"`, `reasoning_effort: "medium"`.
 - **Codex on GPT-6.1 Sol:** `model: "gpt-6.1-sol"`, `reasoning_effort: "high"`.
 
 Never run collectors at `xhigh` or above. The synthesis in step 5 stays in the main thread.

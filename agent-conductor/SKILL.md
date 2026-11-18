@@ -1,6 +1,6 @@
 ---
 name: agent-conductor
-description: Run a large or long task as the master thread on a frontier model (Claude Fable or GPT-6 Astra) while sub-agents on Opus 5 or GPT-5.6 Sol at high do the heavy work. Plans, dispatches handoff packets, waits on events instead of polling, verifies through reviewer workers, and keeps long-running work aligned with the plan. Use when the user asks to conduct, orchestrate, delegate, or run a task with sub-agents to save master-thread tokens; not for small tasks that one agent can finish directly.
+description: Run a large or long task as the master thread on a frontier model (Claude Fable or GPT-6.2 Astra) while sub-agents on Opus 5 or GPT-5.6 Sol at high do the heavy work. Plans, dispatches handoff packets, waits on events instead of polling, verifies through reviewer workers, and keeps long-running work aligned with the plan. Use when the user asks to conduct, orchestrate, delegate, or run a task with sub-agents to save master-thread tokens; not for small tasks that one agent can finish directly.
 ---
 
 # Agent Conductor
@@ -18,9 +18,9 @@ Worker roles, models, and prompts are in [references/roles.md](references/roles.
 
 | Rule | Detail |
 | --- | --- |
-| Models | Implementation, review, exploration, and integration workers run Claude Opus 5 or GPT-5.6 Sol at `high`. Computer-use workers run GPT-6 Astra at `medium`. Only the long-task monitor role may use Sonnet or GPT-6 Luna. |
+| Models | Implementation, review, exploration, and integration workers run Claude Opus 5 or GPT-5.6 Sol at `high`. Computer-use workers run GPT-6.2 Astra at `medium`. Only the long-task monitor role may use Sonnet or GPT-6 Luna. |
 | Never fast mode | Check before the first dispatch and refuse to launch workers while the session is in fast mode. Workers inherit it at spawn. |
-| Same harness | Workers are native sub-agents of the harness you run in. The one cross-harness case is a Claude master needing GPT-6 Astra: use the `agent-orchestrator` skill with model alias `astra`. Never shell out to `claude` or `codex` yourself. |
+| Same harness | Workers are native sub-agents of the harness you run in. The one cross-harness case is a Claude master needing GPT-6.2 Astra: use the `agent-orchestrator` skill with model alias `astra`. Never shell out to `claude` or `codex` yourself. |
 | Master stays light | You read `status`, packets, reports, and review verdicts. You never read worker transcripts, raw logs, or large files. If a read would exceed about 200 lines, delegate it to an explorer worker that returns a brief. |
 | Reports and wakeups | Workers write their report and `conductor.py event`, then notify the master through the harness. File writes alone do not wake Codex. Steering goes through the native message-to-agent tool, referencing the packet path. |
 | Git | Workers commit only when their packet's commit policy says so. Pull requests go through the `git-workflow-gates` skill when the user asked for one. |
@@ -155,4 +155,4 @@ Stop all dispatch when a problem would hit every task, and fix it first. Mid-run
 
 ## Computer use
 
-Browser and desktop work goes to a `computer-use` role worker on GPT-6 Astra at medium reasoning, which also loads the `web-computer-use` skill for browser and profile coordination. Codex masters spawn it natively. Claude masters use `agent-orchestrator` with `--engine codex --model astra`, passing the packet path in the prompt; the packet protocol is unchanged.
+Browser and desktop work goes to a `computer-use` role worker on GPT-6.2 Astra at medium reasoning, which also loads the `web-computer-use` skill for browser and profile coordination. Codex masters spawn it natively. Claude masters use `agent-orchestrator` with `--engine codex --model astra`, passing the packet path in the prompt; the packet protocol is unchanged.

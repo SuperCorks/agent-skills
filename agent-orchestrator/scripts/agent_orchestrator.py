@@ -33,7 +33,7 @@ DEFAULT_CODEX_ASTRA_REASONING = os.environ.get(
     "AGENT_ORCHESTRATOR_CODEX_ASTRA_REASONING",
     CODEX_REASONING_OVERRIDE or "medium",
 )
-# GPT-6 Astra must never run on the Fast ("priority") tier, which a user's
+# GPT-6.2 Astra must never run on the Fast ("priority") tier, which a user's
 # ~/.codex/config.toml can make the default. An empty value inherits the config.
 DEFAULT_CODEX_ASTRA_SERVICE_TIER = os.environ.get(
     "AGENT_ORCHESTRATOR_CODEX_ASTRA_SERVICE_TIER",
@@ -52,13 +52,14 @@ OPENCODE_AUTH_PROVIDER = os.environ.get("AGENT_ORCHESTRATOR_OPENCODE_AUTH_PROVID
 CLAUDE_FABLE_MODELS = {"fable", "claude-fable-5", "claude-fable-5-1", "claude-fable-5-2"}
 CODEX_SOL_MODELS = {"gpt-5.6-sol"}
 CODEX_TERRA_MODELS = {"gpt-5.6-terra"}
-CODEX_ASTRA_MODELS = {"gpt-6-astra"}
+# Keep the older ID so an explicit `--model gpt-6-astra` still gets the Astra defaults.
+CODEX_ASTRA_MODELS = {"gpt-6.2-astra", "gpt-6-astra"}
 OPENCODE_KIMI_K3_MODELS = {"openrouter/moonshotai/kimi-k3"}
 MODEL_ALIASES = {
     "codex": {
         "sol": "gpt-5.6-sol",
         "terra": "gpt-5.6-terra",
-        "astra": "gpt-6-astra",
+        "astra": "gpt-6.2-astra",
     },
     "claude": {
         "opus": "claude-opus-5",
