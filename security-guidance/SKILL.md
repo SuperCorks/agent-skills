@@ -35,6 +35,7 @@ Use this skill to audit code changes for exploitable risks and provide defensive
 - SSRF and unsafe URL fetches.
 - Path traversal and file access abuse.
 - Secrets leakage and excessive data exposure.
+- Misclassified configuration: a new or changed value that holds a secret must live in the tool's secret store (Vercel Sensitive, GitHub secret, Google Secret Manager, and similar), and a non-secret must stay a plain variable. Over-hiding is a finding too, because hidden configuration can't be QA'd or audited. Use the classification in `provider-cli-container` ("Classify configuration values: secret or plain").
 
 4. Recommend remediation:
 - Parameterization, encoding/escaping, allowlists, explicit auth checks, least privilege, safe defaults/timeouts/input size limits.

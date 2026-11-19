@@ -1,0 +1,4 @@
+interface:
+  display_name: "Production Cutover Check"
+  short_description: "Prove production connections don't point at dev or test"
+  default_prompt: "Use $production-cutover-check to verify every production variable and connection points at production before and after the cutover."

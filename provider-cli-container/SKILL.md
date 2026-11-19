@@ -65,6 +65,28 @@ The scaffold intentionally includes a common provider set as a starting point. I
 
 If the wrapper rejects an arbitrary command, interactive shell, or local-service operation, reroute the work to the correct lane instead of weakening the guard.
 
+## Classify configuration values: secret or plain
+
+Many tools keep two kinds of value: a write-only or access-controlled **secret**, and a readable **plain variable**. Hide only what must be hidden. Real secrets such as passwords and tokens go in secret storage. Everything else stays plain, because a hidden value can't be read back, so nobody can QA or audit where an environment points. For example, a production app's sign-in endpoints were stored as secrets and pointed at a test store for months without anyone being able to see it. Every time you add, update, or review a value, decide which kind it is:
+
+- **Secret:** anything that grants access or signs something: API keys, access and refresh tokens, passwords, client secrets, signing and webhook secrets, cookie/session secrets, private keys, and connection strings that embed credentials.
+- **Plain:** configuration that is public or harmless on its own: URLs and endpoints, domains and hostnames, public OAuth client IDs, store/project/account IDs, sender addresses, feature flags, and mode switches. Plain values can be read back later, so an audit can see where an environment actually points.
+
+Where each kind lives:
+
+| Tool | Secret | Plain |
+| --- | --- | --- |
+| Vercel | Sensitive env var | Non-sensitive env var (`vercel env add NAME <env> --value … --no-sensitive`) |
+| GitHub Actions | Secret (`gh secret set`) | Variable (`gh variable set`), read as `vars.NAME` |
+| Google Cloud | Secret Manager secret, mounted or referenced at runtime | Plain env var on the service or job (Cloud Run, Functions, App Engine) |
+| AWS | Secrets Manager or SSM `SecureString` | SSM `String` parameter or plain env var |
+| EAS / Expo | `secret` or `sensitive` visibility | `plaintext` visibility |
+| Netlify, Supabase, Doppler, and similar | Their secret or masked type | Their plain variable or config type |
+
+Use the same rule for any other tool that makes this distinction. Code must read each value from the matching place. For example, a GitHub workflow reads `vars.NAME` for a variable and `secrets.NAME` for a secret, so update the code in the same change when you move a value.
+
+A secret usually cannot be read back, so changing its kind means re-adding it with a value you know. Never guess a value you cannot read. Prove it from live behaviour or the source system first, and leave it unchanged when you can't. Treat a non-secret stored as a secret as a defect to fix, not a safe default. When you notice the reverse mistake, a real secret stored as plain, report it. Don't change values that an integration manages (for example Neon's database variables on Vercel) without checking how that integration syncs them.
+
 ## Handle credentials and lifecycle
 
 - Prefer project- or organization-scoped tokens and robot users over personal broad-scope credentials.

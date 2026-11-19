@@ -52,7 +52,10 @@ Scale coverage to the changed behavior and known failure patterns. A narrow chan
 4. Use an executable fallback when appropriate:
    - If a durable automated test would be disproportionately brittle, slow, or expensive (it would mostly test mocks, encode implementation details, depend on timing or global state, or need heavy infrastructure for a small fix), do not add it; use a focused script or real-system verification with deterministic inputs and observable assertions.
    - Explain the trade-off, capture the command and result, and remove temporary artifacts. Do not use a fallback merely to avoid a maintainable test.
-5. Re-run and triage:
+5. Check configuration values:
+   - When the change adds, renames, moves, or depends on configuration (hosted env vars, CI secrets and variables, secret-manager entries), check that each value is stored as the right kind. Only real secrets should be hidden. A URL, ID, or flag stored as a secret can't be read back, so you can't verify where the environment points; flag it as a defect, not a safe default. Secrets that grant access or sign something (API keys, tokens, passwords, client and signing secrets, private keys, credentialed connection strings) belong in the tool's secret store: Vercel Sensitive, GitHub secret, Google Secret Manager, and similar. Non-secrets (URLs, endpoints, domains, public client IDs, account or store IDs, sender addresses, flags) belong in plain, readable variables. The full classification is in `provider-cli-container` ("Classify configuration values: secret or plain").
+   - Check that the code reads each value from the place it is stored (for example `vars.NAME` vs `secrets.NAME` in GitHub Actions), and that values pointing at other systems target the environment under test, not a dev, test, or production system by mistake. Report a misclassified or wrong-target value as a finding; a value you cannot read is unverified, not passing.
+6. Re-run and triage:
    - Run targeted checks first, then the full relevant suite.
    - Investigate failures and distinguish product defects, test defects, environment failures, and unrelated baseline failures.
 
@@ -62,6 +65,7 @@ Scale coverage to the changed behavior and known failure patterns. A narrow chan
 - Test strategy summary.
 - For user-story work: completed paths, boundary/recovery variants, evidence, and failed, blocked, skipped, or untested paths; distinguish real and simulated integrations.
 - Tests added/updated (files).
+- When configuration changed: each value, whether it is stored as a secret or plain, and the system it points at, with any value left unverified.
 - In TDD/regression mode, red-before-green evidence or the reason it was not practical.
 - In claim mode, the falsifiable claim; baseline, treatment, delta, and threshold for each metric or artifact; one paragraph naming the evidence and any confounds; and the verdict.
 - Commands executed (exact) and results summary.
