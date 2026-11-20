@@ -160,7 +160,7 @@ node $PASTEL/scripts/list-accounts.js
 node $PASTEL/scripts/verify-access.js --account ALIAS
 ```
 
-This writes `export PASTEL_ACCOUNTS='{"alias":"token"}'` and `export PASTEL_ACCOUNT='alias'`. Pass `--account <alias>` to any script when several are configured. If `PASTEL_ACCOUNTS` is not loaded, the scripts read the managed block directly. `PASTEL_API_TOKEN` works as a one-off fallback, and `PASTEL_API_BASE_URL` overrides the API. The block keeps its original `pastel-reader auth` markers so existing setups keep working. Pastel gates API tokens by plan; if a token returns `Invalid API token provided`, ask the user for a fresh one rather than trying a browser session cookie.
+This writes `export PASTEL_ACCOUNTS='{"alias":"token"}'` and `export PASTEL_ACCOUNT='alias'`. Pass `--account <alias>` to any script when several are configured. If `PASTEL_ACCOUNTS` is not loaded, the scripts read the managed block directly. `PASTEL_API_TOKEN` works as a one-off fallback, and `PASTEL_API_BASE_URL` overrides the API. The block keeps its original `pastel-reader auth` markers so existing setups keep working. Use a personal access token with **API access** (`pstl_...`), created at [Settings > Integrations](https://usepastel.com/settings/integrations); Pastel shows it once. Legacy API tokens stop working on February 15, 2027, and access tokens expire on the date chosen at creation (7 days to 1 year). `verify-access.js` reports the token's name, scope, and expiry; it exits with code 2 and a warning when the token is legacy, expires within `--warn-days` (default 30), or cannot be matched. Run it before a feedback round and pass any warning on to the user. If a token returns `Invalid API token provided`, ask the user for a fresh one rather than trying a browser session cookie.
 
 ## API notes
 
@@ -168,7 +168,7 @@ Base URL `https://api.usepastel.com/v1`, `Authorization: Bearer <token>`. Public
 
 | Call | Purpose |
 | --- | --- |
-| `GET /users/me` | The token's user |
+| `GET /users/me/access-tokens` | The user's personal access tokens: `name`, `tokenPrefix`, `audience`, `expiresAt`, `lastUsedAt` |
 | `GET /users/me/canvases?filters=<json>&offset=&limit=` | Canvases the token can see |
 | `GET /canvases/{slug}/subdomain` | One canvas from its share-link slug, including `CanvasRevisions` (versions) |
 | `GET /canvases/{canvasId}/annotations` | Every comment on the canvas, all versions |
@@ -178,7 +178,7 @@ Base URL `https://api.usepastel.com/v1`, `Authorization: Bearer <token>`. Public
 | `POST /annotations/{id}/replies` with `{AnnotationId, comment}` | Reply to a comment |
 | `POST`/`DELETE /annotations/{id}/labels/{labelId}`, `POST /annotations/{id}/assigned-user/{userId}` | Labels and assignees |
 
-`GET /canvases/{canvasId}` is not a public method ("Unknown API method"); use the slug lookup. `GET /users/me/token` and `POST /users/me/token` need a logged-in browser session. Zapier's Pastel app (`PastelCLIAPI@1.0.3`) has a `Get Comment` trigger (key `annotation`, field `canvas`) that fires on new comments.
+`GET /canvases/{canvasId}` and `GET /users/me` are not public methods ("Unknown API method"); use the slug lookup and `/users/me/canvases`. `GET /users/me/token` and `POST /users/me/token` need a logged-in browser session. Zapier's Pastel app (`PastelCLIAPI@1.0.3`) has a `Get Comment` trigger (key `annotation`, field `canvas`) that fires on new comments.
 
 ## Scripts
 
@@ -193,7 +193,7 @@ Base URL `https://api.usepastel.com/v1`, `Authorization: Bearer <token>`. Public
 | `build-report.mjs` | No | The before/after report from a review folder |
 | `set-status.js` | Yes | Comment statuses, with `--dry-run` |
 | `create-version.js` | Yes | A new version, with `--dry-run` |
-| `auth.js`, `list-accounts.js`, `verify-access.js` | No | Account setup and checks |
+| `auth.js`, `list-accounts.js`, `verify-access.js` | No | Account setup, and access and token-expiry checks |
 
 ## Errors
 

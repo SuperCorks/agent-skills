@@ -14,7 +14,7 @@ Usage:
 
 Options:
   --account <alias>     Account alias from PASTEL_ACCOUNTS
-  --path <path>           API path such as /users/me or /canvases/CANVAS_ID/annotations
+  --path <path>           API path such as /users/me/canvases or /canvases/CANVAS_ID/annotations
   --query-json <json>     JSON object of query parameters
   --base-url <url>        Override API base URL
   --help                  Show this help message
