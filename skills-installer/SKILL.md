@@ -1,6 +1,6 @@
 ---
 name: skills-installer
-description: Install, update, list, or remove supercorks agent skills and subagents with the @supercorks/skills-installer CLI in non-interactive mode. Use when the user asks to add, remove, sync, or update skills or agents for Claude, Codex, or Copilot, or asks which skills are installed where. Not for authoring or editing a skill's content.
+description: Install, update, list, or remove supercorks agent skills and subagents with the @supercorks/skills-installer CLI in non-interactive mode. Use when the user asks to add, remove, sync, or update skills or agents for Claude, Codex, Copilot, or Gemini, or asks which skills are installed where. Not for authoring or editing a skill's content.
 ---
 
 # Skills Installer
@@ -12,7 +12,7 @@ Requires Node.js 18+ and git. The GitHub API is used to list what is available; 
 ## Workflow
 
 1. **Inspect first.** Run `--list --json` and read it before changing anything.
-2. **Choose the target from the report.** `--path` is required; never guess it. Match the harness the user named (`claude`, `copilot/codex`, `codex`) and the scope they want (`global` under `~`, `local` in the current project). When several targets fit, for example `~/.claude/skills/` and a `~/.claude_*/skills/` profile, ask which one. Local paths resolve against the current directory, so run from the project root.
+2. **Choose the target from the report.** `--path` is required; never guess it. Match the harness the user named (`claude`, `copilot/codex`, `copilot/codex/gemini`, `codex`, `gemini`) and the scope they want (`global` under `~`, `local` in the current project). When several targets fit, for example `~/.claude/skills/` and a `~/.claude_*/skills/` profile, ask which one. Local paths resolve against the current directory, so run from the project root.
 3. **Preview with `--dry-run`** when removing, using `--exact`, or touching more than one target.
 4. **Apply with `--json`** and check `ok` and each result's `action`.
 5. **Report** what was added, removed, or left unchanged, and tell the user that newly installed skills load in a new agent session.
