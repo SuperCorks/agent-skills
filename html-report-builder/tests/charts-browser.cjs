@@ -134,6 +134,7 @@ module.exports = async function chartTests({ browser, root, pass, watch }) {
     await page.waitForFunction(() => document.querySelectorAll("figure.chart.is-live").length === 2);
     assert.deepEqual(await visible(page, ".chart-static"), [false, false], "the live chart replaces its snapshot");
     assert.deepEqual(months(await hoverBars(page, "#columns")), MONTHS);
+    await page.locator("#trend figure.chart").scrollIntoViewIfNeeded();
     const plot = await page.locator("#trend .chart-live .nsewdrag").boundingBox();
     await page.mouse.move(plot.x + plot.width * 0.8, plot.y + plot.height / 2);
     await page.waitForTimeout(150);

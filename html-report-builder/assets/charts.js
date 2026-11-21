@@ -58,7 +58,7 @@
         hoverlabel: { bgcolor: t.surface, bordercolor: t.line, font: { color: t.ink, family: t.font, size: size } },
         bargap: 0.35, uniformtext: { mode: "hide", minsize: size - 2 },
         annotationdefaults: { font: { color: t.muted, size: size - 2 }, showarrow: false },
-        shapedefaults: { line: { color: t.ink, width: 1 } }
+        shapedefaults: { line: { color: t.ink, width: 1 }, layer: "below" }
       },
       data: { bar: [{ marker: { line: { width: 0 } }, cliponaxis: false, textangle: 0 }], scatter: [{ line: { width: 2 }, marker: { size: 8 } }] }
     };

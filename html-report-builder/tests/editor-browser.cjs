@@ -164,6 +164,7 @@ module.exports = async function editorTests({ browser, root, pass, watch }) {
     const beforeComments = await read();
     await page.keyboard.press("c");
     assert.ok(await page.evaluate(() => document.documentElement.classList.contains("hre-commenting")), "C starts comment mode");
+    await page.locator("#risks p").scrollIntoViewIfNeeded();
     const risk = await page.locator("#risks p").boundingBox();
     const spot = { x: risk.x + risk.width * 0.5, y: risk.y + risk.height * 0.5 };
     await page.mouse.click(spot.x, spot.y);

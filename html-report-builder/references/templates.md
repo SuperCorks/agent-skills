@@ -21,7 +21,7 @@ Begin with the answer or the purpose, then follow the reader's next necessary qu
 - A review update may lead with the current outcome and remaining actions. Fold corrections into the relevant passages rather than carrying the whole revision history at the top.
 - An executable plan needs enough scope, intended behavior, sequencing, and verification for its implementer. The `html-plan` skill owns that content; several concerns can share a section.
 
-Give each section a meaningful id and an `<h2>`; topic-specific ids such as `email`, `checkout`, or `recovery` work as well as `findings`. No template-specific section ids or section order are required by `check`. Keep material limitations near the claims they qualify, and optional supporting detail where it is easiest to consult. Use the slide guidance for decks.
+Give each section a meaningful id and an `<h2>`; topic-specific ids such as `email`, `checkout`, or `recovery` work as well as `findings`. No template-specific section ids or section order are required by `check`. Keep brief qualifications beside the claims they qualify, place full data-caveat or methodology sections *after* the main findings so the opening stays focused on the answer, and tuck long reference or lookup tables into `<details>`. All three report templates (`plan`, `findings`, `brief`) use the centered editorial single-column layout with wider breakouts for visuals and tables; use the slide guidance for decks.
 
 ## Choose the opening
 

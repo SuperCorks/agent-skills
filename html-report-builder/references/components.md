@@ -19,7 +19,7 @@ Components that add their own labels (`.rec` "Recommendation", `.owner` "Owner:"
 
 ## Page skeleton
 
-The TOC is generated from every `<section id>` in `<main>` that has an `<h2>`. `data-toc` sets a shorter TOC label. The `.meta` row takes any label/value pairs (status, date, owner, stack, client).
+Reports (`plan`, `findings`, `brief`) render as a centered single-column editorial article (`~42.5rem` prose measure) with wider centered breakouts (`~52rem`) for charts, diagrams, tables, tiles, grids, comparisons, flows, and desktop mockups. The TOC is generated as a compact inline jump bar below the hero from every `<section id>` in `<main>` that has an `<h2>`. `data-toc` sets a shorter TOC label. The `.meta` row takes any label/value pairs (status, date, owner, stack, client). Slide decks (`slides`) keep a two-column review sidebar on desktop.
 
 With a Kernel brand kit (`report.mjs build --brand`), the build inlines the kit's stylesheet and puts its logo first in the hero (a deck's cover) as a generated `brand-logo` block holding one image, or `brand-logo-light` and `brand-logo-dark` when the kit has both. Never write either by hand.
 
@@ -119,7 +119,7 @@ Short values in a row: the pages, forms, or accounts a finding affects, tags, or
 
 ## Table
 
-Always wrap tables. `.num` right-aligns numbers. A tone on a cell draws a status mark (`ok` ✓, `warn` ◐, `risk` ✕, `info` ○); the cell text still names the state, so meaning never rests on the mark. `col.recommended` and `th.recommended` tint the recommended column of a comparison.
+Always wrap tables. Tables render with open horizontal rules rather than heavy outer boxes. `.num` right-aligns numbers. A tone on a non-numeric cell draws a status mark (`ok` ✓, `warn` ◐, `risk` ✕, `info` ○); the cell text still names the state, so meaning never rests on the mark. A tone on a `.num` cell styles the figure in that tone without adding a symbol prefix. `col.recommended` and `th.recommended` tint the recommended column of a comparison.
 
 ```html
 <div class="table-wrap"><table>
@@ -370,10 +370,11 @@ Use `details` only for optional depth, never for key content. `.internal` marks 
 <div class="internal"><p>Confirm pricing with Simon before sharing.</p></div>
 ```
 
-## Inline text
+## Inline text and pull quotes
 
-Use `<strong>` for decision-relevant phrases, `<code>` for paths and identifiers (blocks of code are [Code blocks](#code-blocks)), `<mark>` sparingly for a highlight, `<small>` or `.muted` for secondary text, and `<kbd>` for keys.
+Use `<strong>` for decision-relevant phrases, `<code>` for paths and identifiers (blocks of code are [Code blocks](#code-blocks)), `<mark>` sparingly for a highlight, `<small>` or `.muted` for secondary text, `<kbd>` for keys, and `<blockquote>` for an editorial pull quote that distills a key takeaway.
 
 ```html
 <p>The client must <strong>approve the alert rule by Friday</strong>. The worker lives in <code>apps/sync/worker.ts</code>; <mark>staging only</mark> for now. <span class="muted">Press <kbd>Cmd</kbd>+<kbd>K</kbd> in the editor.</span></p>
+<blockquote>Out of every 100 nearby leads, 6.0 attend a consult—roughly five times the yield of leads 20+ miles away.</blockquote>
 ```
