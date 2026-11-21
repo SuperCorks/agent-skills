@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run awaited Codex, Claude Code, or OpenCode worker sessions with captured handoff output."""
+"""Run awaited Codex, Claude Code, OpenCode, or Antigravity worker sessions with captured handoff output."""
 
 from __future__ import annotations
 
@@ -48,6 +48,14 @@ DEFAULT_KIMI_K3_REASONING = os.environ.get(
     "AGENT_ORCHESTRATOR_KIMI_K3_REASONING",
     "max",
 )
+DEFAULT_ANTIGRAVITY_MODEL = os.environ.get(
+    "AGENT_ORCHESTRATOR_ANTIGRAVITY_MODEL",
+    "gemini-4-neon",
+)
+DEFAULT_ANTIGRAVITY_REASONING = os.environ.get(
+    "AGENT_ORCHESTRATOR_ANTIGRAVITY_REASONING",
+    "high",
+)
 OPENCODE_AUTH_PROVIDER = os.environ.get("AGENT_ORCHESTRATOR_OPENCODE_AUTH_PROVIDER", "OpenRouter")
 CLAUDE_FABLE_MODELS = {"fable", "claude-fable-5", "claude-fable-5-1", "claude-fable-5-2"}
 CODEX_SOL_MODELS = {"gpt-5.6-sol"}
@@ -68,6 +76,9 @@ MODEL_ALIASES = {
     "opencode": {
         "grok": "openrouter/x-ai/grok-4.5",
         "kimi": "openrouter/moonshotai/kimi-k3",
+    },
+    "antigravity": {
+        "neon": "gemini-4-neon",
     },
 }
 BUILTIN_RUN_TIMEOUT_SECONDS = 45 * 60
@@ -140,7 +151,7 @@ def selected_engines(value: str) -> list[str]:
     if value == "both":
         return ["codex", "claude"]
     if value == "all":
-        return ["codex", "claude", "opencode"]
+        return ["codex", "claude", "opencode", "antigravity"]
     return [value]
 
 
@@ -149,6 +160,12 @@ def executable_name(engine: str) -> str:
         return "claude"
     if engine == "opencode":
         return "opencode"
+    if engine == "antigravity":
+        if shutil.which("agy"):
+            return "agy"
+        if shutil.which("antigravity"):
+            return "antigravity"
+        return "agy"
     return "codex"
 
 
@@ -157,6 +174,8 @@ def default_model(engine: str) -> str:
         return DEFAULT_CLAUDE_MODEL
     if engine == "opencode":
         return DEFAULT_OPENCODE_MODEL
+    if engine == "antigravity":
+        return DEFAULT_ANTIGRAVITY_MODEL
     return DEFAULT_CODEX_MODEL
 
 
@@ -175,6 +194,8 @@ def default_reasoning(engine: str, model: str | None = None) -> str:
         if selected_model.lower() in OPENCODE_KIMI_K3_MODELS:
             return DEFAULT_KIMI_K3_REASONING
         return DEFAULT_OPENCODE_REASONING
+    if engine == "antigravity":
+        return DEFAULT_ANTIGRAVITY_REASONING
     if selected_model.lower() in CODEX_SOL_MODELS:
         return DEFAULT_CODEX_SOL_REASONING
     if selected_model.lower() in CODEX_TERRA_MODELS:
@@ -202,7 +223,7 @@ def authenticated(engine: str, auth: dict[str, Any] | None) -> bool:
 
 
 def explicit_permission_bypass_enabled(engine: str, no_yolo: bool) -> bool:
-    return engine in {"codex", "claude", "opencode"} and not no_yolo
+    return engine in {"codex", "claude", "opencode", "antigravity"} and not no_yolo
 
 
 def opencode_auto_supported() -> bool:
@@ -228,6 +249,8 @@ def tool_state(engine: str) -> dict[str, Any]:
                 auth = run_quiet(["codex", "login", "status"])
             elif engine == "opencode":
                 auth = run_quiet(["opencode", "auth", "list"])
+            elif engine == "antigravity":
+                auth = run_quiet([executable, "models"])
             else:
                 auth = run_quiet(["claude", "auth", "status", "--text"])
         else:
@@ -246,7 +269,7 @@ def tool_state(engine: str) -> dict[str, Any]:
 
 
 def install_command(engine: str, installer: str) -> tuple[str, list[str]] | None:
-    if engine == "opencode":
+    if engine in {"opencode", "antigravity"}:
         return None
 
     system = platform.system()
@@ -321,6 +344,8 @@ def login_command(engine: str, claude_console: bool = False) -> list[str]:
         return ["codex", "login"]
     if engine == "opencode":
         return ["opencode", "auth", "login", "openrouter"]
+    if engine == "antigravity":
+        return [executable_name("antigravity")]
     if claude_console:
         return ["claude", "auth", "login", "--console"]
     return ["claude", "auth", "login"]
@@ -510,6 +535,25 @@ def build_command(
         command.append(prompt)
         return command
 
+    if args.engine == "antigravity":
+        command = [
+            executable_name("antigravity"),
+            "-p",
+            "--output-format",
+            "json",
+            "--model",
+            model,
+            "--effort",
+            reasoning or default_reasoning("antigravity", model),
+        ]
+        if not args.no_yolo:
+            command.append("--dangerously-skip-permissions")
+        if args.resume:
+            command.extend(["--conversation", args.resume])
+        command.extend(extra)
+        command.append(prompt)
+        return command
+
     command = [
         "claude",
         "-p",
@@ -564,6 +608,27 @@ def extract_final(engine: str, stdout: str, codex_final_path: Path) -> str:
                 text_chunks.append(part["text"])
         if text_chunks:
             return "".join(text_chunks).strip()
+
+    if engine == "antigravity":
+        try:
+            payload = json.loads(stdout)
+            if isinstance(payload, dict):
+                if "response" in payload:
+                    result = payload["response"]
+                    return (
+                        result.strip()
+                        if isinstance(result, str)
+                        else json.dumps(result, indent=2, sort_keys=True)
+                    )
+                if "structured_output" in payload:
+                    result = payload["structured_output"]
+                    return (
+                        result.strip()
+                        if isinstance(result, str)
+                        else json.dumps(result, indent=2, sort_keys=True)
+                    )
+        except json.JSONDecodeError:
+            pass
 
     lines = [line for line in stdout.splitlines() if line.strip()]
     return lines[-1] if lines else ""
@@ -739,12 +804,12 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     preflight = subparsers.add_parser("preflight", help="Check CLI installation and authentication.")
-    preflight.add_argument("--engine", choices=["both", "all", "codex", "claude", "opencode"], default="both")
+    preflight.add_argument("--engine", choices=["both", "all", "codex", "claude", "opencode", "antigravity"], default="both")
     preflight.add_argument("--json", action="store_true")
     preflight.set_defaults(func=handle_preflight)
 
     setup = subparsers.add_parser("setup", help="Install missing CLIs and start login handoff when needed.")
-    setup.add_argument("--engine", choices=["both", "all", "codex", "claude", "opencode"], default="both")
+    setup.add_argument("--engine", choices=["both", "all", "codex", "claude", "opencode", "antigravity"], default="both")
     setup.add_argument("--installer", choices=["auto", "native", "npm", "homebrew"], default="auto")
     setup.add_argument("--skip-install", action="store_true")
     setup.add_argument("--skip-login", action="store_true")
@@ -753,7 +818,7 @@ def build_parser() -> argparse.ArgumentParser:
     setup.set_defaults(func=handle_setup)
 
     run = subparsers.add_parser("run", help="Run one awaited worker session and capture its output.")
-    run.add_argument("--engine", choices=["codex", "claude", "opencode"], required=True)
+    run.add_argument("--engine", choices=["codex", "claude", "opencode", "antigravity"], required=True)
     run.add_argument("--cwd", default=os.getcwd())
     run.add_argument("--prompt")
     run.add_argument("--prompt-file")

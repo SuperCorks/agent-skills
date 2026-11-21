@@ -20,9 +20,12 @@ User policy for this skill:
 - OpenCode variant: `high`
 - OpenCode Kimi K3 model: `openrouter/moonshotai/kimi-k3`
 - OpenCode Kimi K3 variant: `max` unless overridden with `--reasoning`
+- Antigravity default model: `gemini-4-neon`; user shorthand and helper alias: `neon`
+- Antigravity effort: `high` unless overridden with `--reasoning` (for example `--reasoning xhigh`)
 - Codex autonomy: `--yolo`
 - Claude autonomy: `--permission-mode bypassPermissions` and `--dangerously-skip-permissions`
 - OpenCode autonomy: `--auto` when supported, plus local config `permission: "allow"` for unattended tool use
+- Antigravity autonomy: `--dangerously-skip-permissions`
 
 Override for a single run:
 
@@ -50,6 +53,8 @@ export AGENT_ORCHESTRATOR_CLAUDE_FABLE_REASONING=high
 export AGENT_ORCHESTRATOR_OPENCODE_MODEL=openrouter/x-ai/grok-4.5
 export AGENT_ORCHESTRATOR_OPENCODE_REASONING=high
 export AGENT_ORCHESTRATOR_KIMI_K3_REASONING=max
+export AGENT_ORCHESTRATOR_ANTIGRAVITY_MODEL=gemini-4-neon
+export AGENT_ORCHESTRATOR_ANTIGRAVITY_REASONING=high
 export AGENT_ORCHESTRATOR_OPENCODE_AUTH_PROVIDER=OpenRouter
 export AGENT_ORCHESTRATOR_RUN_TIMEOUT=2700
 ```

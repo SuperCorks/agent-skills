@@ -1,13 +1,13 @@
 ---
 name: agent-orchestrator
-description: Launch and coordinate awaited Codex CLI, Claude Code CLI, or OpenCode worker sessions from the current agent thread, including tool setup, authentication handoff, default high-autonomy flags, structured prompts, run capture, and result integration.
+description: Launch and coordinate awaited Codex CLI, Claude Code CLI, OpenCode, or Antigravity CLI worker sessions from the current agent thread, including tool setup, authentication handoff, default high-autonomy flags, structured prompts, run capture, and result integration.
 ---
 
 # Agent Orchestrator
 
 ## Overview
 
-Use this skill when the current agent needs help from one or more external coding-agent CLI sessions while keeping the current thread as the accountable lead. It provides a disciplined workflow plus a local helper script for Codex CLI, Claude Code CLI, and OpenCode runs that are awaited, captured, and easy to integrate.
+Use this skill when the current agent needs help from one or more external coding-agent CLI sessions while keeping the current thread as the accountable lead. It provides a disciplined workflow plus a local helper script for Codex CLI, Claude Code CLI, OpenCode, and Antigravity CLI runs that are awaited, captured, and easy to integrate.
 
 This skill does not make background agents the default. Start commands that can be awaited, do not create worktrees unless the user explicitly instructs otherwise, and keep the current thread responsible for final judgment.
 
@@ -35,6 +35,7 @@ Default worker settings are:
 - Claude Code with Fable 5.2: pass `--model claude-fable-5-2` or `--model fable`; default effort becomes `high` unless `--reasoning` is supplied.
 - OpenCode: `opencode run --auto --model openrouter/x-ai/grok-4.5 --variant high --format json` when the installed CLI supports `--auto`; otherwise use OpenCode config `permission: "allow"`.
 - OpenCode with Kimi K3: pass `--model openrouter/moonshotai/kimi-k3`; the model-specific variant defaults to `max` unless `--reasoning` is supplied.
+- Antigravity defaults to Gemini 4 Neon: `agy -p --output-format json --model gemini-4-neon --effort high --dangerously-skip-permissions` (uses `antigravity` if `agy` is not on `PATH`). Pass `--model neon` or `--model gemini-4-neon`; pass `--reasoning xhigh` for `xhigh` thought level.
 - Runs are awaited and captured under `.agent-orchestrator/runs/` unless `--out-dir` is provided.
 - Runs default to a 45-minute timeout; pass `--timeout 0` only when the user explicitly wants no ceiling.
 - No worktrees are used unless the user asks for them.
@@ -63,6 +64,7 @@ Interpret these case-insensitive model names from the user as the following exac
 | `astra` | OpenAI GPT-6.2 Astra | `--engine codex --model gpt-6.2-astra` | `medium` |
 | `opus` | Anthropic Claude Opus 5 | `--engine claude --model claude-opus-5` | `xhigh` |
 | `fable` | Anthropic Claude Fable 5.2 | `--engine claude --model claude-fable-5-2` | `high` |
+| `neon` | Google Gemini 4 Neon | `--engine antigravity --model gemini-4-neon` | `high` |
 
 These aliases are accepted by the helper and are normalized to the exact engine-specific model IDs above. They are also conversational aliases for orchestration decisions: translate them to the exact engine and model arguments when describing or building a worker command.
 
@@ -178,9 +180,9 @@ python3 agent-orchestrator/scripts/agent_orchestrator.py run \
 Useful options:
 
 - `--dry-run`: print the command that would run.
-- `--no-yolo`: disable Codex `--yolo`, Claude permission bypass, or OpenCode `--auto` when the user asks for safer permissions. If OpenCode is globally configured with `permission: "allow"`, change that config for stricter local runs.
+- `--no-yolo`: disable Codex `--yolo`, Claude permission bypass, OpenCode `--auto`, or Antigravity `--dangerously-skip-permissions` when the user asks for safer permissions. If OpenCode is globally configured with `permission: "allow"`, change that config for stricter local runs.
 - `--model`: override the default model.
-- `--reasoning`: override Codex `model_reasoning_effort`, Claude `--effort`, or OpenCode `--variant`. Codex Sol and Claude Opus 5 default to `xhigh`; Codex Terra, Claude Fable 5.2, and Grok 4.5 default to `high`; Codex GPT-6.2 Astra defaults to `medium`; Kimi K3 defaults to `max`; other Claude runs default to `xhigh`.
+- `--reasoning`: override Codex `model_reasoning_effort`, Claude `--effort`, OpenCode `--variant`, or Antigravity `--effort`. Codex Sol and Claude Opus 5 default to `xhigh`; Codex Terra, Claude Fable 5.2, Grok 4.5, and Gemini 4 Neon default to `high`; Codex GPT-6.2 Astra defaults to `medium`; Kimi K3 defaults to `max`; other Claude runs default to `xhigh`.
 - `--service-tier TIER`: set Codex `service_tier` for this run, such as `default` or `priority` (Fast). Astra defaults to `default`; other Codex models inherit the user's config; an empty value inherits it for Astra too.
 - `--resume SESSION_ID`: resume an existing CLI session instead of starting a fresh one.
 - `--timeout SECONDS`: kill the worker after a ceiling; defaults to 2700 (45 minutes), and `0` waits indefinitely.

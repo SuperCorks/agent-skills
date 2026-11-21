@@ -63,6 +63,7 @@ class ModelAliasTests(unittest.TestCase):
             ("claude", "fable", "claude-fable-5-2"),
             ("opencode", "grok", "openrouter/x-ai/grok-4.5"),
             ("opencode", "kimi", "openrouter/moonshotai/kimi-k3"),
+            ("antigravity", "neon", "gemini-4-neon"),
         ]
 
         for engine, alias, expected in cases:
@@ -342,6 +343,70 @@ class OpenCodeModelReasoningTests(unittest.TestCase):
         )
 
         self.assertEqual(command[command.index("--variant") + 1], "low")
+
+
+class AntigravityModelDefaultsTests(unittest.TestCase):
+    def build_antigravity_command(self, *extra_args: str) -> list[str]:
+        parser = agent_orchestrator.build_parser()
+        args = parser.parse_args(
+            [
+                "run",
+                "--engine",
+                "antigravity",
+                "--prompt",
+                "Test prompt",
+                *extra_args,
+            ]
+        )
+        with mock.patch.object(agent_orchestrator, "executable_name", return_value="agy"):
+            return agent_orchestrator.build_command(
+                args,
+                Path("/tmp/project"),
+                "Test prompt",
+                None,
+            )
+
+    def test_antigravity_defaults_to_gemini_4_neon_with_high_effort(self) -> None:
+        with (
+            mock.patch.object(agent_orchestrator, "DEFAULT_ANTIGRAVITY_MODEL", "gemini-4-neon"),
+            mock.patch.object(agent_orchestrator, "DEFAULT_ANTIGRAVITY_REASONING", "high"),
+        ):
+            command = self.build_antigravity_command()
+
+        self.assertEqual(command[0], "agy")
+        self.assertIn("-p", command)
+        self.assertEqual(command[command.index("--output-format") + 1], "json")
+        self.assertEqual(command[command.index("--model") + 1], "gemini-4-neon")
+        self.assertEqual(command[command.index("--effort") + 1], "high")
+        self.assertIn("--dangerously-skip-permissions", command)
+
+    def test_neon_alias_supports_xhigh_and_no_yolo_and_resume(self) -> None:
+        command = self.build_antigravity_command(
+            "--model",
+            "neon",
+            "--reasoning",
+            "xhigh",
+            "--no-yolo",
+            "--resume",
+            "conv-123",
+        )
+
+        self.assertEqual(command[command.index("--model") + 1], "gemini-4-neon")
+        self.assertEqual(command[command.index("--effort") + 1], "xhigh")
+        self.assertNotIn("--dangerously-skip-permissions", command)
+        self.assertEqual(command[command.index("--conversation") + 1], "conv-123")
+
+    def test_env_overrides_antigravity_reasoning_default(self) -> None:
+        module = load_module_with_env(AGENT_ORCHESTRATOR_ANTIGRAVITY_REASONING="xhigh")
+
+        self.assertEqual(module.default_reasoning("antigravity", "neon"), "xhigh")
+
+    def test_extract_final_reads_antigravity_json_response(self) -> None:
+        stdout = '{"conversation_id":"abc","status":"SUCCESS","response":"All clean.\\n"}'
+        self.assertEqual(
+            agent_orchestrator.extract_final("antigravity", stdout, Path("/tmp/unused")),
+            "All clean.",
+        )
 
 
 if __name__ == "__main__":
