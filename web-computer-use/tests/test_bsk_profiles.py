@@ -80,6 +80,36 @@ class BskProfilesTests(unittest.TestCase):
         (self.roots["chrome"] / "Profile 3").rename(self.base / "elsewhere")
         self.assertEqual(self.refresh()["profiles"], [])
 
+    def test_unreadable_profile_index_keeps_verified_ids_and_updates_connections(self):
+        self.profile("chrome", "Profile 11", "Client", "11111111")
+        self.profile("chrome", "Default", "Default", "22222222")
+        self.profile("brave", "Default", "Work", "33333333")
+        with patch.object(bsk_profiles, "now_iso", return_value="2026-11-24T19:00:00+00:00"):
+            first = self.by_name(self.refresh("22222222"))
+
+        (self.roots["brave"] / "Default").rename(self.base / "deleted")
+        read_text = Path.read_text
+
+        def read_with_permission_error(path, *args, **kwargs):
+            if path == self.roots["chrome"] / "Local State":
+                raise PermissionError("Operation not permitted")
+            return read_text(path, *args, **kwargs)
+
+        with patch.object(Path, "read_text", read_with_permission_error), \
+                patch.object(bsk_profiles, "now_iso", return_value="2026-11-24T19:40:00+00:00"):
+            result = self.refresh("11111111", "eeeeeeee")
+
+        profiles = self.by_name(result)
+        client = bsk_profiles.resolve(result, "Client", "chrome")
+        self.assertEqual(client["instance_id"], "11111111")
+        self.assertTrue(client["connected"])
+        self.assertEqual(client["verified_at"], first["chrome", "Client"]["verified_at"])
+        self.assertEqual(client["last_connected_at"], result["updated_at"])
+        self.assertFalse(profiles["chrome", "Default"]["connected"])
+        self.assertNotIn(("brave", "Work"), profiles)
+        self.assertEqual([item["instance_id"] for item in result["unknown_connections"]], ["eeeeeeee"])
+        self.assertEqual(json.loads(self.registry.read_text()), result)
+
     def test_several_stored_ids_use_the_connected_one_or_stay_unresolved(self):
         self.profile("chrome", "Profile 4", "HOP", "11111111", "22222222")
         self.assertEqual(self.by_name(self.refresh("22222222"))["chrome", "HOP"]["instance_id"], "22222222")

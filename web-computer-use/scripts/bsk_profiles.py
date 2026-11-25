@@ -88,10 +88,17 @@ def connected_browsers(bsk):
 def scan_profiles(roots, connections):
     connected_ids = list(connections or ())
     profiles = []
+    unavailable = set()
     for browser, root in roots.items():
         try:
             cache = json.loads((root / "Local State").read_text())["profile"]["info_cache"]
+        except FileNotFoundError:
+            continue
         except (OSError, ValueError, KeyError, TypeError):
+            unavailable.add(browser)
+            continue
+        if not isinstance(cache, dict):
+            unavailable.add(browser)
             continue
         for profile_dir, info in sorted(cache.items()):
             if not (root / profile_dir).is_dir():
@@ -103,10 +110,10 @@ def scan_profiles(roots, connections):
                              "profile_name": info.get("name") or profile_dir,
                              "extension": "installed" if installed else "missing",
                              "candidates": candidates})
-    return profiles
+    return profiles, unavailable
 
 
-def choose_ids(profiles, connections):
+def choose_ids(profiles, connections, cached_profiles):
     for profile in profiles:
         candidates = profile.pop("candidates")
         live = [instance_id for instance_id in candidates if connections and instance_id in connections]
@@ -119,6 +126,7 @@ def choose_ids(profiles, connections):
         else:
             profile.update(instance_id=None, status="unresolved", candidates=candidates)
     # A copied profile folder can carry another profile's ID; never pick between them.
+    profiles.extend(cached_profiles)
     owners = {}
     for profile in profiles:
         if profile["instance_id"]:
@@ -139,20 +147,27 @@ def refresh(registry_path=DEFAULT_REGISTRY, roots=None, bsk="bsk", connections=N
     except (OSError, ValueError, KeyError, TypeError, AttributeError):
         previous = {}
     timestamp = now_iso()
-    profiles = choose_ids(scan_profiles(roots or ROOTS, connections), connections)
+    scanned, unavailable = scan_profiles(roots or ROOTS, connections)
+    cached = [item.copy() for (browser, _), item in previous.items() if browser in unavailable]
+    profiles = choose_ids(scanned, connections, cached)
     for profile in profiles:
         old = previous.get((profile["browser"], profile["profile_dir"]), {})
         same = profile["instance_id"] and old.get("instance_id") == profile["instance_id"]
         live = (connections or {}).get(profile["instance_id"]) if profile["instance_id"] else None
         profile["connected"] = None if connections is None else live is not None
         profile["label"] = (live or {}).get("label") or (old.get("label") if same else "") or ""
-        profile["verified_at"] = timestamp if profile["status"] == "ok" else None
+        if profile["status"] != "ok":
+            profile["verified_at"] = None
+        elif profile["browser"] not in unavailable:
+            profile["verified_at"] = timestamp
         profile["last_connected_at"] = timestamp if live else (old.get("last_connected_at") if same else None)
     known = {profile["instance_id"] for profile in profiles}
     unknown = [{"instance_id": instance_id, "browser_name": item.get("browser_name"),
                 "browser_version": item.get("browser_version"), "label": item.get("label") or ""}
                for instance_id, item in sorted((connections or {}).items()) if instance_id not in known]
     registry = {"updated_at": timestamp, "profiles": profiles, "unknown_connections": unknown}
+    if unavailable:
+        registry["unavailable_profile_indexes"] = sorted(unavailable)
     if bsk_error:
         registry["bsk_error"] = bsk_error
     write_registry(Path(registry_path), registry)
@@ -208,6 +223,9 @@ def table(registry):
         rows.append((item["instance_id"], item["browser_name"] or "?", "(unknown)", "-", "yes", "unknown"))
     widths = [max(len(row[index]) for row in rows) for index in range(len(rows[0]))]
     lines = ["  ".join(cell.ljust(width) for cell, width in zip(row, widths)).rstrip() for row in rows]
+    if registry.get("unavailable_profile_indexes"):
+        browsers = ", ".join(registry["unavailable_profile_indexes"])
+        lines.append(f"Profile index unavailable for {browsers}. Using any saved mappings.")
     if registry.get("bsk_error"):
         lines.append(f"bsk browsers failed, connection state unknown: {registry['bsk_error']}")
     return "\n".join(lines)
