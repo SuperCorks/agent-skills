@@ -1,0 +1,3 @@
+interface:
+  display_name: "Mac Storage Cleanup"
+  short_description: "Audit and safely reclaim storage on macOS"

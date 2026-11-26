@@ -28,6 +28,13 @@ $CLI --yes --update --path ~/.claude/skills --json
 $CLI --yes --update --all --json
 ```
 
+## Publishing a new skill and installing everywhere
+
+- Author and validate the skill with the skill-creator workflow. A local folder alone is outside this installer's catalog. To make a skill installable, add its folder to the root of `SuperCorks/agent-skills` in Git. Review the files for credentials and private machine details, then publish to the catalog's default branch when authorized. Confirm the skill appears in `--list --json` before attempting installation.
+- For this workflow, **“install everywhere”** means the named skill is available to every existing Claude and Codex profile on this computer and on the configured remote host. Use the remote-hosts skill to identify and connect to the host. On both machines, include default and named profiles. Inspect launcher overrides such as `CLAUDE_CONFIG_DIR` and `CODEX_HOME` as needed, and compare the paths with the installer's report. Preserve each profile's authentication and other settings.
+- Resolve skills directories to their real paths and install once per shared location. Use `~/.agents/skills` for global Codex skills, including profiles that discover the shared user skills there. Verify discovery before duplicating a skill under a legacy Codex path. Include the real Claude skills directories behind the default and named profiles, passing each as an explicit `--path`. Use an additive install for the named skill, with a dry run before changes spanning multiple targets. `--all` means refreshing every detected installation with `--update`, which is a different operation.
+- Re-list on both machines and verify the skill files are visible from every resolved profile. If the installer skill itself was updated, check that its current instructions are visible in the profiles that use it. Preserve platform restrictions in a skill's instructions even when it is available on both machines.
+
 ## Flags
 
 | Flag | Behaviour |
