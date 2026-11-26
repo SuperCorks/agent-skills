@@ -16,9 +16,11 @@ A collection of AI agent skills for GitHub Copilot and other AI assistants.
 | [agent-orchestrator](agent-orchestrator) | Launch awaited Codex, Claude, OpenCode, and Antigravity worker runs with setup, auth checks, and captured handoffs |
 | [agent-thread-reader](agent-thread-reader) | Resolve T3 Cork thread deep links and read local T3 Code, Codex, Copilot, and Claude Code thread history |
 | [ai-memory-context](ai-memory-context) | Configure and use ai-memory for cross-session decisions, rationale, handoffs, and project continuity |
+| [ai-seo](ai-seo) | Get cited and recommended in AI answers (ChatGPT, Perplexity, AI Overviews): AEO, GEO, and agent-readable pages (vendored from Corey Haines; see its UPSTREAM.md) |
 | [architect-planning](architect-planning) | Problem framing and decision-complete implementation planning before code changes |
 | [asana-reader](asana-reader) | Read Asana tasks by URL, ID, or name search with multi-account support |
 | [asana-writer](asana-writer) | Create and update Asana work items and project organization with multi-account support |
+| [aso](aso) | Audit and improve an App Store or Google Play listing: title, keywords, screenshots, ratings, and competitors (vendored from Corey Haines; see its UPSTREAM.md) |
 | [audio-summary](audio-summary) | Create and publish narrated summaries of the current task or latest output (synthesis via generate-audio) |
 | [boulevard](boulevard) | Query Boulevard APIs, discover availability, book sandbox appointments, and compare or sync services/packages |
 | [browser-profile-sync](browser-profile-sync) | Merge Chromium bookmarks and mirror local cookie databases across Chrome, Brave, and Comet on macOS |
@@ -32,6 +34,9 @@ A collection of AI agent skills for GitHub Copilot and other AI assistants.
 | [code-simplifier](code-simplifier) | Behavior-preserving refactor workflow for reducing complexity and improving readability |
 | [codebase-explorer](codebase-explorer) | Read-only architecture mapping and execution tracing for unfamiliar or complex codebases |
 | [codebase-simplification-audit](codebase-simplification-audit) | Audit a codebase or bounded subsystem for material structural simplifications without changing it |
+| [copy-editing](copy-editing) | Edit, tighten, or refresh existing copy with seven sweeps and AI-tell removal, without rewriting it (vendored from Corey Haines; see its UPSTREAM.md) |
+| [copywriting](copywriting) | Write or rewrite homepage, landing, pricing, and feature copy with supportable claims and no AI tells (vendored from Corey Haines; see its UPSTREAM.md) |
+| [cro](cro) | Find why a page or form is not converting and what to change first, ranked by impact (vendored from Corey Haines; see its UPSTREAM.md) |
 | [decision-rationale-research](decision-rationale-research) | Research why a technical or product decision was made and report evidence, competing explanations, and confidence |
 | [describe-image](describe-image) | Generate a short text description of an image file using AI |
 | [design-system-audit](design-system-audit) | Audit design-system foundations, component usage, documentation, and design/code drift with prioritized evidence |
@@ -58,6 +63,7 @@ A collection of AI agent skills for GitHub Copilot and other AI assistants.
 | [kernel-time-drafts](kernel-time-drafts) | Reconstruct past work into Kernel bulk time drafts, or consolidate fragmented draft entries into reviewable blocks while preserving reviewed dates |
 | [linear](linear) | Read and manage Linear issues and projects, discover workflow metadata, and draft or explicitly post comments with multi-account support |
 | [lovable-workflow](lovable-workflow) | Safely modify, validate, synchronize, and release Lovable-managed projects |
+| [marketing-psychology](marketing-psychology) | Apply buyer psychology and mental models to marketing, and check whether a persuasion tactic is honest (vendored from Corey Haines; see its UPSTREAM.md) |
 | [merge-conflict-resolution](merge-conflict-resolution) | Resolve active Git merge, rebase, or cherry-pick conflicts by preserving both sides' intended behavior |
 | [my-voice](my-voice) | Draft in the user's writing voice and build or update a private local profile from sources they choose |
 | [pastel](pastel) | Read Pastel canvases and comments, run feedback rounds with before/after screenshot reports for Kernel tasks, set comment statuses, and start new versions |
@@ -65,6 +71,8 @@ A collection of AI agent skills for GitHub Copilot and other AI assistants.
 | [pr-babysit](pr-babysit) | Drive a PR to merge-ready: conflicts, review threads, and CI failures fixed one at a time, without force-pushing or merging |
 | [pr-review-guidelines](pr-review-guidelines) | Code review rubric focused on correctness, maintainability, consistency, and evidence-backed gates |
 | [pre-pr-review](pre-pr-review) | Run parallel correctness and maintainability reviewers before a PR, merge their findings, apply accepted fixes, and loop with stop rules |
+| [product-marketing](product-marketing) | Create or update the product marketing context doc (.agents/product-marketing.md) the marketing skills read first (vendored from Corey Haines; see its UPSTREAM.md) |
+| [programmatic-seo](programmatic-seo) | Plan and check templated SEO page sets ("X for Y", comparisons, directories) so each page is useful, not thin (vendored from Corey Haines; see its UPSTREAM.md) |
 | [project-verification-bootstrap](project-verification-bootstrap) | Create a project-local verification skill for launching and exercising real application paths with evidence and cleanup |
 | [provider-cli-container](provider-cli-container) | Initialize and operate isolated, pinned provider CLI containers with project-scoped account guards |
 | [publish-artifacts](publish-artifacts) | Publish generated artifacts to an existing public Google Cloud Storage bucket and return verified URLs |
@@ -172,4 +180,4 @@ skill-name/
 
 MIT
 
-Some skills adapt or vendor third-party MIT-licensed material; each such skill has an `UPSTREAM.md`. Several review, planning, testing, and diagnosis rules are adapted from [cursor/plugins](https://github.com/cursor/plugins) (pstack © 2026 Lauren Tan; thermos and cursor-team-kit © 2026 Cursor) and [DietrichGebert/ponytail](https://github.com/DietrichGebert/ponytail) (© 2026 DietrichGebert), all MIT.
+Some skills adapt or vendor third-party MIT-licensed material; each such skill has an `UPSTREAM.md`. Several review, planning, testing, and diagnosis rules are adapted from [cursor/plugins](https://github.com/cursor/plugins) (pstack © 2026 Lauren Tan; thermos and cursor-team-kit © 2026 Cursor) and [DietrichGebert/ponytail](https://github.com/DietrichGebert/ponytail) (© 2026 DietrichGebert), all MIT. The marketing skills (`copywriting`, `copy-editing`, `cro`, `ai-seo`, `programmatic-seo`, `marketing-psychology`, `product-marketing`, `aso`) are vendored from [coreyhaines31/marketingskills](https://github.com/coreyhaines31/marketingskills) (© 2025 Corey Haines, MIT).
