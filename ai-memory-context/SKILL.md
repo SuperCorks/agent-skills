@@ -142,7 +142,11 @@ and session finalization support that claim.
 - For combined page and native transcript history, use
   `agent-memory search "question" --repo /absolute/repository --json`, then
   `agent-memory read-session SESSION_ID --repo /absolute/repository --json`.
-  Add `--include-parent` only when workspace coordination history is relevant.
+  For a parent-started child task, search **from the child** with `--include-parent`:
+  T3/Claude can record a parent opening and a child transcript. Otherwise keep
+  the exact scope. Each ledger hit previews one scoped host/session, preferring
+  a matching user or assistant message among the sampled events. Read the
+  session in its reported scope; use `--raw-events` for individual search hits.
   Inspect `status` and `ledger_coverage`: an incomplete/failed search cannot
   establish absence. Follow `--ledger-offset` or use `--session` / `--host`
   filters; active streams can reorder between offset calls.
@@ -158,6 +162,10 @@ and session finalization support that claim.
 - Put architecture decisions, schemas, contracts, and operating procedures in
   canonical repository docs; memory may explain their history but does not
   replace them.
+
+When a choice would be costly to rediscover, preserve its reason next to the
+choice and, if useful, what would change it. During retrospectives count actual
+repeat explanations or retried rejected approaches; no per-task ledger.
 
 At the end of work spanning repositories, update each affected repository with
 its own durable decisions. Examples include an API contract in the API repo, a

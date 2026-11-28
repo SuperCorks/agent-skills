@@ -74,6 +74,20 @@ class ProfileTests(unittest.TestCase):
 
 
 class CoverageTests(unittest.TestCase):
+    def test_session_previews_prefer_conversation_and_preserve_host_identity(self):
+        base = dict(workspace="w", project="p", source="visible-ledger", host_id="mac",
+                    native_session_id="s", workstream_id="ws", kind="tool_result",
+                    role="tool", event_id="tool", occurred_at="3", content="clipboard")
+        message = dict(base, kind="message", role="assistant", event_id="msg", occurred_at="1",
+                       content="x" * 800 + "clipboard requires a click" + "y" * 800)
+        remote = dict(base, host_id="remote")
+        hits = retrieval.session_previews([base, remote, message], "clipboard", 2)
+        self.assertEqual([(h["host_id"], h["event_id"]) for h in hits], [("mac", "msg"), ("remote", "tool")])
+        self.assertTrue(hits[0]["truncated"])
+        self.assertIn("clipboard requires a click", hits[0]["content"])
+        self.assertLessEqual(len(hits[0]["content"]), 480)
+        self.assertFalse(hits[1]["truncated"])
+
     def test_older_stream_is_reachable_by_continuation_and_session_filter(self):
         scope = {"workspace": "w", "project": "p"}
         config = Config({"server_url": "https://memory.invalid", "host_id": "test", "allowed_scopes": [scope]})

@@ -223,6 +223,13 @@ agent-memory capture drain --json
 agent-memory report --repo /absolute/repository --days 7 --json
 ```
 
+Search returns page hits separately from `ledger_events`. By default those
+events are excerpts (up to 480 characters), one per host/session in each
+scope. Matching user/assistant messages take priority over tool output among
+the sampled events, then newer messages win. Use `--session ID --raw-events`
+for individual unabridged matches or `read-session` for surrounding context.
+From a selected child use `--include-parent` to recover a parent-started chat.
+
 Search reports `status=incomplete`, `ledger_coverage` and a warning when only a
 bounded subset was searched. Continue with the returned `--ledger-offset`, or
 target an exact `--session ID` / `--host HOST`. Inventory is live and streams

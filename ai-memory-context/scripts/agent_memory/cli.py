@@ -142,6 +142,7 @@ def parser():
             command.add_argument("query")
             command.add_argument("--ledger-offset", type=int, default=0)
             command.add_argument("--host")
+            command.add_argument("--raw-events", action="store_true", help="Show individual matching events instead of bounded session previews")
             command.add_argument("--session", dest="filter_session")
         if name == "read-session":
             command.add_argument("session_id")
@@ -187,7 +188,7 @@ def main(argv=None):
                 raise MemoryError("limit must be between1 and100")
             scope = config.resolve_scope(args.repo)
             result = retrieval.search(config, args.query, scope, args.include_parent, args.limit,
-                                      args.ledger_offset, args.host, args.filter_session) if args.command in {"search", "query"} else retrieval.read_session(config, args.session_id, scope, args.include_parent, args.limit)
+                                      args.ledger_offset, args.host, args.filter_session, args.raw_events) if args.command in {"search", "query"} else retrieval.read_session(config, args.session_id, scope, args.include_parent, args.limit)
         print(json.dumps(result, indent=2, sort_keys=True, ensure_ascii=False))
         return 1 if result.get("status") in {"pending", "degraded", "attention"} else 0
     except (MemoryError, ValueError, OSError) as error:

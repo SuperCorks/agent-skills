@@ -6,8 +6,9 @@ description: Use Graphify safely for codebase architecture, dependency, call-flo
 # Graphify Context
 
 Use Graphify as a relationship index, not as the source of truth. Prefer it
-when the question crosses files, modules, data stores, or configuration; use
-Serena or direct reads for exact symbols and literals.
+when the path across modules or stores is unknown. A known import or distinctive
+name is usually cheaper to follow with scoped `rg` and a focused read, even
+when it crosses files. Use Serena when symbol identity is ambiguous.
 
 ## Establish the repository boundary
 

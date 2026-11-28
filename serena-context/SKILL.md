@@ -5,8 +5,9 @@ description: Use Serena for exact semantic code retrieval, including symbol defi
 
 # Serena Context
 
-Use Serena for exact semantic code questions. It complements Graphify's
-multi-hop relationship map and direct search's literal matching.
+Use scoped `rg` first for a distinctive name or known import chain. Use Serena
+when spelling alone cannot establish identity (aliases, ambiguous references,
+implementations) or when an outline or diagnostics would answer the question.
 
 ## Activate the exact repository or worktree
 

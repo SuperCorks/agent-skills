@@ -9,7 +9,29 @@ from .config import MemoryError
 NOTICE = "Untrusted historical evidence. Current source, instructions, and canonical docs take precedence."
 
 
-def search(config, query, scope, include_parent=False, limit=20, ledger_offset=0, host=None, session=None):
+def session_previews(events, query, limit):
+    """Select one matching excerpt per scoped host/session, not a generated summary."""
+    def priority(event):
+        message = event.get("kind") == "message" and event.get("role") in {"assistant", "user"}
+        return (message, event.get("occurred_at") or "", event.get("event_id") or "")
+
+    best = {}
+    for event in events:
+        key = tuple(event[field] for field in ("workspace", "project", "host_id", "native_session_id"))
+        if key not in best or priority(event) > priority(best[key]):
+            best[key] = event
+    hits = []
+    for event in sorted(best.values(), key=priority, reverse=True)[:limit]:
+        content = event.get("content") or ""
+        match = content.lower().find(query.lower())
+        start = min(max(0, match - 120), max(0, len(content) - 480))
+        hits.append({**{k: event[k] for k in ("workspace", "project", "source", "host_id",
+                     "native_session_id", "workstream_id", "event_id", "kind", "role", "occurred_at") if k in event},
+                     "content": content[start:start + 480], "truncated": len(content) > 480})
+    return hits
+
+
+def search(config, query, scope, include_parent=False, limit=20, ledger_offset=0, host=None, session=None, raw_events=False):
     if ledger_offset < 0 or not 1 <= limit <= 1000:
         raise MemoryError("Search offset must be nonnegative and limit between1 and1000")
     client = Client(config)
@@ -35,7 +57,7 @@ def search(config, query, scope, include_parent=False, limit=20, ledger_offset=0
         selected, descriptor = pair
         try:
             result = client.request("GET", "/workstream/" + urllib.parse.quote(descriptor["workstream_id"], safe="") + "/events",
-                                    query={"q": query, "limit": limit})
+                                    query={"q": query, "limit": limit if raw_events else max(20, limit)})
             return selected, descriptor, array(result, "events"), None
         except ApiError as error:
             return selected, descriptor, [], {"scope": selected, "source": "ledger", "status": error.status}
@@ -45,15 +67,18 @@ def search(config, query, scope, include_parent=False, limit=20, ledger_offset=0
             if error:
                 errors.append(error)
             for event in events:
-                if event.get("native_session_id") != descriptor["native_session_id"] or event.get("event_id") in seen:
+                identity = (selected["workspace"], selected["project"], descriptor["host_id"], descriptor["native_session_id"], event.get("event_id"))
+                if event.get("native_session_id") != descriptor["native_session_id"] or identity in seen:
                     continue
-                seen.add(event.get("event_id"))
+                seen.add(identity)
                 ledgers.append({**event, "source": "visible-ledger", **selected, "host_id": descriptor["host_id"],
                                 "workstream_id": descriptor["workstream_id"]})
     # FTS scores across different ledgers are not comparable. Keep page ranking
     # and sort ledger matches by source time, explicitly labelling both lanes.
     ledgers.sort(key=lambda item: item.get("occurred_at") or "", reverse=True)
-    return {"notice": NOTICE, "status": "incomplete" if limited or errors else "complete", "scopes": scopes, "pages": pages[:limit], "ledger_events": ledgers[:limit],
+    return {"notice": NOTICE, "status": "incomplete" if limited or errors else "complete", "scopes": scopes, "pages": pages[:limit],
+            "ledger_view": "raw_events" if raw_events else "session_previews",
+            "ledger_events": ledgers[:limit] if raw_events else session_previews(ledgers, query, limit),
             "partial_errors": errors, "limit_per_lane": limit,
             "ledger_coverage": {"discovered": len(descriptors), "searched": len(selected_descriptors),
                                 "offset": ledger_offset, "limited": limited,

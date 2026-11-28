@@ -654,6 +654,22 @@ class CaptureIntegrationTests(unittest.TestCase):
         self.assertEqual(len(result["scopes"]), 2)
         self.assertEqual(result["pages"][0]["project"], "workspace")
 
+    def test_grouped_search_and_raw_drill_down(self):
+        capture.initialize(self.config)
+        self.append(message("clipboard choice", role="user"))
+        self.append(message("clipboard rationale " + "x" * 500, "2026-09-01T00:00:02Z"))
+        self.hook()
+        capture.drain(self.config)
+        scope = {"workspace": "work/team", "project": "app"}
+        result = retrieval.search(self.config, "clipboard", scope)
+        self.assertEqual(result["ledger_view"], "session_previews")
+        self.assertEqual(len(result["ledger_events"]), 1)
+        self.assertTrue(result["ledger_events"][0]["truncated"])
+        raw = retrieval.search(self.config, "clipboard", scope, session=SESSION, raw_events=True)
+        self.assertEqual(raw["ledger_view"], "raw_events")
+        self.assertEqual([e["role"] for e in raw["ledger_events"]], ["assistant", "user"])
+        self.assertTrue(raw["ledger_events"][0]["content"].endswith("x" * 500))
+
     def test_session_scope_does_not_follow_nested_shell_workdir(self):
         capture.initialize(self.config)
         other = self.root / "other-repo"
